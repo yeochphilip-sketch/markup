@@ -19,8 +19,8 @@ interface HistoryItem {
 
 export default function DashboardPage() {
   const [activeSubject, setActiveSubject] = useState('Social Studies');
-  const [selectedTopic, setSelectedTopic] = useState('Governance');
-  const [selectedSkill, setSelectedSkill] = useState('SBCS: Comparison');
+  const [selectedTopic, setSelectedTopic] = useState('Issue 1: Citizenship & Governance');
+  const [selectedSkill, setSelectedSkill] = useState('SBQ: Comparison & Contrast');
   const [studentAnswer, setStudentAnswer] = useState('');
   const [userAvatar, setUserAvatar] = useState('/default-avatar.png');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -40,6 +40,17 @@ export default function DashboardPage() {
     scoreEstimate: '',
     critique: [] as string[]
   });
+
+  // Automatically update topic list selections to fit strict syllabus parameters
+  useEffect(() => {
+    if (activeSubject === 'Social Studies') {
+      setSelectedTopic('Issue 1: Citizenship & Governance');
+      setSelectedSkill('SBQ: Comparison & Contrast');
+    } else {
+      setSelectedTopic('Case Study: Nazi Germany (*SBQ)');
+      setSelectedSkill('SBQ: Testing Utility & Reliability');
+    }
+  }, [activeSubject]);
 
   const loadHistoryLogs = async () => {
     const { data } = await supabase
@@ -80,7 +91,7 @@ export default function DashboardPage() {
         questionPrompt: data.questionPrompt || '',
         suggestedAnswer: data.suggestedAnswer || 'No model answer provided.'
       });
-      loadHistoryLogs(); // Instantly refresh sidebar logs
+      loadHistoryLogs();
     } catch (err) {
       console.error(err);
     } finally {
@@ -132,26 +143,59 @@ export default function DashboardPage() {
       {/* Main Workspace Frame */}
       <div className="flex-1 grid grid-cols-1 xl:grid-cols-5 p-6 gap-6 overflow-hidden">
         
-        {/* Expanded Spiced Panel: Configurator & Chat/Prompt Log History */}
+        {/* Left Side: Configurator & Dynamic Logs */}
         <div className="xl:col-span-1 flex flex-col space-y-4 max-h-[85vh] overflow-y-auto pr-1">
           <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-4 space-y-4">
-            <h2 className="text-[10px] font-black tracking-widest text-slate-400 uppercase">Configurator</h2>
+            <h2 className="text-[10px] font-black tracking-widest text-slate-400 uppercase">Syllabus Core</h2>
             <div className="space-y-3">
-              <select value={selectedTopic} onChange={(e) => setSelectedTopic(e.target.value)} className="w-full bg-slate-900 border border-slate-800 p-2.5 rounded-xl text-xs font-medium focus:outline-none focus:border-indigo-500">
-                <option value="Governance">Governance</option>
-                <option value="Conflict and Harmony">Conflict and Harmony</option>
+              <select value={selectedTopic} onChange={(e) => setSelectedTopic(e.target.value)} className="w-full bg-slate-900 border border-slate-800 p-2.5 rounded-xl text-xs font-medium focus:outline-none focus:border-indigo-500 text-slate-200">
+                {activeSubject === 'Social Studies' ? (
+                  <>
+                    <option value="Issue 1: Citizenship & Governance">Issue 1: Citizenship & Governance</option>
+                    <option value="Issue 2: Diverse Society Harmony">Issue 2: Diverse Society Harmony</option>
+                    <option value="Issue 3: Globalised World Responses">Issue 3: Globalised World Responses</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="Case Study: Nazi Germany (*SBQ)">Case Study: Nazi Germany (*SBQ)</option>
+                    <option value="Case Study: Militarist Japan">Case Study: Militarist Japan</option>
+                    <option value="WWII: Outbreak in Europe (*SBQ)">WWII: Outbreak in Europe (*SBQ)</option>
+                    <option value="WWII: Outbreak in Asia-Pacific">WWII: Outbreak in Asia-Pacific</option>
+                    <option value="Cold War: Origins in Europe (*SBQ)">Cold War: Origins in Europe (*SBQ)</option>
+                    <option value="Cold War Extension: Korean War (*SBQ)">Cold War Extension: Korean War (*SBQ)</option>
+                    <option value="Cold War Extension: Vietnam War">Cold War Extension: Vietnam War</option>
+                    <option value="Decline & End of USSR">Decline & End of USSR</option>
+                  </>
+                )}
               </select>
-              <select value={selectedSkill} onChange={(e) => setSelectedSkill(e.target.value)} className="w-full bg-slate-900 border border-slate-800 p-2.5 rounded-xl text-xs font-medium focus:outline-none focus:border-indigo-500">
-                <option value="SBCS: Comparison">SBCS: Comparison</option>
-                <option value="SBCS: Inference">SBCS: Inference</option>
+
+              <select value={selectedSkill} onChange={(e) => setSelectedSkill(e.target.value)} className="w-full bg-slate-900 border border-slate-800 p-2.5 rounded-xl text-xs font-medium focus:outline-none focus:border-indigo-500 text-slate-200">
+                {activeSubject === 'Social Studies' ? (
+                  <>
+                    <option value="SBQ: Extracting & Inferring">SBQ: Extracting & Inferring (AO2)</option>
+                    <option value="SBQ: Comparison & Contrast">SBQ: Comparison & Contrast (AO2)</option>
+                    <option value="SBQ: Identifying Value Bias">SBQ: Identifying Value Bias (AO2)</option>
+                    <option value="SBQ: Evaluation of Multiple Sources">SBQ: Synthesis Assertion Question (AO2)</option>
+                    <option value="SRQ: Multi-causal Explanation">SRQ: Multi-Causal Explanation (AO3)</option>
+                    <option value="SRQ: Balanced Conclusion Weighting">SRQ: Factor Weighting Assessment (AO3)</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="SBQ: Sub-Inference Cross-Referencing">SBQ: Inference & Cross-Referencing (AO3)</option>
+                    <option value="SBQ: Analyzing Purpose & Intent">SBQ: Purpose-Motive Evaluation (AO3)</option>
+                    <option value="SBQ: Testing Utility & Reliability">SBQ: Utility & Reliability Limits (AO3)</option>
+                    <option value="SBQ: Multiple Source Synthesis">SBQ: Synthesis Assertion Matrix (AO3)</option>
+                    <option value="SEQ: Constructing Historical Explanations">SEQ: Structured Essay Question (AO2)</option>
+                  </>
+                )}
               </select>
+
               <button onClick={handleGenerateChallenge} disabled={isGenerating} className="w-full bg-indigo-600 text-white text-xs font-bold py-2.5 rounded-xl transition disabled:opacity-50">
                 {isGenerating ? 'Drafting...' : '⚡ Generate Practice'}
               </button>
             </div>
           </div>
 
-          {/* Dynamic Challenge History List */}
           <div className="flex-1 flex flex-col min-h-[250px]">
             <span className="text-[10px] font-black tracking-widest text-slate-500 uppercase mb-2">Practice Challenge Logs</span>
             <div className="flex-1 space-y-2 overflow-y-auto max-h-[50vh] pr-1">
@@ -162,7 +206,7 @@ export default function DashboardPage() {
                   <div key={item.id} onClick={() => setChallenge({ backgroundContext: item.background_context, sourceA: item.source_a, sourceB: item.source_b, questionPrompt: item.question_prompt, suggestedAnswer: item.suggested_answer })} className="bg-slate-950/30 hover:bg-slate-900/60 border border-slate-900 p-3 rounded-xl cursor-pointer transition text-left space-y-1.5 group">
                     <div className="flex justify-between items-center gap-2">
                       <span className="text-[9px] bg-slate-900 px-2 py-0.5 rounded text-indigo-400 font-bold uppercase tracking-wider">{item.subject === 'Social Studies' ? 'SS' : 'HIST'}</span>
-                      <span className="text-[8px] text-slate-500">{item.question_type.replace('SBCS: ', '')}</span>
+                      <span className="text-[8px] text-slate-500 line-clamp-1">{item.question_type.replace('SBQ: ', '').replace('SRQ: ', '').replace('SEQ: ', '')}</span>
                     </div>
                     <p className="text-[11px] text-slate-400 line-clamp-2 font-medium group-hover:text-slate-200 transition">{item.question_prompt}</p>
                   </div>
@@ -172,7 +216,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Left-Middle: Active Challenge Text Display */}
+        {/* Source Text Container */}
         <div className="xl:col-span-1 space-y-3 max-h-[85vh] overflow-y-auto pr-1">
           {challenge.backgroundContext ? (
             <>
@@ -194,7 +238,7 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Center: Canvas Workspace area */}
+        {/* Center: Writing Canvas */}
         <div className="xl:col-span-2 flex flex-col space-y-4">
           {challenge.questionPrompt && (
             <div className="bg-indigo-950/20 border border-indigo-900/30 rounded-2xl p-4">
@@ -210,7 +254,7 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        {/* Right Sidebar: Marks Banding & Post-Scan Model Solution display */}
+        {/* Right Sidebar: Marks Banding & Top-Tier LORMS Answers */}
         <div className="xl:col-span-1 space-y-4 max-h-[85vh] overflow-y-auto pr-1">
           <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-5 space-y-4 flex flex-col h-full">
             <div>
@@ -231,8 +275,8 @@ export default function DashboardPage() {
             )}
             {hasScanned && challenge.suggestedAnswer && (
               <div className="space-y-2 pt-3 border-t border-slate-900 flex-1 flex flex-col">
-                <span className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase block">Suggested Model Answer</span>
-                <div className="flex-1 bg-slate-900/40 border border-slate-800/80 rounded-xl p-3 text-[11px] text-slate-400 leading-relaxed overflow-y-auto max-h-[220px]">{challenge.suggestedAnswer}</div>
+                <span className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase block">Top-Tier Exemplar Model Solution</span>
+                <div className="flex-1 bg-slate-900/40 border border-slate-800/80 rounded-xl p-3 text-[11px] text-slate-400 leading-relaxed overflow-y-auto max-h-[220px] font-serif whitespace-pre-line">{challenge.suggestedAnswer}</div>
               </div>
             )}
           </div>

@@ -12,20 +12,26 @@ export async function POST(req: Request) {
       baseURL: "https://api.groq.com/openai/v1",
     });
 
-    const systemPrompt = `You are a Senior Assessment Specialist for Singapore O-Level ${subject}.
-    Generate a high-fidelity Source-Based Case Study (SBCS) task package matching SEAB parameters.
+    const systemPrompt = `You are a Senior Assessment Specialist for Singapore O-Level Humanities ${subject} (Syllabus 2261).
+    Your task is to generate a high-fidelity assessment item matching the exact structural parameters requested.
     
-    CRITICAL QUALITY RULES:
-    1. If Subject is "Social Studies", anchor the background context and source viewpoints entirely on highly relevant Current Affairs, modern civic governance, globalization developments, or digital media literacy milestones.
-    2. If Subject is "Elective History", adhere strictly to standard syllabus units (e.g., Cold War crises, Stalinist Russia, Nazi Germany, or the outbreak of WWII in Asia-Pacific). Do not stray outside textbook historical domains.
+    CRITICAL SYLLABUS DIRECTIVES:
+    1. If Subject is "Social Studies", focus context and sources entirely on modern Current Affairs, civic governance principles, globalised interactions, identity, or socio-economic diversity challenges in Singapore or globally.
+    2. If Subject is "Elective History", follow strict 20th-century history guidelines from 1910s to 1991 (Paris Peace Conference, Nazi Germany, Militarist Japan, WWII in Europe/Asia-Pacific, or Cold War developments).
     
-    Return strictly a JSON object matching this exact shape:
+    TOP-TIER ANSWERING SCHEME STANDARDS (LORMS):
+    The "suggestedAnswer" parameter must reflect the absolute highest band level criteria defined by Cambridge & SEAB:
+    - For Inference tasks: State a clear, non-literal sub-inference, accompanied by dense textual quotes and thorough reasoning explaining the hidden author purpose/motive (V-A-M layout).
+    - For Comparison tasks: Detail both valid, crisp similarities and explicit differences based on a common matching point of comparison. Include rigorous cross-referencing markers.
+    - For Essay/Evaluation tasks: Provide distinct multi-causal arguments using the strict PEEL format (Point, Evidence, Elaboration, Link), concluding with an explicit, nuanced evaluation of relative factor significance.
+    
+    Return exclusively a JSON object structured exactly like this:
     {
-      "backgroundContext": "Historical or current affairs context summary...",
-      "sourceA": "Provenance and text extract for Source A...",
-      "sourceB": "Provenance and text extract for Source B...",
-      "questionPrompt": "The comparative or inference target question...",
-      "suggestedAnswer": "An exemplary L5/L6 framework model answer."
+      "backgroundContext": "Historical/current affairs provenance background details...",
+      "sourceA": "Source details including provenance and short text block...",
+      "sourceB": "Source details including provenance and short text block...",
+      "questionPrompt": "The specific evaluation prompt formatted exactly like a standard exam script item.",
+      "suggestedAnswer": "A top-tier, exam-ready model solution showing ideal application of the exact relevant LORMS band rules."
     }`;
 
     const completion = await groq.chat.completions.create({
@@ -36,7 +42,6 @@ export async function POST(req: Request) {
 
     const payload = JSON.parse(completion.choices[0].message.content || '{}');
 
-    // Secure database log tracking using modern standard @supabase/ssr utilities
     try {
       const cookieStore = await cookies();
       const supabase = createServerClient(
@@ -44,17 +49,11 @@ export async function POST(req: Request) {
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
           cookies: {
-            getAll() {
-              return cookieStore.getAll();
-            },
+            getAll() { return cookieStore.getAll(); },
             setAll(cookiesToSet) {
               try {
-                cookiesToSet.forEach(({ name, value, options }) =>
-                  cookieStore.set(name, value, options)
-                );
-              } catch {
-                // Safe component background execution bypass
-              }
+                cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
+              } catch {}
             },
           },
         }
@@ -75,7 +74,7 @@ export async function POST(req: Request) {
         });
       }
     } catch (dbErr) {
-      console.error("Supabase history log bypassed:", dbErr);
+      console.error("Supabase log step bypassed:", dbErr);
     }
 
     return NextResponse.json(payload);
