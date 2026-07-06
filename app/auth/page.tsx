@@ -30,8 +30,7 @@ function AuthContent() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: authRedirectUrl,
-        flowType: 'pkce', // Crucial Fix: Blocks hash fragments and routes purely through the callback backend
+        redirectTo: authRedirectUrl, // Cleaner option layout passing TypeScript validation
       },
     });
   };
