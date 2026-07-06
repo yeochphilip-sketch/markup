@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import OpenAI from 'openai';
 
@@ -12,7 +12,6 @@ export async function POST(req: Request) {
       baseURL: "https://api.groq.com/openai/v1",
     });
 
-    // Strategy prompt engineering setting direct context limits dynamically
     const systemPrompt = `You are a Senior Assessment Specialist for Singapore O-Level ${subject}.
     Generate a high-fidelity Source-Based Case Study (SBCS) task package matching SEAB parameters.
     
@@ -37,9 +36,30 @@ export async function POST(req: Request) {
 
     const payload = JSON.parse(completion.choices[0].message.content || '{}');
 
-    // Attempt to log this record automatically if a user session cookie exists
+    // Secure database log tracking using modern standard @supabase/ssr utilities
     try {
-      const supabase = createRouteHandlerClient({ cookies });
+      const cookieStore = await cookies();
+      const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          cookies: {
+            getAll() {
+              return cookieStore.getAll();
+            },
+            setAll(cookiesToSet) {
+              try {
+                cookiesToSet.forEach(({ name, value, options }) =>
+                  cookieStore.set(name, value, options)
+                );
+              } catch {
+                // Safe component background execution bypass
+              }
+            },
+          },
+        }
+      );
+
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user?.id) {
         await supabase.from('practice_history').insert({
