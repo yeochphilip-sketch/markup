@@ -12,8 +12,8 @@ export default function DashboardPage() {
   const [userAvatar, setUserAvatar] = useState('/default-avatar.png');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGrading, setIsGrading] = useState(false);
+  const [hasScanned, setHasScanned] = useState(false); // Tracking state for answer revelation
 
-  // Challenge State (Preserved explicitly during grading executions)
   const [challenge, setChallenge] = useState({
     backgroundContext: '',
     sourceA: '',
@@ -22,13 +22,11 @@ export default function DashboardPage() {
     suggestedAnswer: ''
   });
 
-  // Evaluation Metrics State
   const [evaluation, setEvaluation] = useState({
     scoreEstimate: '',
     critique: [] as string[]
   });
 
-  // Fetch Session data to secure the Google Profile Picture
   useEffect(() => {
     async function getUserData() {
       const { data: { session } } = await supabase.auth.getSession();
@@ -41,7 +39,8 @@ export default function DashboardPage() {
 
   const handleGenerateChallenge = async () => {
     setIsGenerating(true);
-    setEvaluation({ scoreEstimate: '', critique: [] }); // Reset grading column
+    setHasScanned(false); // Reset answer visibility on new paper generation
+    setEvaluation({ scoreEstimate: '', critique: [] });
     
     try {
       const res = await fetch('/api/generate-question', {
@@ -51,7 +50,6 @@ export default function DashboardPage() {
       });
       const data = await res.json();
       
-      // Fix: Direct mapping from API payload fields to challenge state parameters
       setChallenge({
         backgroundContext: data.backgroundContext || '',
         sourceA: data.sourceA || '',
@@ -81,6 +79,7 @@ export default function DashboardPage() {
         scoreEstimate: data.scoreEstimate || 'L1/1 (Initial Attempt)',
         critique: data.critique || []
       });
+      setHasScanned(true); // Unveils the suggested model answer card safely
     } catch (err) {
       console.error(err);
     } finally {
@@ -113,7 +112,7 @@ export default function DashboardPage() {
 
       {/* Main Framework Grid */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 p-6 gap-6 overflow-hidden">
-        {/* Left Hand: Configurator Panel */}
+        {/* Left Panel: Configurator */}
         <div className="lg:col-span-1 space-y-4 flex flex-col justify-between">
           <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-5 space-y-4">
             <h2 className="text-xs font-bold tracking-widest text-slate-400 uppercase">Practice Configurator</h2>
@@ -139,7 +138,7 @@ export default function DashboardPage() {
             </button>
           </div>
 
-          {/* Sources Displays */}
+          {/* Sources Display */}
           <div className="space-y-3 flex-1 mt-4">
             {challenge.backgroundContext && (
               <div className="bg-slate-950/40 border border-slate-900 rounded-xl p-4 space-y-1.5 text-xs">
@@ -162,7 +161,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Center: Evaluation Workspace */}
+        {/* Center Canvas Workspace */}
         <div className="lg:col-span-2 flex flex-col space-y-4">
           {challenge.questionPrompt && (
             <div className="bg-indigo-950/20 border border-indigo-900/30 rounded-2xl p-5">
@@ -181,12 +180,12 @@ export default function DashboardPage() {
             />
           </div>
 
-          <button onClick={handleScanStructure} disabled={isGrading || !studentAnswer} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-xl text-xs tracking-wide transition shadow-md shadow-indigo-950/40 disabled:opacity-40">
+          <button onClick={handleScanStructure} disabled={isGrading || !studentAnswer} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-xl text-xs tracking-wide transition shadow-md disabled:opacity-40">
             {isGrading ? 'Analyzing PEEL Matrix Structures...' : 'Scan Answer Structure'}
           </button>
         </div>
 
-        {/* Right Hand: LORMS Grading & Suggested Answer Container */}
+        {/* Right Hand Sidebar: Metrics & Conditioned Model Answer */}
         <div className="lg:col-span-1 space-y-4">
           <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-5 space-y-4 h-full flex flex-col">
             <div>
@@ -196,7 +195,6 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Diagnostics Block */}
             {evaluation.critique.length > 0 && (
               <div className="space-y-3 pt-2 border-t border-slate-900">
                 <span className="text-[10px] font-bold tracking-widest text-slate-500 uppercase block">Structural Diagnostics</span>
@@ -211,9 +209,9 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* Fixed New Section: Suggested Answer Block placed below Diagnostics */}
-            {challenge.suggestedAnswer && (
-              <div className="space-y-2 pt-3 border-t border-slate-900 flex-1 flex flex-col min-h-[180px]">
+            {/* Conditioned View: Render ONLY if challenge text exists AND scan operation has completed */}
+            {hasScanned && challenge.suggestedAnswer && (
+              <div className="space-y-2 pt-3 border-t border-slate-900 flex-1 flex flex-col min-h-[180px] animate-fade-in">
                 <span className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase block">Suggested Model Answer</span>
                 <div className="flex-1 bg-slate-900/40 border border-slate-800/80 rounded-xl p-3 text-xs text-slate-400 leading-relaxed overflow-y-auto max-h-[300px]">
                   {challenge.suggestedAnswer}

@@ -10,7 +10,6 @@ function AuthContent() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // Dynamically use the current deployment URL (localhost or live vercel)
       const currentOrigin = window.location.origin;
       const callbackUrl = new URL('/auth/callback', currentOrigin);
       
@@ -32,6 +31,7 @@ function AuthContent() {
       provider: 'google',
       options: {
         redirectTo: authRedirectUrl,
+        flowType: 'pkce', // Crucial Fix: Blocks hash fragments and routes purely through the callback backend
       },
     });
   };
