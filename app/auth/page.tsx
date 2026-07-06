@@ -6,22 +6,29 @@ import { supabase } from '@/utils/supabase';
 
 function AuthContent() {
   const searchParams = useSearchParams();
-  const [redirectTo, setRedirectTo] = useState('/dashboard');
+  const [authRedirectUrl, setAuthRedirectUrl] = useState('');
 
   useEffect(() => {
+    // Force the OAuth flow to go through our server-side callback route first
+    const callbackUrl = new URL('/auth/callback', window.location.origin);
+    
     const target = searchParams.get('next');
     if (target === 'pricing') {
-      setRedirectTo(`${window.location.origin}/pricing`);
+      callbackUrl.searchParams.set('next', '/pricing');
     } else {
-      setRedirectTo(`${window.location.origin}/dashboard`);
+      callbackUrl.searchParams.set('next', '/dashboard');
     }
+    
+    setAuthRedirectUrl(callbackUrl.toString());
   }, [searchParams]);
 
   const handleGoogleLogin = async () => {
+    if (!authRedirectUrl) return;
+    
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: redirectTo,
+        redirectTo: authRedirectUrl, // Correctly forces PKCE code exchange sequence
       },
     });
   };
