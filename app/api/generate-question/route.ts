@@ -10,19 +10,19 @@ export async function POST(req: Request) {
       baseURL: "https://api.groq.com/openai/v1",
     });
 
-    const systemPrompt = `You are an expert Singapore O-Level Humanities Setter specializing in SEAB standard Source-Based Case Studies (SBCS). 
+    const systemPrompt = `You are an expert Singapore O-Level Humanities Setter specializing in SEAB standard Source-Based Case Studies (SBCS).
     Generate a highly realistic mock assessment package based on these constraints:
     Subject: ${subject}
     Topic: ${topic}
     Format: ${questionType}
 
-    Return strictly a JSON object with this shape:
+    Return strictly a valid JSON object with exactly this shape:
     {
-      "backgroundContext": "Brief 3-sentence historical context summary...",
-      "sourceA": "Provenance: Extract text or attribution block...",
-      "sourceB": "Provenance: Dual perspective contrasting/supporting extract...",
+      "backgroundContext": "Historical context summary...",
+      "sourceA": "Provenance and text of Source A...",
+      "sourceB": "Provenance and text of Source B...",
       "questionPrompt": "The specific evaluation prompt question...",
-      "suggestedAnswer": "An exemplary L5 or L6 model answer using rigorous PEEL structure, source cross-reference, and full authorial intent/bias analysis."
+      "suggestedAnswer": "An exemplary high-level model answer using rigorous PEEL structure."
     }`;
 
     const completion = await groq.chat.completions.create({
@@ -31,7 +31,8 @@ export async function POST(req: Request) {
       response_format: { type: "json_object" }
     });
 
-    return NextResponse.json(JSON.parse(completion.choices[0].message.content || '{}'));
+    const responseText = completion.choices[0].message.content || '{}';
+    return NextResponse.json(JSON.parse(responseText));
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
