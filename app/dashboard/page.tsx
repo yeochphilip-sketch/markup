@@ -35,14 +35,12 @@ export default function DashboardPage() {
   const [customPrompt, setCustomPrompt] = useState('');
   
   const [studentAnswer, setStudentAnswer] = useState('');
-  const [userAvatar, setUserAvatar] = useState('/default-avatar.png');
+  const [userAvatar, setUserAvatar] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGrading, setIsGrading] = useState(false);
   const [hasScanned, setHasScanned] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
-  
-  // Settings dropdown toggle state
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const [challenge, setChallenge] = useState({
@@ -58,6 +56,9 @@ export default function DashboardPage() {
     critique: [] as string[],
     segments: [] as Segment[]
   });
+
+  // Safe computed initial for the profile placeholder avatar
+  const emailInitial = userEmail ? userEmail.charAt(0).toUpperCase() : 'S';
 
   useEffect(() => {
     if (activeSubject === 'Social Studies') {
@@ -90,7 +91,6 @@ export default function DashboardPage() {
     }
     initUserSession();
 
-    // Close settings dropdown if clicking outside of the element
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsSettingsOpen(false);
@@ -164,8 +164,8 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col font-sans">
-      {/* Top Navbar */}
-      <header className="border-b border-slate-900 px-6 py-4 flex items-center justify-between bg-slate-950/40 backdrop-blur-sm relative z-50">
+      {/* Premium Polish Top Header */}
+      <header className="border-b border-slate-900 px-6 py-4 flex items-center justify-between bg-slate-950/60 backdrop-blur-md relative z-50">
         <h1 className="text-xl font-black text-indigo-500 tracking-wider">MARKUP</h1>
         <div className="flex items-center gap-4">
           <div className="flex bg-slate-900 p-1 rounded-xl gap-1">
@@ -176,49 +176,55 @@ export default function DashboardPage() {
             ))}
           </div>
           
-          {/* Interactive Profile Picture Container & Dropdown */}
+          {/* Refactored Interactive Profile Dropdown Node */}
           <div className="relative" ref={dropdownRef}>
             <button 
               onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-              className="relative w-9 h-9 rounded-full overflow-hidden border border-slate-800 hover:border-indigo-500 focus:outline-none transition block shadow-sm"
+              className="w-9 h-9 rounded-full flex items-center justify-center border border-slate-800 hover:border-indigo-500 focus:outline-none transition relative overflow-hidden bg-gradient-to-br from-indigo-600 to-purple-700 shadow-lg group"
               aria-label="User account navigation menu"
             >
-              <Image src={userAvatar} alt="Avatar Profile" fill sizes="36px" className="object-cover" referrerPolicy="no-referrer" />
+              {userAvatar ? (
+                <Image src={userAvatar} alt="Profile Image" fill sizes="36px" className="object-cover" referrerPolicy="no-referrer" />
+              ) : (
+                <span className="text-sm font-black text-white tracking-tighter group-hover:scale-105 transition duration-150">{emailInitial}</span>
+              )}
             </button>
 
-            {/* Dynamic Floating Settings Dropdown Menu */}
+            {/* Repositioned & Drop-Shadow Enhanced Settings Card */}
             {isSettingsOpen && (
-              <div className="absolute right-0 mt-2.5 w-60 bg-slate-950 border border-slate-900 p-4 rounded-2xl shadow-2xl backdrop-blur-xl flex flex-col space-y-3 animation-fade-in animate-in slide-in-from-top-1 duration-150">
+              <div className="absolute right-0 mt-3 w-64 bg-slate-950/95 border border-slate-900 p-4 rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)] backdrop-blur-xl flex flex-col space-y-3 transition transform origin-top-right duration-150">
                 <div>
                   <h3 className="text-[10px] font-black tracking-widest text-slate-500 uppercase">Account Profile</h3>
-                  <p className="text-xs text-slate-300 font-medium truncate mt-1">{userEmail || 'Student Account'}</p>
+                  <p className="text-xs text-slate-200 font-semibold truncate mt-1 bg-slate-900/60 px-2.5 py-1.5 rounded-xl border border-slate-900">{userEmail || 'Active Student'}</p>
                 </div>
-                <div className="pt-2 border-t border-slate-900 space-y-2">
-                  <div className="flex justify-between items-center text-[11px] text-slate-400">
+                <div className="pt-1.5 space-y-2">
+                  <div className="flex justify-between items-center text-[11px] text-slate-400 px-0.5">
                     <span>Curriculum Tier:</span>
-                    <span className="text-indigo-400 font-bold">O-Level (2026)</span>
+                    <span className="text-indigo-400 font-bold bg-indigo-500/10 px-2 py-0.5 rounded-md text-[10px]">O-Level (2026)</span>
                   </div>
-                  <div className="flex justify-between items-center text-[11px] text-slate-400">
+                  <div className="flex justify-between items-center text-[11px] text-slate-400 px-0.5">
                     <span>Engine Standard:</span>
-                    <span className="text-emerald-400 font-bold">Llama 3.1</span>
+                    <span className="text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-md text-[10px]">Llama 3.1</span>
                   </div>
                 </div>
-                <button 
-                  onClick={handleSignOut}
-                  className="w-full bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-900/40 font-bold py-2 rounded-xl text-xs transition mt-1"
-                >
-                  Sign Out
-                </button>
+                <div className="pt-2 border-t border-slate-900">
+                  <button 
+                    onClick={handleSignOut}
+                    className="w-full bg-red-950/30 hover:bg-red-900/50 text-red-400 border border-red-900/30 font-bold py-2 rounded-xl text-xs transition duration-150 shadow-inner"
+                  >
+                    Sign Out
+                  </button>
+                </div>
               </div>
             )}
           </div>
         </div>
       </header>
 
-      {/* Workspace Grid Configuration */}
+      {/* Main Grid Content Panels */}
       <div className="flex-1 grid grid-cols-1 xl:grid-cols-5 p-6 gap-6 overflow-hidden">
         
-        {/* Panel 1: Configurator Options & Logs */}
+        {/* Configurator Column */}
         <div className="xl:col-span-1 flex flex-col space-y-4 max-h-[85vh] overflow-y-auto pr-1">
           <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-4 space-y-4">
             <h2 className="text-[10px] font-black tracking-widest text-slate-400 uppercase">Configurator</h2>
@@ -291,7 +297,7 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* Historical Logs List */}
+          {/* History Logger list */}
           <div className="flex-1 flex flex-col min-h-[220px]">
             <span className="text-[10px] font-black tracking-widest text-slate-500 uppercase mb-2">Practice History Logs</span>
             <div className="flex-1 space-y-2 overflow-y-auto max-h-[420px] pr-1">
@@ -312,7 +318,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Panel 2: Context Source Viewer */}
+        {/* Source Text Container */}
         <div className="xl:col-span-1 space-y-3 max-h-[85vh] overflow-y-auto pr-1">
           {!isCustomMode ? (
             challenge.backgroundContext ? (
@@ -341,7 +347,7 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Panel 3: Center Canvas Workspace */}
+        {/* Center Writing Workspace Canvas */}
         <div className="xl:col-span-2 flex flex-col space-y-4">
           <div className="bg-indigo-950/20 border border-indigo-900/30 rounded-2xl p-4">
             <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Question Assignment Prompt</span>
@@ -380,7 +386,7 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        {/* Panel 4: Metrics Sidebar & Model Solution */}
+        {/* Right Sidebar Checklist Analytics */}
         <div className="xl:col-span-1 space-y-4 max-h-[85vh] overflow-y-auto pr-1">
           <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-5 space-y-4 flex flex-col h-full">
             <div>
