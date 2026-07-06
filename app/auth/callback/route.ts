@@ -8,7 +8,8 @@ export async function GET(request: Request) {
   const next = requestUrl.searchParams.get('next') || '/dashboard';
 
   if (code) {
-    const cookieStore = cookies();
+    // Crucial Fix: cookies() is an async Promise in newer Next.js versions
+    const cookieStore = await cookies();
     
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -24,17 +25,17 @@ export async function GET(request: Request) {
                 cookieStore.set(name, value, options)
               );
             } catch {
-              // The `setAll` method can be ignored if called from a Server Component
+              // The `setAll` method can be safely ignored if called from a Server Component
             }
           },
         },
       }
     );
     
-    // Exchange the code for a secure, cookie-backed session
+    // Exchange the routing auth code for a secure cookie session
     await supabase.auth.exchangeCodeForSession(code);
   }
 
-  // Route cleanly to the dashboard or destination url
+  // Route cleanly to your destination path
   return NextResponse.redirect(new URL(next, requestUrl.origin));
 }
