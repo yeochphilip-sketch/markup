@@ -1,65 +1,57 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/utils/supabase';
-import { useRouter } from 'next/navigation';
 
-export default function AuthGate() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const router = useRouter();
+export default function AuthPage() {
+  const searchParams = useSearchParams();
+  const [redirectTo, setRedirectTo] = useState('/dashboard');
 
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) alert(error.message);
-    else router.push('/dashboard');
-    setLoading(false);
-  };
+  useEffect(() => {
+    const target = searchParams.get('next');
+    if (target === 'pricing') {
+      setRedirectTo(`${window.location.origin}/pricing`);
+    } else {
+      setRedirectTo(`${window.location.origin}/dashboard`);
+    }
+  }, [searchParams]);
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) alert(error.message);
-    else alert('Verification link sent to your email!');
-    setLoading(false);
+  const handleGoogleLogin = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: redirectTo,
+      },
+    });
   };
 
   return (
-    <main className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center p-6">
-      <div className="w-full max-w-sm bg-slate-950 border border-slate-800 p-8 rounded-2xl shadow-xl">
-        <h2 className="text-xl font-black text-indigo-400 tracking-tight mb-1">MARKUP AUTH</h2>
-        <p className="text-xs text-slate-400 mb-6">Create an account or login to track your grading parameters.</p>
+    <main className="min-h-screen bg-[#07090e] text-slate-100 flex items-center justify-center p-6 relative">
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-md h-[400px] bg-[radial-gradient(circle_at_top,_rgba(99,102,241,0.05),_transparent_60%)] pointer-events-none" />
+      
+      <div className="w-full max-w-sm bg-slate-950/60 border border-slate-900 p-8 rounded-2xl shadow-2xl backdrop-blur-md relative text-center space-y-6">
+        <div className="flex justify-center">
+          <svg className="w-8 h-8 text-indigo-500 filter drop-shadow-[0_0_8px_rgba(99,102,241,0.6)]" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15 80V25L45 55L70 25M70 25H50M70 25V45" stroke="currentColor" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M65 55V80" stroke="currentColor" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
         
-        <form className="space-y-4">
-          <div>
-            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Email Address</label>
-            <input 
-              type="email" 
-              value={email} 
-              onChange={e => setEmail(e.target.value)} 
-              className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500" 
-              required 
-            />
-          </div>
-          <div>
-            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Password</label>
-            <input 
-              type="password" 
-              value={password} 
-              onChange={e => setPassword(e.target.value)} 
-              className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500" 
-              required 
-            />
-          </div>
-          <div className="pt-2 grid grid-cols-2 gap-3">
-            <button onClick={handleSignIn} disabled={loading} className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl text-xs transition">Login</button>
-            <button onClick={handleSignUp} disabled={loading} className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl text-xs border border-slate-700 transition">Sign Up</button>
-          </div>
-        </form>
+        <div>
+          <h2 className="text-xl font-black text-white tracking-tight">Welcome to Markup</h2>
+          <p className="text-xs text-slate-400 mt-1">Authenticate securely to access your humanities workspace.</p>
+        </div>
+
+        <button 
+          onClick={handleGoogleLogin}
+          className="w-full bg-white hover:bg-slate-200 text-black font-bold py-3 px-4 rounded-xl text-xs transition flex items-center justify-center gap-2.5 shadow-sm"
+        >
+          <svg className="w-4 h-4" viewBox="0 0 24 24">
+            <path fill="#EA4335" d="M12.24 10.285V13.4h6.887c-.275 1.565-1.88 4.604-6.887 4.604-4.33 0-7.866-3.577-7.866-8s3.536-8 7.866-8c2.46 0 4.105 1.025 5.047 1.926l2.427-2.334C17.955 2.192 15.34 1 12.24 1c-6.075 0-11 4.925-11 11s4.925 11 11 11c6.34 0 10.564-4.437 10.564-10.75 0-.724-.077-1.274-.173-1.68h-10.39z"/>
+          </svg>
+          Continue with Google
+        </button>
       </div>
     </main>
   );
