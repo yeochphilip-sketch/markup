@@ -5,7 +5,6 @@ export async function POST(req: Request) {
   try {
     const { subject, topic, questionType } = await req.json();
 
-    // Route configuration targeting free high-speed Groq inference servers
     const groq = new OpenAI({
       apiKey: process.env.GROQ_API_KEY,
       baseURL: "https://api.groq.com/openai/v1",
@@ -22,7 +21,8 @@ export async function POST(req: Request) {
       "backgroundContext": "Brief 3-sentence historical context summary...",
       "sourceA": "Provenance: Extract text or attribution block...",
       "sourceB": "Provenance: Dual perspective contrasting/supporting extract...",
-      "questionPrompt": "The specific evaluation prompt question (e.g., How far does Source A prove Source B wrong...)"
+      "questionPrompt": "The specific evaluation prompt question...",
+      "suggestedAnswer": "An exemplary L5 or L6 model answer using rigorous PEEL structure, source cross-reference, and full authorial intent/bias analysis."
     }`;
 
     const completion = await groq.chat.completions.create({
