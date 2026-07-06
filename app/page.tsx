@@ -4,97 +4,153 @@ import Link from 'next/link';
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 font-sans antialiased">
-      {/* Navbar */}
-      <header className="px-8 py-5 flex items-center justify-between border-b border-slate-800 bg-slate-950/40 backdrop-blur">
-        <span className="text-xl font-black tracking-tight text-indigo-400">MARKUP</span>
-        <Link href="/dashboard" className="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition shadow-md shadow-indigo-600/10">
-          Enter App
-        </Link>
+    <div className="min-h-screen bg-[#07090e] text-slate-100 font-sans antialiased selection:bg-indigo-500/30">
+      
+      {/* Background Radial Glow Matrix */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[600px] bg-[radial-gradient(circle_at_top,_rgba(99,102,241,0.08),_transparent_55%)] pointer-events-none" />
+
+      {/* Navigation Matrix Header */}
+      <header className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between border-b border-slate-900/60 bg-[#07090e]/40 backdrop-blur-md sticky top-0 z-50">
+        <div className="flex items-center gap-2.5">
+          {/* Your Custom M Arrow Logo Blueprint in SVG */}
+          <svg className="w-6 h-6 text-indigo-500 filter drop-shadow-[0_0_8px_rgba(99,102,241,0.6)]" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15 80V25L45 55L70 25M70 25H50M70 25V45" stroke="currentColor" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M65 55V80" stroke="currentColor" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <span className="text-lg font-black tracking-wider text-white">MARKUP</span>
+        </div>
+        
+        <div className="flex items-center gap-6">
+          <Link href="/auth" className="text-xs font-bold text-slate-400 hover:text-white transition">Log in</Link>
+          <Link href="/auth" className="bg-white hover:bg-slate-200 text-black text-xs font-bold px-4 py-2 rounded-lg transition shadow-sm">
+            Start free
+          </Link>
+        </div>
       </header>
 
       {/* Hero Section */}
-      <section className="max-w-4xl mx-auto text-center px-6 py-20 lg:py-32 flex flex-col items-center gap-6">
-        <span className="bg-indigo-500/10 text-indigo-400 text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider border border-indigo-500/20">
-          Built for Singapore O-Level Humanities
-        </span>
-        <h1 className="text-4xl md:text-6xl font-black tracking-tight text-white leading-tight">
-          Master the <span className="text-indigo-400">LORMS Matrix</span> Without the Premium Tutor Price.
+      <section className="relative max-w-5xl mx-auto text-center px-6 pt-20 pb-12 flex flex-col items-center gap-6 z-10">
+        <div className="inline-flex items-center gap-2 bg-indigo-500/5 text-indigo-400 text-[11px] px-3 py-1 rounded-full font-semibold tracking-wide border border-indigo-500/10">
+          ✨ Built for Singapore O-Level Humanities
+        </div>
+        
+        <h1 className="text-4xl md:text-6xl font-black tracking-tight text-white max-w-3xl leading-[1.1] font-sans">
+          Humanities evaluation <br/>
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-300">your grade can trust</span>
         </h1>
-        <p className="text-slate-400 text-base md:text-xl max-w-2xl leading-relaxed">
-          Instant diagnostic scanning for Social Studies & Elective History. Scan your PEEL structure, pinpoint mark leaks, and instantly view perfect A1 upgrades.
+        
+        <p className="text-slate-400 text-sm md:text-base max-w-xl leading-relaxed font-medium">
+          AI-generated mock frameworks, source sheets, and PEEL diagnostic breakdowns built entirely on native SEAB LORMS criteria matrices.
         </p>
-        <Link href="/dashboard" className="mt-4 bg-indigo-600 hover:bg-indigo-500 text-white text-base font-bold px-8 py-4 rounded-xl transition shadow-lg shadow-indigo-600/20 transform hover:-translate-y-0.5">
-          Start Practicing Free
-        </Link>
-      </section>
 
-      {/* Pricing Section Grid Matrix */}
-      <section className="max-w-6xl mx-auto px-6 py-16 border-t border-slate-800">
-        <div className="text-center mb-16">
-          <h2 className="text-2xl md:text-3xl font-black text-white mb-2">Simple, High-Value Pricing</h2>
-          <p className="text-slate-400 text-sm">Invest in your distinction. Upgrade or downgrade anytime.</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
-          
-          {/* Tier 1: Freemium Left Card */}
-          <div className="bg-slate-950/40 border border-slate-800 rounded-2xl p-8 flex flex-col justify-between">
-            <div>
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Basic Core</span>
-              <h3 className="text-xl font-black text-white mt-1">Freemium</h3>
-              <p className="text-3xl font-black text-white mt-4">$0 <span className="text-xs font-normal text-slate-500">/ forever</span></p>
-              <ul className="mt-6 space-y-3 text-sm text-slate-400">
-                <li className="flex items-center gap-2">✓ 3 AI Scans per day</li>
-                <li className="flex items-center gap-2">✓ Social Studies Core Skills</li>
-                <li className="flex items-center gap-2">✓ Standard LORMS Banding</li>
-              </ul>
-            </div>
-            <Link href="/dashboard" className="mt-8 block text-center bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3 rounded-xl transition text-sm">
-              Get Started
-            </Link>
-          </div>
-
-          {/* Tier 2: The Best Deal (Middle Highlight Card) */}
-          <div className="bg-slate-900 border-2 border-indigo-500 rounded-2xl p-8 flex flex-col justify-between shadow-xl shadow-indigo-600/5 relative transform lg:-translate-y-2">
-            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-indigo-500 text-white text-[10px] uppercase font-black tracking-widest px-3 py-1 rounded-full shadow">
-              Most Popular / Best Deal
-            </div>
-            <div>
-              <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Kiasu Unlimited</span>
-              <h3 className="text-xl font-black text-white mt-1">Pro Master</h3>
-              <p className="text-3xl font-black text-white mt-4">$12 <span className="text-xs font-normal text-indigo-300">/ month</span></p>
-              <ul className="mt-6 space-y-3 text-sm text-slate-300">
-                <li className="flex items-center gap-2 text-indigo-400">★ Unlimited AI Architecture Scans</li>
-                <li className="flex items-center gap-2">✓ Full Elective History Syllabus</li>
-                <li className="flex items-center gap-2">✓ Deep PEEL Structural Refinement</li>
-                <li className="flex items-center gap-2">✓ Unlimited Custom Mock Generator</li>
-              </ul>
-            </div>
-            <Link href="/dashboard" className="mt-8 block text-center bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl transition text-sm shadow-md shadow-indigo-600/10">
-              Upgrade to Pro
-            </Link>
-          </div>
-
-          {/* Tier 3: Expensive Enterprise Right Card */}
-          <div className="bg-slate-950/40 border border-slate-800 rounded-2xl p-8 flex flex-col justify-between">
-            <div>
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Tuition & School</span>
-              <h3 className="text-xl font-black text-white mt-1">Institutional</h3>
-              <p className="text-3xl font-black text-white mt-4">$89 <span className="text-xs font-normal text-slate-500">/ month</span></p>
-              <ul className="mt-6 space-y-3 text-sm text-slate-400">
-                <li className="flex items-center gap-2">✓ Up to 40 Student Licenses</li>
-                <li className="flex items-center gap-2">✓ Teacher Analytics Dashboard</li>
-                <li className="flex items-center gap-2">✓ Bulk Custom Question Uploads</li>
-              </ul>
-            </div>
-            <a href="mailto:support@markup.sg" className="mt-8 block text-center bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3 rounded-xl transition text-sm">
-              Contact Sales
-            </a>
-          </div>
-
+        <div className="mt-4 flex items-center gap-4">
+          <Link href="/auth" className="bg-white hover:bg-slate-200 text-black text-xs font-bold px-6 py-3 rounded-xl transition">
+            Start free
+          </Link>
+          <Link href="/auth" className="bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 text-xs font-bold px-6 py-3 rounded-xl transition">
+            Explore pricing
+          </Link>
         </div>
       </section>
+
+      {/* Mockup Canvas Component Block */}
+      <section className="max-w-5xl mx-auto px-6 pb-24 z-20 relative">
+        <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-4 shadow-2xl shadow-indigo-950/20 backdrop-blur transform -rotate-x-2">
+          <div className="h-6 w-full flex items-center gap-1.5 px-2 mb-4 border-b border-slate-900 pb-3">
+            <div className="w-2.5 h-2.5 rounded-full bg-slate-800" />
+            <div className="w-2.5 h-2.5 rounded-full bg-slate-800" />
+            <div className="w-2.5 h-2.5 rounded-full bg-slate-800" />
+          </div>
+          <div className="grid grid-cols-3 gap-4 h-48 bg-slate-900/20 rounded-xl border border-slate-900 p-4">
+            <div className="border border-dashed border-slate-800/80 rounded-lg p-3 space-y-2">
+              <div className="h-3 w-12 bg-indigo-500/10 rounded border border-indigo-500/20" />
+              <div className="h-2 w-full bg-slate-800/50 rounded" />
+              <div className="h-2 w-4/5 bg-slate-800/50 rounded" />
+            </div>
+            <div className="col-span-2 border border-dashed border-slate-800/80 rounded-lg p-3 space-y-2 relative">
+              <div className="h-3 w-24 bg-purple-500/10 rounded border border-purple-500/20" />
+              <div className="h-2 w-full bg-slate-800/50 rounded" />
+              <div className="h-2 w-5/6 bg-slate-800/50 rounded" />
+              <div className="absolute bottom-3 right-3 px-2 py-1 bg-indigo-600 rounded text-[9px] font-bold">L4/6 Banded</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Feature Bento Grid Row */}
+      <section className="max-w-5xl mx-auto px-6 py-16 border-t border-slate-900/60">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="bg-[#0b0f17] border border-slate-900 rounded-2xl p-8 space-y-4">
+            <span className="text-xs font-bold text-indigo-400">01 / DRILL GENERATOR</span>
+            <h3 className="text-lg font-bold text-white">Create case studies with a prompt</h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Describe a historical focus point or current affairs conflict. Markup auto-compiles dual-source parameters and context summaries matching active exam profiles.
+            </p>
+          </div>
+          <div className="bg-[#0b0f17] border border-slate-900 rounded-2xl p-8 space-y-4">
+            <span className="text-xs font-bold text-purple-400">02 / STRUCTURE ANALYSIS</span>
+            <h3 className="text-lg font-bold text-white">AI answers from your trusted metrics</h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Define your parameters once. Our underlying prompt frameworks review cross-referencing criteria, provenance bias, and structural balance checks instantly.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* 3-Tier Pricing Model */}
+      <section className="max-w-5xl mx-auto px-6 py-16 border-t border-slate-900/60">
+        <div className="text-center mb-12 space-y-2">
+          <h2 className="text-xl font-black text-white">Simple, metric-driven packages</h2>
+          <p className="text-xs text-slate-500">Practice smarter. Cancel or upgrade with a single toggle.</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-[#07090e] border border-slate-900 rounded-2xl p-6 flex flex-col justify-between">
+            <div>
+              <h4 className="text-xs font-bold text-slate-400">Freemium</h4>
+              <p className="text-2xl font-black text-white mt-2">$0</p>
+              <p className="text-[11px] text-slate-500 mt-1">Perfect for quick homework reviews</p>
+              <div className="border-t border-slate-900 my-4" />
+              <ul className="space-y-2 text-[11px] text-slate-400">
+                <li>• 3 AI architecture scans daily</li>
+                <li>• Social Studies syllabus</li>
+              </ul>
+            </div>
+            <Link href="/auth" className="mt-6 block text-center bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold py-2.5 rounded-xl transition">Start Basic</Link>
+          </div>
+
+          <div className="bg-[#0b0f17] border-2 border-indigo-500/80 rounded-2xl p-6 flex flex-col justify-between shadow-xl shadow-indigo-950/20 relative">
+            <span className="absolute -top-2.5 left-6 bg-indigo-500 text-white text-[9px] uppercase font-black px-2 py-0.5 rounded">Best Value</span>
+            <div>
+              <h4 className="text-xs font-bold text-indigo-400">Pro Master</h4>
+              <p className="text-2xl font-black text-white mt-2">$12<span className="text-xs font-normal text-slate-500"> /mo</span></p>
+              <p className="text-[11px] text-slate-400 mt-1">For students targetting an A1 distinction</p>
+              <div className="border-t border-slate-900 my-4" />
+              <ul className="space-y-2 text-[11px] text-slate-300">
+                <li>• Unlimited structural grading</li>
+                <li>• Full Elective History database access</li>
+                <li>• Instant high-scoring exemplar rewrites</li>
+              </ul>
+            </div>
+            <Link href="/auth" className="mt-6 block text-center bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold py-2.5 rounded-xl transition">Get Unlimited</Link>
+          </div>
+
+          <div className="bg-[#07090e] border border-slate-900 rounded-2xl p-6 flex flex-col justify-between">
+            <div>
+              <h4 className="text-xs font-bold text-slate-400">Institutional</h4>
+              <p className="text-2xl font-black text-white mt-2">$89<span className="text-xs font-normal text-slate-500"> /mo</span></p>
+              <p className="text-[11px] text-slate-500 mt-1">For private centers and classrooms</p>
+              <div className="border-t border-slate-900 my-4" />
+              <ul className="space-y-2 text-[11px] text-slate-400">
+                <li>• 40 premium user licenses</li>
+                <li>• Teacher analytical dashboard metrics</li>
+              </ul>
+            </div>
+            <a href="mailto:support@markup.sg" className="mt-6 block text-center bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold py-2.5 rounded-xl transition">Contact Support</a>
+          </div>
+        </div>
+      </section>
+
     </div>
   );
 }
