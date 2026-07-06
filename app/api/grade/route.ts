@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 export async function POST(req: Request) {
   try {
     const { studentAnswer, questionType, subject } = await req.json();
+
+    // Initialize inside the handler so build workers don't crash when variables are absent
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
 
     const assessmentPrompt = `You are a Senior Assistant Examiner for Singapore O-Level ${subject}. 
     Evaluate the student's answer paragraph according to official Level of Response Marking Schemes (LORMS) criteria for skill: ${questionType}.
