@@ -1,6 +1,7 @@
 import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { NextResponse } from 'next/server';
+import { supabase } from '@/utils/supabase';
 
 export async function POST(req: Request) {
   try {
@@ -30,7 +31,28 @@ export async function POST(req: Request) {
     });
 
     const structuredQuestion = JSON.parse(text);
-    return NextResponse.json(structuredQuestion);
+
+    // Save to Supabase
+    const { data, error } = await supabase
+      .from('generated_questions')
+      .insert([
+        {
+          subject,
+          topic,
+          question_type: questionType,
+          background_context: structuredQuestion.backgroundContext,
+          source_a: structuredQuestion.sourceA,
+          source_b: structuredQuestion.sourceB,
+          question_prompt: structuredQuestion.questionPrompt,
+        }
+      ])
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // Attach the saved DB id to the response
+    return NextResponse.json({ ...structuredQuestion, id: data.id });
   } catch (error) {
     console.error('Question Generation Error:', error);
     return NextResponse.json({ error: 'Failed to generate practice data' }, { status: 500 });

@@ -10,8 +10,6 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [feedback, setFeedback] = useState<any>(null);
-  
-  // State to hold active practice question details
   const [activeQuestion, setActiveQuestion] = useState<any>(null);
 
   const handleGenerateQuestion = async () => {
@@ -24,7 +22,7 @@ export default function Home() {
       });
       const data = await response.json();
       setActiveQuestion(data);
-      setFeedback(null); // Clear previous feedback for new question
+      setFeedback(null);
     } catch (error) {
       alert('Failed to generate practice scenario.');
     } finally {
@@ -41,7 +39,12 @@ export default function Home() {
       const response = await fetch('/api/grade', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studentAnswer, questionType, subject }),
+        body: JSON.stringify({ 
+          studentAnswer, 
+          questionType, 
+          subject,
+          questionId: activeQuestion?.id || null 
+        }),
       });
       const data = await response.json();
       setFeedback(data);
@@ -54,7 +57,6 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-slate-900 text-slate-100 font-sans">
-      {/* Top Navigation Header */}
       <header className="border-b border-slate-800 bg-slate-950/50 backdrop-blur px-8 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <span className="text-xl font-black tracking-tight text-indigo-400">MARKUP</span>
@@ -62,8 +64,6 @@ export default function Home() {
             SEAB O-Level Engine
           </span>
         </div>
-        
-        {/* Subject Toggles */}
         <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-800">
           <button 
             onClick={() => { setSubject('Social Studies'); setTopic('Governance'); }}
@@ -80,14 +80,10 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Main App Layout */}
       <div className="grid grid-cols-1 xl:grid-cols-3 h-[calc(100vh-69px)] overflow-hidden">
-        
-        {/* Column 1: AI Challenge Generator Config */}
         <section className="p-6 border-r border-slate-800 bg-slate-950/20 overflow-y-auto flex flex-col gap-6">
           <div>
             <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider mb-4">Practice Configurator</h2>
-            
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">Syllabus Topic</label>
@@ -111,7 +107,6 @@ export default function Home() {
                   )}
                 </select>
               </div>
-
               <div>
                 <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">Question Skill Type</label>
                 <select 
@@ -125,7 +120,6 @@ export default function Home() {
                   <option>Section B: Structured Essay (SEQ)</option>
                 </select>
               </div>
-
               <button
                 onClick={handleGenerateQuestion}
                 disabled={generating}
@@ -136,7 +130,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Render Active Question Sources if populated */}
           {activeQuestion && (
             <div className="border-t border-slate-800 pt-4 flex-1 space-y-4 text-sm animate-fadeIn">
               <div className="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800/80">
@@ -155,7 +148,6 @@ export default function Home() {
           )}
         </section>
 
-        {/* Column 2: Working Canvas */}
         <section className="p-6 border-r border-slate-800 flex flex-col gap-4 overflow-y-auto">
           {activeQuestion && (
             <div className="bg-indigo-600/10 border border-indigo-500/20 p-4 rounded-xl">
@@ -163,7 +155,6 @@ export default function Home() {
               <p className="text-sm font-bold text-slate-200">{activeQuestion.questionPrompt}</p>
             </div>
           )}
-
           <div className="flex-1 flex flex-col">
             <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Write / Structural Draft Canvas</label>
             <textarea
@@ -173,7 +164,6 @@ export default function Home() {
               className="w-full flex-1 bg-slate-950 border border-slate-800 rounded-xl p-5 text-slate-300 font-normal leading-relaxed resize-none focus:outline-none focus:border-indigo-500 font-mono text-xs"
             />
           </div>
-
           <button
             onClick={handleGrade}
             disabled={loading}
@@ -183,7 +173,6 @@ export default function Home() {
           </button>
         </section>
 
-        {/* Column 3: Diagnostic Results Dashboard */}
         <section className="p-6 bg-slate-950/40 overflow-y-auto flex flex-col gap-5">
           {!feedback && !loading && (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-8 border-2 border-dashed border-slate-800 rounded-xl">
