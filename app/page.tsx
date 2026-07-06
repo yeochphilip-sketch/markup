@@ -5,9 +5,32 @@ import { useState } from 'react';
 export default function Home() {
   const [subject, setSubject] = useState('Social Studies');
   const [questionType, setQuestionType] = useState('SBCS: Comparison');
+  const [topic, setTopic] = useState('Governance');
   const [studentAnswer, setStudentAnswer] = useState('');
   const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [feedback, setFeedback] = useState<any>(null);
+  
+  // State to hold active practice question details
+  const [activeQuestion, setActiveQuestion] = useState<any>(null);
+
+  const handleGenerateQuestion = async () => {
+    setGenerating(true);
+    try {
+      const response = await fetch('/api/generate-question', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject, topic, questionType }),
+      });
+      const data = await response.json();
+      setActiveQuestion(data);
+      setFeedback(null); // Clear previous feedback for new question
+    } catch (error) {
+      alert('Failed to generate practice scenario.');
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   const handleGrade = async () => {
     if (!studentAnswer.trim()) return alert('Please paste or write an answer first!');
@@ -43,13 +66,13 @@ export default function Home() {
         {/* Subject Toggles */}
         <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-800">
           <button 
-            onClick={() => setSubject('Social Studies')}
+            onClick={() => { setSubject('Social Studies'); setTopic('Governance'); }}
             className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition ${subject === 'Social Studies' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}
           >
             Social Studies
           </button>
           <button 
-            onClick={() => setSubject('History')}
+            onClick={() => { setSubject('History'); setTopic('Cold War'); }}
             className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition ${subject === 'History' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}
           >
             Elective History
@@ -57,97 +80,144 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Main Split-Screen Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 h-[calc(100vh-69px)]">
+      {/* Main App Layout */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 h-[calc(100vh-69px)] overflow-hidden">
         
-        {/* Left Side: Input Workspace */}
-        <section className="p-8 border-r border-slate-800 flex flex-col gap-6 overflow-y-auto">
+        {/* Column 1: AI Challenge Generator Config */}
+        <section className="p-6 border-r border-slate-800 bg-slate-950/20 overflow-y-auto flex flex-col gap-6">
           <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Question Framework</label>
-            <select 
-              value={questionType}
-              onChange={(e) => setQuestionType(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 font-medium focus:outline-none focus:border-indigo-500 transition"
-            >
-              <option>SBCS: Comparison</option>
-              <option>SBCS: Inference</option>
-              <option>SBCS: Reliability / Purpose</option>
-              <option>Section B: Structured Essay (SEQ)</option>
-            </select>
+            <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider mb-4">Practice Configurator</h2>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">Syllabus Topic</label>
+                <select 
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 font-medium focus:outline-none focus:border-indigo-500"
+                >
+                  {subject === 'Social Studies' ? (
+                    <>
+                      <option>Governance</option>
+                      <option>Conflict and Harmony</option>
+                      <option>Globalisation</option>
+                    </>
+                  ) : (
+                    <>
+                      <option>Cold War</option>
+                      <option>Stalinist Russia</option>
+                      <option>Nazi Germany</option>
+                    </>
+                  )}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">Question Skill Type</label>
+                <select 
+                  value={questionType}
+                  onChange={(e) => setQuestionType(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 font-medium focus:outline-none focus:border-indigo-500"
+                >
+                  <option>SBCS: Comparison</option>
+                  <option>SBCS: Inference</option>
+                  <option>SBCS: Reliability / Purpose</option>
+                  <option>Section B: Structured Essay (SEQ)</option>
+                </select>
+              </div>
+
+              <button
+                onClick={handleGenerateQuestion}
+                disabled={generating}
+                className="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-indigo-400 font-bold py-3 rounded-xl transition"
+              >
+                {generating ? 'Drafting Mock Paper...' : '⚡ Generate Practice Challenge'}
+              </button>
+            </div>
           </div>
 
-          <div className="flex-1 flex flex-col min-h-[300px]">
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Your Answer Draft</label>
+          {/* Render Active Question Sources if populated */}
+          {activeQuestion && (
+            <div className="border-t border-slate-800 pt-4 flex-1 space-y-4 text-sm animate-fadeIn">
+              <div className="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800/80">
+                <span className="text-[10px] font-bold text-indigo-400 tracking-wider uppercase block mb-1">Contextual Background</span>
+                <p className="text-slate-300 leading-relaxed text-xs">{activeQuestion.backgroundContext}</p>
+              </div>
+              <div className="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800/80 max-h-48 overflow-y-auto">
+                <span className="text-[10px] font-bold text-indigo-400 tracking-wider uppercase block mb-1">Source A</span>
+                <p className="text-slate-300 italic text-xs">{activeQuestion.sourceA}</p>
+              </div>
+              <div className="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800/80 max-h-48 overflow-y-auto">
+                <span className="text-[10px] font-bold text-indigo-400 tracking-wider uppercase block mb-1">Source B</span>
+                <p className="text-slate-300 italic text-xs">{activeQuestion.sourceB}</p>
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* Column 2: Working Canvas */}
+        <section className="p-6 border-r border-slate-800 flex flex-col gap-4 overflow-y-auto">
+          {activeQuestion && (
+            <div className="bg-indigo-600/10 border border-indigo-500/20 p-4 rounded-xl">
+              <span className="text-[10px] font-bold text-indigo-400 tracking-wider uppercase block mb-0.5">Exam Prompt Assignment</span>
+              <p className="text-sm font-bold text-slate-200">{activeQuestion.questionPrompt}</p>
+            </div>
+          )}
+
+          <div className="flex-1 flex flex-col">
+            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Write / Structural Draft Canvas</label>
             <textarea
               value={studentAnswer}
               onChange={(e) => setStudentAnswer(e.target.value)}
-              placeholder="Paste your PEEL paragraphs or source evaluations here..."
-              className="w-full flex-1 bg-slate-950 border border-slate-800 rounded-xl p-6 text-slate-300 font-normal leading-relaxed resize-none focus:outline-none focus:border-indigo-500 transition font-mono text-sm"
+              placeholder="Structure your comparative claims or explicit evidence evaluations using PEEL here..."
+              className="w-full flex-1 bg-slate-950 border border-slate-800 rounded-xl p-5 text-slate-300 font-normal leading-relaxed resize-none focus:outline-none focus:border-indigo-500 font-mono text-xs"
             />
           </div>
 
           <button
             onClick={handleGrade}
             disabled={loading}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 text-white font-bold py-4 rounded-xl transition shadow-lg shadow-indigo-600/10 flex items-center justify-center gap-2"
+            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 text-white font-bold py-3.5 rounded-xl transition shadow-lg shadow-indigo-600/10"
           >
-            {loading ? (
-              <span className="flex items-center gap-2 animate-pulse">
-                Analyzing Rubrics...
-              </span>
-            ) : 'Scan Answer Structure'}
+            {loading ? 'Evaluating Structure against LORMS Matrix...' : 'Scan Answer Structure'}
           </button>
         </section>
 
-        {/* Right Side: AI Diagnostic Panels */}
-        <section className="p-8 bg-slate-950/40 overflow-y-auto flex flex-col gap-6">
+        {/* Column 3: Diagnostic Results Dashboard */}
+        <section className="p-6 bg-slate-950/40 overflow-y-auto flex flex-col gap-5">
           {!feedback && !loading && (
-            <div className="flex-1 flex flex-col items-center justify-center text-center p-12 border-2 border-dashed border-slate-800 rounded-2xl">
-              <p className="text-slate-400 font-medium max-w-sm">
-                Submit an answer on the left to receive an instant LORMS diagnostic and a step-by-step framework upgrade.
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-8 border-2 border-dashed border-slate-800 rounded-xl">
+              <p className="text-slate-400 font-medium text-xs max-w-xs">
+                Submit your execution block parameters to render full performance bands, structural metrics and live grading transformations.
               </p>
             </div>
           )}
 
           {loading && (
-            <div className="flex-1 flex flex-col items-center justify-center gap-4">
-              <div className="w-10 h-10 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
-              <p className="text-sm text-slate-400 animate-pulse font-medium">Kopi is examining your structural parameters...</p>
+            <div className="flex-1 flex flex-col items-center justify-center gap-3">
+              <div className="w-8 h-8 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+              <p className="text-xs text-slate-400 animate-pulse font-medium">Kopi is examining parameters...</p>
             </div>
           )}
 
           {feedback && (
-            <div className="space-y-6 animate-fadeIn">
-              {/* Score Header Widget */}
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex justify-between items-center">
+            <div className="space-y-5 animate-fadeIn text-xs">
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex justify-between items-center">
                 <div>
-                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Estimated Banding</h3>
-                  <p className="text-3xl font-black text-indigo-400">{feedback.scoreEstimate}</p>
+                  <h3 className="font-bold text-slate-400 uppercase tracking-wider mb-0.5">Estimated Banding</h3>
+                  <p className="text-2xl font-black text-indigo-400">{feedback.scoreEstimate}</p>
                 </div>
-                
-                {/* Structural Status Pills */}
-                <div className="flex flex-col gap-2 text-right">
-                  <div className="flex items-center gap-2 text-sm font-semibold">
-                    <span className="text-slate-400">Point Statement:</span>
-                    <span className={`px-2 py-0.5 rounded ${feedback.pointStatus === 'Pass' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
-                      {feedback.pointStatus}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm font-semibold">
-                    <span className="text-slate-400">Source Evidence:</span>
-                    <span className={`px-2 py-0.5 rounded ${feedback.evidenceStatus === 'Pass' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
-                      {feedback.evidenceStatus}
-                    </span>
-                  </div>
+                <div className="space-y-1 text-right font-semibold">
+                  <div>Point Status: <span className={feedback.pointStatus === 'Pass' ? 'text-emerald-400' : 'text-rose-400'}>{feedback.pointStatus}</span></div>
+                  <div>Evidence Status: <span className={feedback.evidenceStatus === 'Pass' ? 'text-emerald-400' : 'text-rose-400'}>{feedback.evidenceStatus}</span></div>
                 </div>
               </div>
 
-              {/* Critique Panel */}
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Structural Diagnostics</h4>
-                <ul className="space-y-3">
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                <h4 className="font-bold text-slate-400 uppercase tracking-wider mb-2">Structural Diagnostics</h4>
+                <ul className="space-y-2">
                   {feedback.critique?.map((item: string, idx: number) => (
-                    <li key={idx} className="text-sm text-slate-300 flex gap-2.5">
+                    <li key={idx} className="text-slate-300 flex gap-2">
                       <span className="text-amber-500 font-bold">•</span>
                       <span>{item}</span>
                     </li>
@@ -155,15 +225,9 @@ export default function Home() {
                 </ul>
               </div>
 
-              {/* Premium A1 Upgrade Canvas */}
-              <div className="bg-indigo-950/20 border border-indigo-500/20 rounded-2xl p-6">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-xs font-bold text-indigo-400 uppercase tracking-wider">A1 Exemplar Upgrade</h4>
-                  <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded font-bold uppercase tracking-wide">
-                    PEEL Aligned
-                  </span>
-                </div>
-                <p className="text-sm text-slate-300 leading-relaxed font-mono bg-slate-950/60 p-4 rounded-xl border border-slate-800/60 whitespace-pre-line">
+              <div className="bg-indigo-950/20 border border-indigo-500/20 rounded-xl p-4">
+                <h4 className="font-bold text-indigo-400 uppercase tracking-wider mb-2">A1 Exemplar Upgrade</h4>
+                <p className="text-slate-300 leading-relaxed font-mono bg-slate-950/60 p-3 rounded-lg border border-slate-800/60 whitespace-pre-line text-[11px]">
                   {feedback.a1Upgrade}
                 </p>
               </div>
