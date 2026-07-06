@@ -1,60 +1,36 @@
-import { google } from '@ai-sdk/google';
-import { generateText } from 'ai';
 import { NextResponse } from 'next/server';
-import { supabase } from '@/utils/supabase';
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 export async function POST(req: Request) {
   try {
     const { subject, topic, questionType } = await req.json();
 
-    const systemPrompt = `
-      You are an expert SEAB O-Level Humanities curriculum specialist.
-      Generate a realistic, mock exam question for Singapore students based on the following:
-      Subject: ${subject}
-      Topic: ${topic}
-      Question Type: ${questionType}
+    const systemPrompt = `You are an expert Singapore O-Level Humanities Setter specializing in SEAB standard Source-Based Case Studies (SBCS). 
+    Generate a highly realistic mock assessment package based on these constraints:
+    Subject: ${subject}
+    Topic: ${topic}
+    Format: ${questionType}
 
-      OUTPUT FORMAT REQUIREMENTS:
-      You must respond with a clean, raw JSON structure containing these exact keys:
-      - backgroundContext: (A short paragraph explaining the historical or societal context)
-      - sourceA: (A text extract or clear description of a source/cartoon, including the attribution line with author, date, and purpose)
-      - sourceB: (A second text extract or description of a source, including its attribution line)
-      - questionPrompt: (The actual exam question prompt, e.g., "How far does Source A prove Source B wrong? Explain your answer.")
+    Return strictly a JSON object with this shape:
+    {
+      "backgroundContext": "Brief 3-sentence historical context summary...",
+      "sourceA": "Provenance: Extract text or attribution block...",
+      "sourceB": "Provenance: Dual perspective contrasting/supporting extract...",
+      "questionPrompt": "The specific evaluation prompt question (e.g., How far does Source A prove Source B wrong...)"
+    }`;
 
-      Ensure the case files match the rigour, tone, and vocabulary profiles of real Cambridge examination materials.
-    `;
-
-    const { text } = await generateText({
-      model: google('gemini-1.5-flash'),
-      system: systemPrompt,
-      prompt: `Generate a new customized practice challenge for a student preparing for their preliminary examinations.`,
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'system', content: systemPrompt }],
+      response_format: { type: "json_object" }
     });
 
-    const structuredQuestion = JSON.parse(text);
-
-    // Save to Supabase
-    const { data, error } = await supabase
-      .from('generated_questions')
-      .insert([
-        {
-          subject,
-          topic,
-          question_type: questionType,
-          background_context: structuredQuestion.backgroundContext,
-          source_a: structuredQuestion.sourceA,
-          source_b: structuredQuestion.sourceB,
-          question_prompt: structuredQuestion.questionPrompt,
-        }
-      ])
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    // Attach the saved DB id to the response
-    return NextResponse.json({ ...structuredQuestion, id: data.id });
-  } catch (error) {
-    console.error('Question Generation Error:', error);
-    return NextResponse.json({ error: 'Failed to generate practice data' }, { status: 500 });
+    return NextResponse.json(JSON.parse(completion.choices[0].message.content || '{}'));
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

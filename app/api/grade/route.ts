@@ -1,45 +1,41 @@
-import { google } from '@ai-sdk/google';
-import { generateText } from 'ai';
 import { NextResponse } from 'next/server';
-import { SS_EXAMINER_PROMPT } from '@/lib/prompts';
-import { supabase } from '@/utils/supabase';
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 export async function POST(req: Request) {
   try {
-    const { studentAnswer, questionType, subject, questionId } = await req.json();
+    const { studentAnswer, questionType, subject } = await req.json();
 
-    if (!studentAnswer) {
-      return NextResponse.json({ error: 'Answer content is required' }, { status: 400 });
-    }
+    const assessmentPrompt = `You are a Senior Assistant Examiner for Singapore O-Level ${subject}. 
+    Evaluate the student's answer paragraph according to official Level of Response Marking Schemes (LORMS) criteria for skill: ${questionType}.
+    Check for:
+    1. Direct structural point (Clear comparison framework or inference)
+    2. Evidence extraction accuracy from active provenance sources
+    3. Explanation depth (Linking source intent/bias back to question thesis)
 
-    const { text } = await generateText({
-      model: google('gemini-1.5-flash'),
-      system: SS_EXAMINER_PROMPT,
-      prompt: `Subject: ${subject}\nQuestion Type: ${questionType}\n\nStudent Submission:\n"${studentAnswer}"`,
+    Student Answer Material:
+    "${studentAnswer}"
+
+    Return strictly a JSON object with this shape:
+    {
+      "scoreEstimate": "L3/4 (Valid Comparison)" or "L4/6 (Highest Level reached description)",
+      "critique": [
+        "First specific structural feedback item detailing PEEL mastery...",
+        "Second critique observation recommending vocabulary or provenance tone alignment optimization..."
+      ]
+    }`;
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'system', content: assessmentPrompt }],
+      response_format: { type: "json_object" }
     });
 
-    const structuredFeedback = JSON.parse(text);
-
-    // Save the student submission and evaluation parameters to Supabase
-    const { error } = await supabase
-      .from('student_submissions')
-      .insert([
-        {
-          student_answer: studentAnswer,
-          score_estimate: structuredFeedback.scoreEstimate,
-          point_status: structuredFeedback.pointStatus,
-          evidence_status: structuredFeedback.evidenceStatus,
-          critique: structuredFeedback.critique,
-          a1_upgrade: structuredFeedback.a1Upgrade,
-          question_id: questionId || null // Relational foreign key link
-        }
-      ]);
-
-    if (error) console.error('Supabase logging failed:', error);
-
-    return NextResponse.json(structuredFeedback);
-  } catch (error) {
-    console.error('AI Grading Error:', error);
-    return NextResponse.json({ error: 'Failed to process grading request' }, { status: 500 });
+    return NextResponse.json(JSON.parse(completion.choices[0].message.content || '{}'));
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
