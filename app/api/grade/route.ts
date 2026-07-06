@@ -5,9 +5,10 @@ export async function POST(req: Request) {
   try {
     const { studentAnswer, questionType, subject } = await req.json();
 
-    // Initialize inside the handler so build workers don't crash when variables are absent
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+    // Route configuration targeting free high-speed Groq inference servers
+    const groq = new OpenAI({
+      apiKey: process.env.GROQ_API_KEY,
+      baseURL: "https://api.groq.com/openai/v1",
     });
 
     const assessmentPrompt = `You are a Senior Assistant Examiner for Singapore O-Level ${subject}. 
@@ -22,15 +23,15 @@ export async function POST(req: Request) {
 
     Return strictly a JSON object with this shape:
     {
-      "scoreEstimate": "L3/4 (Valid Comparison)" or "L4/6 (Highest Level reached description)",
+      "scoreEstimate": "L3/4 (Valid Comparison)",
       "critique": [
         "First specific structural feedback item detailing PEEL mastery...",
         "Second critique observation recommending vocabulary or provenance tone alignment optimization..."
       ]
     }`;
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+    const completion = await groq.chat.completions.create({
+      model: 'llama-3.1-8b-instant',
       messages: [{ role: 'system', content: assessmentPrompt }],
       response_format: { type: "json_object" }
     });
