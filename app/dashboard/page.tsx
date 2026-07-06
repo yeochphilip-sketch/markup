@@ -37,11 +37,15 @@ export default function DashboardPage() {
   const [studentAnswer, setStudentAnswer] = useState('');
   const [userAvatar, setUserAvatar] = useState('');
   const [userEmail, setUserEmail] = useState('');
+  const [userId, setUserId] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGrading, setIsGrading] = useState(false);
   const [hasScanned, setHasScanned] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  
+  // Track the currently active database practice record id
+  const [currentChallengeId, setCurrentChallengeId] = useState<string | null>(null);
 
   const [challenge, setChallenge] = useState({
     backgroundContext: '',
@@ -57,7 +61,6 @@ export default function DashboardPage() {
     segments: [] as Segment[]
   });
 
-  // Safe computed initial for the profile placeholder avatar
   const emailInitial = userEmail ? userEmail.charAt(0).toUpperCase() : 'S';
 
   useEffect(() => {
@@ -82,6 +85,7 @@ export default function DashboardPage() {
     async function initUserSession() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
+        setUserId(session.user.id);
         setUserEmail(session.user.email || '');
         if (session.user.user_metadata?.avatar_url) {
           setUserAvatar(session.user.user_metadata.avatar_url);
@@ -106,6 +110,7 @@ export default function DashboardPage() {
   };
 
   const handleGenerateChallenge = async () => {
+    if (!userId) return;
     setIsGenerating(true);
     setHasScanned(false);
     setEvaluation({ scoreEstimate: '', critique: [], segments: [] });
@@ -118,13 +123,36 @@ export default function DashboardPage() {
       });
       const data = await res.json();
       
-      setChallenge({
+      const updatedChallenge = {
         backgroundContext: data.backgroundContext || '',
         sourceA: data.sourceA || '',
         sourceB: data.sourceB || '',
         questionPrompt: data.questionPrompt || '',
         suggestedAnswer: data.suggestedAnswer || 'No model answer provided.'
-      });
+      };
+      
+      setChallenge(updatedChallenge);
+
+      // Write freshly generated challenge parameters straight into practice_history database log
+      const { data: savedRecord, error } = await supabase
+        .from('practice_history')
+        .insert([{
+          user_id: userId,
+          subject: activeSubject,
+          topic: selectedTopic,
+          question_type: selectedSkill,
+          question_prompt: updatedChallenge.questionPrompt,
+          background_context: updatedChallenge.backgroundContext,
+          source_a: updatedChallenge.sourceA,
+          source_b: updatedChallenge.sourceB,
+          suggested_answer: updatedChallenge.suggestedAnswer
+        }])
+        .select()
+        .single();
+
+      if (error) console.error("Database Log Failure:", error);
+      if (savedRecord) setCurrentChallengeId(savedRecord.id);
+
       loadHistoryLogs();
     } catch (err) {
       console.error(err);
@@ -134,15 +162,16 @@ export default function DashboardPage() {
   };
 
   const handleScanStructure = async () => {
-    if (!studentAnswer.trim()) return;
+    if (!studentAnswer.trim() || !userId) return;
     setIsGrading(true);
     try {
+      const activePrompt = isCustomMode ? customPrompt : challenge.questionPrompt;
       const res = await fetch('/api/grade', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           studentAnswer, 
-          questionPrompt: isCustomMode ? customPrompt : challenge.questionPrompt,
+          questionPrompt: activePrompt,
           questionType: selectedSkill, 
           subject: activeSubject 
         }),
@@ -154,6 +183,19 @@ export default function DashboardPage() {
         critique: data.critique || [],
         segments: data.highlightedSegments || []
       });
+
+      // Write full grading evaluation transaction trace into essay_evaluations table log
+      await supabase
+        .from('essay_evaluations')
+        .insert([{
+          user_id: userId,
+          practice_history_id: isCustomMode ? null : currentChallengeId,
+          custom_question_prompt: isCustomMode ? activePrompt : null,
+          student_essay: studentAnswer,
+          score_estimate: data.scoreEstimate || 'L1/1',
+          critique_bullets: data.critique || []
+        }]);
+
       setHasScanned(true);
     } catch (err) {
       console.error(err);
@@ -164,7 +206,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col font-sans">
-      {/* Premium Polish Top Header */}
+      {/* Top Navbar */}
       <header className="border-b border-slate-900 px-6 py-4 flex items-center justify-between bg-slate-950/60 backdrop-blur-md relative z-50">
         <h1 className="text-xl font-black text-indigo-500 tracking-wider">MARKUP</h1>
         <div className="flex items-center gap-4">
@@ -176,12 +218,10 @@ export default function DashboardPage() {
             ))}
           </div>
           
-          {/* Refactored Interactive Profile Dropdown Node */}
           <div className="relative" ref={dropdownRef}>
             <button 
               onClick={() => setIsSettingsOpen(!isSettingsOpen)}
               className="w-9 h-9 rounded-full flex items-center justify-center border border-slate-800 hover:border-indigo-500 focus:outline-none transition relative overflow-hidden bg-gradient-to-br from-indigo-600 to-purple-700 shadow-lg group"
-              aria-label="User account navigation menu"
             >
               {userAvatar ? (
                 <Image src={userAvatar} alt="Profile Image" fill sizes="36px" className="object-cover" referrerPolicy="no-referrer" />
@@ -190,7 +230,6 @@ export default function DashboardPage() {
               )}
             </button>
 
-            {/* Repositioned & Drop-Shadow Enhanced Settings Card */}
             {isSettingsOpen && (
               <div className="absolute right-0 mt-3 w-64 bg-slate-950/95 border border-slate-900 p-4 rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)] backdrop-blur-xl flex flex-col space-y-3 transition transform origin-top-right duration-150">
                 <div>
@@ -208,10 +247,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <div className="pt-2 border-t border-slate-900">
-                  <button 
-                    onClick={handleSignOut}
-                    className="w-full bg-red-950/30 hover:bg-red-900/50 text-red-400 border border-red-900/30 font-bold py-2 rounded-xl text-xs transition duration-150 shadow-inner"
-                  >
+                  <button onClick={handleSignOut} className="w-full bg-red-950/30 hover:bg-red-900/50 text-red-400 border border-red-900/30 font-bold py-2 rounded-xl text-xs transition duration-150 shadow-inner">
                     Sign Out
                   </button>
                 </div>
@@ -224,7 +260,7 @@ export default function DashboardPage() {
       {/* Main Grid Content Panels */}
       <div className="flex-1 grid grid-cols-1 xl:grid-cols-5 p-6 gap-6 overflow-hidden">
         
-        {/* Configurator Column */}
+        {/* Configurator Panel */}
         <div className="xl:col-span-1 flex flex-col space-y-4 max-h-[85vh] overflow-y-auto pr-1">
           <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-4 space-y-4">
             <h2 className="text-[10px] font-black tracking-widest text-slate-400 uppercase">Configurator</h2>
@@ -297,7 +333,7 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* History Logger list */}
+          {/* History Logger Side-panel */}
           <div className="flex-1 flex flex-col min-h-[220px]">
             <span className="text-[10px] font-black tracking-widest text-slate-500 uppercase mb-2">Practice History Logs</span>
             <div className="flex-1 space-y-2 overflow-y-auto max-h-[420px] pr-1">
@@ -305,7 +341,7 @@ export default function DashboardPage() {
                 <div className="text-[11px] text-slate-600 italic p-2">No historical submissions logged.</div>
               ) : (
                 history.map((item) => (
-                  <div key={item.id} onClick={() => { setChallenge({ backgroundContext: item.background_context, sourceA: item.source_a, sourceB: item.source_b, questionPrompt: item.question_prompt, suggestedAnswer: item.suggested_answer }); setHasScanned(false); }} className="bg-slate-950/30 hover:bg-slate-900/60 border border-slate-900 p-3 rounded-xl cursor-pointer transition text-left space-y-1.5 group">
+                  <div key={item.id} onClick={() => { setChallenge({ backgroundContext: item.background_context, sourceA: item.source_a, sourceB: item.source_b, questionPrompt: item.question_prompt, suggestedAnswer: item.suggested_answer }); setCurrentChallengeId(item.id); setHasScanned(false); }} className="bg-slate-950/30 hover:bg-slate-900/60 border border-slate-900 p-3 rounded-xl cursor-pointer transition text-left space-y-1.5 group">
                     <div className="flex justify-between items-center gap-2">
                       <span className="text-[9px] bg-slate-900 px-2 py-0.5 rounded text-indigo-400 font-bold uppercase tracking-wider">{item.subject === 'Social Studies' ? 'SS' : 'HIST'}</span>
                       <span className="text-[8px] text-slate-500 truncate max-w-[80px]">{item.question_type.replace('SBQ: ', '').replace('SRQ: ', '').replace('SEQ: ', '')}</span>
@@ -318,7 +354,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Source Text Container */}
+        {/* Source Text Layout Container */}
         <div className="xl:col-span-1 space-y-3 max-h-[85vh] overflow-y-auto pr-1">
           {!isCustomMode ? (
             challenge.backgroundContext ? (
@@ -386,7 +422,7 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        {/* Right Sidebar Checklist Analytics */}
+        {/* Right Sidebar Metrics Panel */}
         <div className="xl:col-span-1 space-y-4 max-h-[85vh] overflow-y-auto pr-1">
           <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-5 space-y-4 flex flex-col h-full">
             <div>
