@@ -35,7 +35,7 @@ export default function LandingPage() {
         </div>
         
         <h1 className="text-4xl md:text-6xl font-black tracking-tight text-white max-w-3xl leading-[1.1]">
-          Humanities evaluation <br/>
+          Humanities evaluations <br/>
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-300">your grade can trust</span>
         </h1>
         
