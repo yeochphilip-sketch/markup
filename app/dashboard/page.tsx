@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/utils/supabase';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
 interface Segment {
   text: string;
@@ -23,6 +24,9 @@ interface HistoryItem {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  
   const [activeSubject, setActiveSubject] = useState('Social Studies');
   const [selectedTopic, setSelectedTopic] = useState('Issue 1: Exploring Citizenship and Governance');
   const [selectedSkill, setSelectedSkill] = useState('SBQ: Extracting & Inferring (AO2)');
@@ -32,10 +36,14 @@ export default function DashboardPage() {
   
   const [studentAnswer, setStudentAnswer] = useState('');
   const [userAvatar, setUserAvatar] = useState('/default-avatar.png');
+  const [userEmail, setUserEmail] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGrading, setIsGrading] = useState(false);
   const [hasScanned, setHasScanned] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  
+  // Settings dropdown toggle state
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const [challenge, setChallenge] = useState({
     backgroundContext: '',
@@ -51,7 +59,6 @@ export default function DashboardPage() {
     segments: [] as Segment[]
   });
 
-  // Sync state cleanly when user switches between SS and History tabs
   useEffect(() => {
     if (activeSubject === 'Social Studies') {
       setSelectedTopic('Issue 1: Exploring Citizenship and Governance');
@@ -73,13 +80,30 @@ export default function DashboardPage() {
   useEffect(() => {
     async function initUserSession() {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user?.user_metadata?.avatar_url) {
-        setUserAvatar(session.user.user_metadata.avatar_url);
+      if (session?.user) {
+        setUserEmail(session.user.email || '');
+        if (session.user.user_metadata?.avatar_url) {
+          setUserAvatar(session.user.user_metadata.avatar_url);
+        }
       }
       loadHistoryLogs();
     }
     initUserSession();
+
+    // Close settings dropdown if clicking outside of the element
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsSettingsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/auth');
+  };
 
   const handleGenerateChallenge = async () => {
     setIsGenerating(true);
@@ -141,7 +165,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col font-sans">
       {/* Top Navbar */}
-      <header className="border-b border-slate-900 px-6 py-4 flex items-center justify-between bg-slate-950/40 backdrop-blur-sm">
+      <header className="border-b border-slate-900 px-6 py-4 flex items-center justify-between bg-slate-950/40 backdrop-blur-sm relative z-50">
         <h1 className="text-xl font-black text-indigo-500 tracking-wider">MARKUP</h1>
         <div className="flex items-center gap-4">
           <div className="flex bg-slate-900 p-1 rounded-xl gap-1">
@@ -151,16 +175,50 @@ export default function DashboardPage() {
               </button>
             ))}
           </div>
-          <div className="relative w-9 h-9 rounded-full overflow-hidden border border-slate-800">
-            <Image src={userAvatar} alt="Avatar" fill sizes="36px" className="object-cover" referrerPolicy="no-referrer" />
+          
+          {/* Interactive Profile Picture Container & Dropdown */}
+          <div className="relative" ref={dropdownRef}>
+            <button 
+              onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+              className="relative w-9 h-9 rounded-full overflow-hidden border border-slate-800 hover:border-indigo-500 focus:outline-none transition block shadow-sm"
+              aria-label="User account navigation menu"
+            >
+              <Image src={userAvatar} alt="Avatar Profile" fill sizes="36px" className="object-cover" referrerPolicy="no-referrer" />
+            </button>
+
+            {/* Dynamic Floating Settings Dropdown Menu */}
+            {isSettingsOpen && (
+              <div className="absolute right-0 mt-2.5 w-60 bg-slate-950 border border-slate-900 p-4 rounded-2xl shadow-2xl backdrop-blur-xl flex flex-col space-y-3 animation-fade-in animate-in slide-in-from-top-1 duration-150">
+                <div>
+                  <h3 className="text-[10px] font-black tracking-widest text-slate-500 uppercase">Account Profile</h3>
+                  <p className="text-xs text-slate-300 font-medium truncate mt-1">{userEmail || 'Student Account'}</p>
+                </div>
+                <div className="pt-2 border-t border-slate-900 space-y-2">
+                  <div className="flex justify-between items-center text-[11px] text-slate-400">
+                    <span>Curriculum Tier:</span>
+                    <span className="text-indigo-400 font-bold">O-Level (2026)</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[11px] text-slate-400">
+                    <span>Engine Standard:</span>
+                    <span className="text-emerald-400 font-bold">Llama 3.1</span>
+                  </div>
+                </div>
+                <button 
+                  onClick={handleSignOut}
+                  className="w-full bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-900/40 font-bold py-2 rounded-xl text-xs transition mt-1"
+                >
+                  Sign Out
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </header>
 
-      {/* Grid Layout */}
+      {/* Workspace Grid Configuration */}
       <div className="flex-1 grid grid-cols-1 xl:grid-cols-5 p-6 gap-6 overflow-hidden">
         
-        {/* Panel 1: Configurator & History Log */}
+        {/* Panel 1: Configurator Options & Logs */}
         <div className="xl:col-span-1 flex flex-col space-y-4 max-h-[85vh] overflow-y-auto pr-1">
           <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-4 space-y-4">
             <h2 className="text-[10px] font-black tracking-widest text-slate-400 uppercase">Configurator</h2>
@@ -233,7 +291,7 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* Historical Logs Sidebar list */}
+          {/* Historical Logs List */}
           <div className="flex-1 flex flex-col min-h-[220px]">
             <span className="text-[10px] font-black tracking-widest text-slate-500 uppercase mb-2">Practice History Logs</span>
             <div className="flex-1 space-y-2 overflow-y-auto max-h-[420px] pr-1">
