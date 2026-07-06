@@ -9,7 +9,6 @@ export default function DashboardPage() {
   const [selectedTopic, setSelectedTopic] = useState('Governance');
   const [selectedSkill, setSelectedSkill] = useState('SBCS: Comparison');
   const [studentAnswer, setStudentAnswer] = useState('');
-  const [showAnswer, setShowAnswer] = useState(false);
   const [userAvatar, setUserAvatar] = useState('/default-avatar.png');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGrading, setIsGrading] = useState(false);
@@ -43,7 +42,6 @@ export default function DashboardPage() {
   const handleGenerateChallenge = async () => {
     setIsGenerating(true);
     setEvaluation({ scoreEstimate: '', critique: [] }); // Reset grading column
-    setShowAnswer(false); // Close previous suggested answer dropdown
     
     try {
       const res = await fetch('/api/generate-question', {
@@ -52,6 +50,8 @@ export default function DashboardPage() {
         body: JSON.stringify({ subject: activeSubject, topic: selectedTopic, questionType: selectedSkill }),
       });
       const data = await res.json();
+      
+      // Fix: Direct mapping from API payload fields to challenge state parameters
       setChallenge({
         backgroundContext: data.backgroundContext || '',
         sourceA: data.sourceA || '',
@@ -77,7 +77,6 @@ export default function DashboardPage() {
       });
       const data = await res.json();
       
-      // Crucial Fix: Updates evaluation without modifying or wiping out the active challenge fields
       setEvaluation({
         scoreEstimate: data.scoreEstimate || 'L1/1 (Initial Attempt)',
         critique: data.critique || []
@@ -180,19 +179,6 @@ export default function DashboardPage() {
               placeholder="Structure your PEEL response paragraph here..."
               className="w-full flex-1 bg-transparent text-slate-300 font-mono text-xs leading-relaxed resize-none focus:outline-none"
             />
-            
-            {challenge.suggestedAnswer && (
-              <div className="mt-4 border-t border-slate-900 pt-3">
-                <button onClick={() => setShowAnswer(!showAnswer)} className="text-[10px] font-black uppercase text-indigo-400 hover:text-indigo-300 tracking-wider flex items-center gap-1">
-                  {showAnswer ? 'Hide Suggested Answer ✕' : '👁 View Suggested Model Answer'}
-                </button>
-                {showAnswer && (
-                  <div className="mt-2 bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 text-xs text-slate-400 leading-relaxed max-h-[160px] overflow-y-auto">
-                    {challenge.suggestedAnswer}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
 
           <button onClick={handleScanStructure} disabled={isGrading || !studentAnswer} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-xl text-xs tracking-wide transition shadow-md shadow-indigo-950/40 disabled:opacity-40">
@@ -200,9 +186,9 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        {/* Right Hand: LORMS Grading Display */}
+        {/* Right Hand: LORMS Grading & Suggested Answer Container */}
         <div className="lg:col-span-1 space-y-4">
-          <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-5 space-y-4 h-full">
+          <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-5 space-y-4 h-full flex flex-col">
             <div>
               <span className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">Estimated Banding</span>
               <div className="text-md font-black text-indigo-400 tracking-tight mt-1">
@@ -210,6 +196,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
+            {/* Diagnostics Block */}
             {evaluation.critique.length > 0 && (
               <div className="space-y-3 pt-2 border-t border-slate-900">
                 <span className="text-[10px] font-bold tracking-widest text-slate-500 uppercase block">Structural Diagnostics</span>
@@ -221,6 +208,16 @@ export default function DashboardPage() {
                     </li>
                   ))}
                 </ul>
+              </div>
+            )}
+
+            {/* Fixed New Section: Suggested Answer Block placed below Diagnostics */}
+            {challenge.suggestedAnswer && (
+              <div className="space-y-2 pt-3 border-t border-slate-900 flex-1 flex flex-col min-h-[180px]">
+                <span className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase block">Suggested Model Answer</span>
+                <div className="flex-1 bg-slate-900/40 border border-slate-800/80 rounded-xl p-3 text-xs text-slate-400 leading-relaxed overflow-y-auto max-h-[300px]">
+                  {challenge.suggestedAnswer}
+                </div>
               </div>
             )}
           </div>
