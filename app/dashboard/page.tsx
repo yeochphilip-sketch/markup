@@ -364,7 +364,7 @@ export default function DashboardPage() {
 
             {isCustomMode && (
               <div className="pt-1 text-xs text-slate-400 leading-relaxed">
-                Paste your school assignment prompt and essay directly in the canvas workspace layout fields to vet standalone drafts.
+                Paste your school assignment prompt and essay directly in the canvas workspace fields to vet standalone drafts.
               </div>
             )}
           </div>
