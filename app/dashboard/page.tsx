@@ -47,11 +47,9 @@ export default function DashboardPage() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [currentChallengeId, setCurrentChallengeId] = useState<string | null>(null);
 
-  // Timer Setup
   const [timeLeft, setTimeLeft] = useState(3600); 
   const [isTimerActive, setIsTimerActive] = useState(false);
 
-  // Advanced Marker Highlighting Layout Nodes
   const [contextMenuCoords, setContextMenuCoords] = useState({ top: 0, left: 0 });
   const [showContextMenu, setShowContextMenu] = useState(false);
   const [currentSelectionRange, setCurrentSelectionRange] = useState<Range | null>(null);
@@ -305,7 +303,6 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col font-sans relative">
       
-      {/* Context Menu Panel */}
       {showContextMenu && (
         <div 
           style={{ top: contextMenuCoords.top, left: contextMenuCoords.left }}
@@ -321,12 +318,10 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Header Section */}
       <header className="border-b border-slate-900 px-6 py-4 flex items-center justify-between bg-slate-950/60 backdrop-blur-md relative z-40">
         <h1 className="text-xl font-black text-indigo-500 tracking-wider">MARKUP</h1>
         
         <div className="flex items-center gap-6">
-          {/* Active Countdown Widget */}
           <div className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 flex items-center gap-2 font-mono text-xs">
             <span className={timeLeft < 300 ? "text-red-500 animate-pulse font-bold" : "text-slate-400"}>⏱️ {formatTime(timeLeft)}</span>
             <button onClick={() => setIsTimerActive(!isTimerActive)} className="text-[10px] text-indigo-400 hover:text-indigo-300 font-bold ml-1">
@@ -369,10 +364,8 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {/* Main Panel Content Grid */}
       <div className="flex-1 grid grid-cols-1 xl:grid-cols-5 p-6 gap-6 overflow-hidden">
         
-        {/* Sidebar Configurator */}
         <div className="xl:col-span-1 flex flex-col space-y-4 max-h-[85vh] overflow-y-auto pr-1">
           <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-4 space-y-4">
             <h2 className="text-[10px] font-black tracking-widest text-slate-400 uppercase">Configurator</h2>
@@ -425,7 +418,6 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* History Panel */}
           <div className="flex-1 flex flex-col min-h-[200px]">
             <span className="text-[10px] font-black tracking-widest text-slate-500 uppercase mb-2">Practice History Logs</span>
             <div className="flex-1 space-y-2 overflow-y-auto max-h-[380px] pr-1">
@@ -442,7 +434,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Source Text Container with Context Highlight Handlers */}
         <div className="xl:col-span-1 space-y-3 max-h-[85vh] overflow-y-auto pr-1">
           {!isCustomMode ? (
             <div onContextMenu={handleSourceContextMenu}>
@@ -472,7 +463,6 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Writing Canvas Workspace */}
         <div className="xl:col-span-2 flex flex-col space-y-4">
           <div className="bg-indigo-950/20 border border-indigo-900/30 rounded-2xl p-4">
             <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Question Assignment Prompt</span>
@@ -504,7 +494,6 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        {/* Right Sidebar Analytics Panel */}
         <div className="xl:col-span-1 space-y-4 max-h-[85vh] overflow-y-auto pr-1">
           <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-5 space-y-4 flex flex-col h-full">
             <div>

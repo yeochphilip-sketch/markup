@@ -5,8 +5,8 @@ export async function POST(req: Request) {
   try {
     let { subject, topic, questionType } = await req.json();
 
-    // Resolve 'Any Topic' Fallbacks dynamically 
-    if (topic.includes('Any Topic')) {
+    // Fallbacks for "Any Topic"
+    if (!topic || topic.includes('Any Topic')) {
       if (subject === 'Social Studies') {
         const ssTopics = [
           'Issue 1: Exploring Citizenship and Governance',
@@ -25,8 +25,8 @@ export async function POST(req: Request) {
       }
     }
 
-    // Resolve 'All Skills' fallback dynamically
-    if (questionType.includes('All Skills')) {
+    // Fallbacks for "All Skills"
+    if (!questionType || questionType.includes('All Skills')) {
       const skills = [
         'SBQ: Inference / Message (AO2)',
         'SBQ: Comparison & Contrast (AO2)',
@@ -53,22 +53,52 @@ export async function POST(req: Request) {
     - If "Reliability" or "Utility", word question exactly as: "Does Source A prove that... Explain your answer." or "How useful is Source A as evidence of... Explain your answer."
     - If "Inference", word question exactly as: "What can you infer from Source A about... Explain your answer."
 
-    Return response as a valid JSON object matching this structure:
-    {
-      "backgroundContext": "A 3-4 sentence official textbook style contextual overview introducing the historical contention point.",
-      "sourceA": "[Provenance Line]\\nActual historical or realistic mock excerpt reflecting an explicit stance with specific clues.",
-      "sourceB": "[Provenance Line]\\nA contrasting or complementary text segment designed to test cross-referencing capabilities.",
-      "questionPrompt": "The precisely formatted O-Level style question.",
-      "suggestedAnswer": "An ideal response structured explicitly to hit the highest LORMS level."
-    }`;
+    Return EXACTLY this output layout using the tags specified. Follow the spacing exactly:
+
+    [CONTEXT]
+    Provide a 3-4 sentence official textbook style contextual overview introducing the historical contention point.
+    [/CONTEXT]
+
+    [SOURCE_A]
+    [Provenance Line here]
+    Actual historical or realistic mock excerpt reflecting an explicit stance with specific clues.
+    [/SOURCE_A]
+
+    [SOURCE_B]
+    [Provenance Line here]
+    A contrasting or complementary text segment designed to test cross-referencing capabilities.
+    [/SOURCE_B]
+
+    [PROMPT]
+    The precisely formatted O-Level style question prompt.
+    [/PROMPT]
+
+    [ANSWER]
+    An ideal response structured explicitly to hit the highest LORMS level.
+    [/ANSWER]`;
 
     const completion = await groq.chat.completions.create({
       model: 'llama-3.1-8b-instant',
-      messages: [{ role: 'user', content: prompt }],
-      response_format: { type: "json_object" }
+      messages: [{ role: 'user', content: prompt }]
     });
 
-    const challengeData = JSON.parse(completion.choices[0].message.content || '{}');
+    const text = completion.choices[0]?.message?.content || '';
+
+    // Regex parsing matching tags safely
+    const extract = (tag: string) => {
+      const regex = new RegExp(`\\[${tag}\\]([\\s\\S]*?)\\[\\/${tag}\\]`, 'i');
+      const match = text.match(regex);
+      return match ? match[1].trim() : '';
+    };
+
+    const challengeData = {
+      backgroundContext: extract('CONTEXT') || 'Contextual parameters failed to assemble correctly.',
+      sourceA: extract('SOURCE_A') || 'Source materials missing from the model payload.',
+      sourceB: extract('SOURCE_B') || 'Supplementary source documentation failed to deliver.',
+      questionPrompt: extract('PROMPT') || 'Could you infer what historical changes occurred during this milestone?',
+      suggestedAnswer: extract('ANSWER') || 'Ideal model metrics omitted.'
+    };
+
     return NextResponse.json(challengeData);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
