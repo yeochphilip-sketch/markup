@@ -132,7 +132,7 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {/* Part B: Gamification / Smart Recommendation Banner */}
+      {/* Gamification / Smart Recommendation Banner */}
       <div className="px-6 pt-6 grid grid-cols-1 md:grid-cols-6 gap-4">
         <div className="md:col-span-2 bg-indigo-600/10 border border-indigo-500/30 p-4 rounded-[2rem] flex items-center gap-4 relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition">💡</div>
@@ -181,7 +181,17 @@ export default function DashboardPage() {
             <h2 className="text-[10px] font-black tracking-widest text-slate-500 uppercase mb-4">Practice Logs</h2>
             <div className="space-y-3 max-h-[250px] overflow-y-auto pr-1">
               {history.map(item => (
-                <div key={item.id} onClick={() => setChallenge({ ...item })} className="p-3 bg-slate-900/40 border border-slate-800 rounded-xl cursor-pointer hover:border-indigo-500 transition group">
+                <div 
+                  key={item.id} 
+                  onClick={() => setChallenge({
+                    backgroundContext: item.background_context,
+                    sourceA: item.source_a,
+                    sourceB: item.source_b,
+                    questionPrompt: item.question_prompt,
+                    suggestedAnswer: item.suggested_answer
+                  })} 
+                  className="p-3 bg-slate-900/40 border border-slate-800 rounded-xl cursor-pointer hover:border-indigo-500 transition group"
+                >
                   <p className="text-[10px] text-slate-400 font-bold group-hover:text-slate-100 line-clamp-2 leading-snug">{item.question_prompt}</p>
                 </div>
               ))}
@@ -189,7 +199,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Part C: Main Content Workspace + Sliding Exemplar Toggle */}
+        {/* Main Content Workspace */}
         <div className="xl:col-span-5 grid grid-cols-1 xl:grid-cols-5 gap-6 relative">
           
           {/* Main Writing Canvas */}
@@ -249,7 +259,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Part C: Exemplar Bank Sliding Panel */}
+          {/* Exemplar Bank Sliding Panel */}
           {isExemplarOpen && (
             <div className="absolute inset-y-0 right-0 w-full xl:w-2/3 bg-slate-950 border-l border-slate-800 z-50 shadow-[0_0_100px_rgba(0,0,0,0.8)] p-10 animate-in slide-in-from-right duration-300 rounded-l-[3rem]">
               <div className="flex justify-between items-center mb-10">
