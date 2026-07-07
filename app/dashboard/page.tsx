@@ -232,7 +232,7 @@ export default function DashboardPage() {
       setHasScanned(true);
     } catch (err) {
       console.error(err);
-    } finaly {
+    } finally {
       setIsGrading(false);
     }
   };
