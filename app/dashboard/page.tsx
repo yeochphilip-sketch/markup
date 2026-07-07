@@ -43,9 +43,12 @@ export default function DashboardPage() {
   const [hasScanned, setHasScanned] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  
-  // Track the currently active database practice record id
   const [currentChallengeId, setCurrentChallengeId] = useState<string | null>(null);
+
+  // Source Highlight Selection State
+  const [selectedQuote, setSelectedQuote] = useState('');
+  const [popoverCoords, setPopoverCoords] = useState({ top: 0, left: 0 });
+  const [showHighlightPopover, setShowHighlightPopover] = useState(false);
 
   const [challenge, setChallenge] = useState({
     backgroundContext: '',
@@ -104,6 +107,31 @@ export default function DashboardPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Monitor text selections to trigger highlighters
+  const handleSourceMouseUp = (e: React.MouseEvent<HTMLDivElement>) => {
+    const selection = window.getSelection();
+    if (!selection) return;
+    const text = selection.toString().trim();
+    
+    if (text.length > 3) {
+      setSelectedQuote(text);
+      setPopoverCoords({
+        top: e.clientY + window.scrollY - 40,
+        left: e.clientX + window.scrollX - 60
+      });
+      setShowHighlightPopover(true);
+    } else {
+      setShowHighlightPopover(false);
+    }
+  };
+
+  const injectQuoteIntoWorkspace = () => {
+    if (!selectedQuote) return;
+    setStudentAnswer((prev) => prev + ` "${selectedQuote}" `);
+    setShowHighlightPopover(false);
+    window.getSelection()?.removeAllRanges();
+  };
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     router.push('/auth');
@@ -113,6 +141,7 @@ export default function DashboardPage() {
     if (!userId) return;
     setIsGenerating(true);
     setHasScanned(false);
+    setShowHighlightPopover(false);
     setEvaluation({ scoreEstimate: '', critique: [], segments: [] });
     
     try {
@@ -133,8 +162,7 @@ export default function DashboardPage() {
       
       setChallenge(updatedChallenge);
 
-      // Write freshly generated challenge parameters straight into practice_history database log
-      const { data: savedRecord, error } = await supabase
+      const { data: savedRecord } = await supabase
         .from('practice_history')
         .insert([{
           user_id: userId,
@@ -150,13 +178,11 @@ export default function DashboardPage() {
         .select()
         .single();
 
-      if (error) console.error("Database Log Failure:", error);
       if (savedRecord) setCurrentChallengeId(savedRecord.id);
-
       loadHistoryLogs();
     } catch (err) {
       console.error(err);
-    } finally {
+    } bits: {
       setIsGenerating(false);
     }
   };
@@ -184,7 +210,6 @@ export default function DashboardPage() {
         segments: data.highlightedSegments || []
       });
 
-      // Write full grading evaluation transaction trace into essay_evaluations table log
       await supabase
         .from('essay_evaluations')
         .insert([{
@@ -205,9 +230,20 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col font-sans">
-      {/* Top Navbar */}
-      <header className="border-b border-slate-900 px-6 py-4 flex items-center justify-between bg-slate-950/60 backdrop-blur-md relative z-50">
+    <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col font-sans" onClick={() => { if(showHighlightPopover) setShowHighlightPopover(false); }}>
+      {/* Floating Interactive Popover Badge */}
+      {showHighlightPopover && (
+        <div 
+          style={{ top: popoverCoords.top, left: popoverCoords.left }} 
+          className="absolute z-50 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[10px] py-1.5 px-3 rounded-xl shadow-xl border border-indigo-400 flex items-center gap-1.5 cursor-pointer transition"
+          onClick={(e) => { e.stopPropagation(); injectQuoteIntoWorkspace(); }}
+        >
+          <span>✍️ Cite Quote</span>
+        </div>
+      )}
+
+      {/* Top Navbar Header */}
+      <header className="border-b border-slate-900 px-6 py-4 flex items-center justify-between bg-slate-950/60 backdrop-blur-md relative z-40">
         <h1 className="text-xl font-black text-indigo-500 tracking-wider">MARKUP</h1>
         <div className="flex items-center gap-4">
           <div className="flex bg-slate-900 p-1 rounded-xl gap-1">
@@ -260,7 +296,7 @@ export default function DashboardPage() {
       {/* Main Grid Content Panels */}
       <div className="flex-1 grid grid-cols-1 xl:grid-cols-5 p-6 gap-6 overflow-hidden">
         
-        {/* Configurator Panel */}
+        {/* Configurator */}
         <div className="xl:col-span-1 flex flex-col space-y-4 max-h-[85vh] overflow-y-auto pr-1">
           <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-4 space-y-4">
             <h2 className="text-[10px] font-black tracking-widest text-slate-400 uppercase">Configurator</h2>
@@ -354,24 +390,30 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Source Text Layout Container */}
+        {/* Source Text Container with Highlight Listeners */}
         <div className="xl:col-span-1 space-y-3 max-h-[85vh] overflow-y-auto pr-1">
           {!isCustomMode ? (
             challenge.backgroundContext ? (
-              <>
-                <div className="bg-slate-950/40 border border-slate-900 rounded-xl p-4 text-xs space-y-1">
+              <div onMouseUp={handleSourceMouseUp}>
+                <div className="bg-slate-950/40 border border-slate-900 rounded-xl p-4 text-xs space-y-1 mb-3">
                   <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">Contextual Background</span>
-                  <p className="text-slate-400 leading-relaxed">{challenge.backgroundContext}</p>
+                  <p className="text-slate-400 leading-relaxed select-text">{challenge.backgroundContext}</p>
                 </div>
-                <div className="bg-slate-950/40 border border-slate-900 rounded-xl p-4 text-xs space-y-1">
-                  <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">Source A</span>
-                  <p className="text-slate-300 italic leading-relaxed">{challenge.sourceA}</p>
+                <div className="bg-slate-950/40 border border-slate-900 rounded-xl p-4 text-xs space-y-1 mb-3 hover:border-slate-800 transition">
+                  <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider flex justify-between items-center">
+                    <span>Source A</span>
+                    <span className="text-[8px] text-slate-600 font-normal normal-case">Highlight to cite</span>
+                  </span>
+                  <p className="text-slate-300 italic leading-relaxed select-text">{challenge.sourceA}</p>
                 </div>
-                <div className="bg-slate-950/40 border border-slate-900 rounded-xl p-4 text-xs space-y-1">
-                  <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">Source B</span>
-                  <p className="text-slate-300 italic leading-relaxed">{challenge.sourceB}</p>
+                <div className="bg-slate-950/40 border border-slate-900 rounded-xl p-4 text-xs space-y-1 hover:border-slate-800 transition">
+                  <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider flex justify-between items-center">
+                    <span>Source B</span>
+                    <span className="text-[8px] text-slate-600 font-normal normal-case">Highlight to cite</span>
+                  </span>
+                  <p className="text-slate-300 italic leading-relaxed select-text">{challenge.sourceB}</p>
                 </div>
-              </>
+              </div>
             ) : (
               <div className="h-40 flex items-center justify-center border border-dashed border-slate-900 rounded-xl text-xs text-slate-600 p-4 text-center">Generate a core challenge task block to view contextual source resources.</div>
             )

@@ -10,48 +10,45 @@ export async function POST(req: Request) {
       baseURL: "https://api.groq.com/openai/v1",
     });
 
-    const gradingSystemPrompt = `You are a Senior Cambridge Examiner for Singapore GCE O-Level ${subject || 'Humanities'}.
-    Evaluate the student's response based strictly on LORMS criteria and the PEEL framework.
+    const systemPrompt = `You are an expert Cambridge Chief Examiner for Singapore GCE O-Level ${subject}. 
+    Your goal is to meticulously audit the student's essay answer paragraph against official SEAB LORMS criteria.
     
-    You must evaluate:
-    Question/Prompt: "${questionPrompt || 'General Evaluation'}"
-    Student Response: "${studentAnswer}"
-
-    You must return a JSON object containing a structured critique and a segmented breakdown of their text for inline highlighting.
+    Current Target Question Type Rules:
+    - SBQ: Extracting & Inferring (AO2) -> Max L2/3. Must verify valid inferences instead of pure liftings.
+    - SBQ: Comparison & Contrast (AO2/AO3) -> Check if student compares *both* sub-points of similarity AND difference. Base content matching scores max L3/4. Cross-referencing reliability or purpose awards top tier L4.
+    - SBQ: Purpose-Motive Evaluation (AO3) -> Look for the 'Impact/Action' on the target audience. If they only mention message/context, cap them at L3. They must state the author's hidden intent/motive to reach L4.
+    - SBQ: Utility & Reliability Limits (AO3) -> Check if student tests reliability using cross-referencing to other sources or checking tone/bias.
     
-    Return exactly this JSON format:
+    Analyze the text and return EXACTLY this JSON structure:
     {
-      "scoreEstimate": "e.g., L3/4 (Valid Inference with Evidence)",
+      "scoreEstimate": "L3/4 (e.g., Level code and mark out of max limits)",
       "critique": [
-        "Identified a clear valid sub-inference.",
-        "Missing a crisp link back to the overarching question prompt focus."
+        "Bullet points highlighting exact structural flaws or strengths based on O-Level expectations."
       ],
       "highlightedSegments": [
-        {
-          "text": "The exact string segment from their answer that is well written...",
-          "type": "correct"
-        },
-        {
-          "text": "The exact string segment that is vague or structurally weak...",
-          "type": "weak" 
-        },
-        {
-          "text": "The exact string segment containing critical logical flaws or historical errors...",
-          "type": "error"
-        }
+        {"text": "string matching exactly a part of student answer", "type": "correct"},
+        {"text": "string matching exactly a part of student answer", "type": "weak"},
+        {"text": "string matching exactly a part of student answer", "type": "error"}
       ]
     }
-    
-    Ensure that when you join all the 'text' fields in the 'highlightedSegments' array together sequentially, they reconstruct the student's original answer. Valid types are: "correct", "weak" (yellow underline/highlight), and "error" (red wavy underline).`;
+
+    Rules for segments:
+    - Every single character of the student's input must be accounted for in order.
+    - Tag strong assertions/valid evidence as 'correct'.
+    - Tag vague expansions or general statements without source quotes as 'weak'.
+    - Tag historical inaccuracies, major logical leaps, or copied phrases without an explanation as 'error'.`;
 
     const completion = await groq.chat.completions.create({
       model: 'llama-3.1-8b-instant',
-      messages: [{ role: 'system', content: gradingSystemPrompt }],
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `Question Prompt: ${questionPrompt}\nSkill Category: ${questionType}\n\nStudent's Drafted Answer Paper:\n${studentAnswer}` }
+      ],
       response_format: { type: "json_object" }
     });
 
-    const evaluationPayload = JSON.parse(completion.choices[0].message.content || '{}');
-    return NextResponse.json(evaluationPayload);
+    const parsedData = JSON.parse(completion.choices[0].message.content || '{}');
+    return NextResponse.json(parsedData);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
