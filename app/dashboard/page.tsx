@@ -189,6 +189,11 @@ export default function DashboardPage() {
       .eq('id', currentChallengeId);
   };
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/auth');
+  };
+  
   const handleGenerateChallenge = async () => {
     if (!userId) return;
     setIsGenerating(true);
