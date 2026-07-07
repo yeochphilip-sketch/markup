@@ -10,16 +10,29 @@ export async function POST(req: Request) {
       baseURL: "https://api.groq.com/openai/v1",
     });
 
-    const prompt = `You are an expert Cambridge Examiner for Singapore GCE O-Level ${subject}.
-    Generate a high-quality exam task for the topic: "${topic}" and skill type: "${questionType}".
+    const prompt = `You are a Senior Cambridge Exam Setter for the Singapore SEAB GCE O-Level ${subject} national examination.
+    Generate an authentic, exam-grade Source-Based Case Study task covering Topic: "${topic}".
+    The task must precisely match the conceptual style and technical wording used in real historical papers.
     
-    You must return exactly this JSON format:
+    Target Question Skill Layout: "${questionType}"
+    
+    Wording Guidelines for specific formats:
+    - If "Comparison", word question exactly as: "How far does Source A support Source B about... Explain your answer."
+    - If "Purpose", word question exactly as: "Why did the author issue this statement in [Year]? Explain your answer."
+    - If "Reliability", word question exactly as: "Does Source A prove that... Explain your answer."
+    - If "Assertion/Matrix", word question exactly as: "Using all sources, how far do you agree that... Explain your answer."
+
+    Ensure that your generated Source texts contain clear target parameters:
+    1. A provenance line at the top stating the precise author position, date, and historical context.
+    2. Subtle bias or ulterior motives to give students ample material for testing utility and reliability.
+
+    Return EXACTLY this JSON structure:
     {
-      "backgroundContext": "A brief historical background context paragraph setting the scene...",
-      "sourceA": "A detailed primary or secondary source excerpt (text-based attribution, provenance, and content)...",
-      "sourceB": "A contrasting or supporting second source text segment...",
-      "questionPrompt": "The specific analytical essay question prompt targeting the requested skill layout...",
-      "suggestedAnswer": "A perfect LORMS top-tier model essay response showing ideal PEEL structure and source cross-referencing."
+      "backgroundContext": "A 3-4 sentence official textbook style contextual overview introducing the historical contention point.",
+      "sourceA": "[Provenance Line]\\nActual historical or realistic mock excerpt reflecting an explicit stance with specific clues.",
+      "sourceB": "[Provenance Line]\\nA contrasting or complementary text segment designed to test cross-referencing capabilities.",
+      "questionPrompt": "The precisely formatted O-Level style question.",
+      "suggestedAnswer": "An ideal response structured explicitly to hit the highest LORMS level (e.g., L5/5 or L6/6), pointing out cross-references and purpose nuances."
     }`;
 
     const completion = await groq.chat.completions.create({

@@ -45,15 +45,15 @@ export default function DashboardPage() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [currentChallengeId, setCurrentChallengeId] = useState<string | null>(null);
 
-  // Source Highlight Selection State
-  const [selectedQuote, setSelectedQuote] = useState('');
-  const [popoverCoords, setPopoverCoords] = useState({ top: 0, left: 0 });
-  const [showHighlightPopover, setShowHighlightPopover] = useState(false);
+  // Advanced Multi-Color Right-Click State
+  const [contextMenuCoords, setContextMenuCoords] = useState({ top: 0, left: 0 });
+  const [showContextMenu, setShowContextMenu] = useState(false);
+  const [currentSelectionRange, setCurrentSelectionRange] = useState<Range | null>(null);
 
   const [challenge, setChallenge] = useState({
-    backgroundContext: '',
-    sourceA: '',
-    sourceB: '',
+    backgroundContext: 'Click Generate Practice to load Singapore standard materials.',
+    sourceA: 'Source A contents appear here.',
+    sourceB: 'Source B contents appear here.',
     questionPrompt: '',
     suggestedAnswer: ''
   });
@@ -98,38 +98,50 @@ export default function DashboardPage() {
     }
     initUserSession();
 
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsSettingsOpen(false);
-      }
+    function handleClickOutside() {
+      setIsSettingsOpen(false);
+      setShowContextMenu(false);
     }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
-  // Monitor text selections to trigger highlighters
-  const handleSourceMouseUp = (e: React.MouseEvent<HTMLDivElement>) => {
+  // Capture Right Click Selection Event
+  const handleSourceContextMenu = (e: React.MouseEvent) => {
     const selection = window.getSelection();
-    if (!selection) return;
-    const text = selection.toString().trim();
-    
-    if (text.length > 3) {
-      setSelectedQuote(text);
-      setPopoverCoords({
-        top: e.clientY + window.scrollY - 40,
-        left: e.clientX + window.scrollX - 60
-      });
-      setShowHighlightPopover(true);
-    } else {
-      setShowHighlightPopover(false);
-    }
+    if (!selection || selection.toString().trim().length === 0) return;
+
+    e.preventDefault(); // Turn off native browser dropdown
+    e.stopPropagation();
+
+    const range = selection.getRangeAt(0);
+    setCurrentSelectionRange(range);
+    setContextMenuCoords({ top: e.clientY + window.scrollY, left: e.clientX + window.scrollX });
+    setShowContextMenu(true);
   };
 
-  const injectQuoteIntoWorkspace = () => {
-    if (!selectedQuote) return;
-    setStudentAnswer((prev) => prev + ` "${selectedQuote}" `);
-    setShowHighlightPopover(false);
+  // Apply highlight tag dynamically to selected DOM sub-tree
+  const applyHighlightColor = (colorClass: string) => {
+    if (!currentSelectionRange) return;
+
+    if (colorClass === 'clear') {
+      // Find out if selection is wrapped inside a highlight block and extract text safely
+      const parentNode = currentSelectionRange.commonAncestorContainer.parentNode as HTMLElement;
+      if (parentNode && parentNode.classList.contains('source-hl')) {
+        parentNode.replaceWith(document.createTextNode(parentNode.textContent || ''));
+      }
+    } else {
+      const span = document.createElement('span');
+      span.className = `source-hl px-0.5 rounded transition ${colorClass}`;
+      try {
+        currentSelectionRange.surroundContents(span);
+      } catch (err) {
+        console.warn("Cross-element nodes detected. Highlighting inline nodes directly.", err);
+      }
+    }
+
     window.getSelection()?.removeAllRanges();
+    setShowContextMenu(false);
   };
 
   const handleSignOut = async () => {
@@ -141,7 +153,6 @@ export default function DashboardPage() {
     if (!userId) return;
     setIsGenerating(true);
     setHasScanned(false);
-    setShowHighlightPopover(false);
     setEvaluation({ scoreEstimate: '', critique: [], segments: [] });
     
     try {
@@ -152,15 +163,13 @@ export default function DashboardPage() {
       });
       const data = await res.json();
       
-      const updatedChallenge = {
+      setChallenge({
         backgroundContext: data.backgroundContext || '',
         sourceA: data.sourceA || '',
         sourceB: data.sourceB || '',
         questionPrompt: data.questionPrompt || '',
         suggestedAnswer: data.suggestedAnswer || 'No model answer provided.'
-      };
-      
-      setChallenge(updatedChallenge);
+      });
 
       const { data: savedRecord } = await supabase
         .from('practice_history')
@@ -169,11 +178,11 @@ export default function DashboardPage() {
           subject: activeSubject,
           topic: selectedTopic,
           question_type: selectedSkill,
-          question_prompt: updatedChallenge.questionPrompt,
-          background_context: updatedChallenge.backgroundContext,
-          source_a: updatedChallenge.sourceA,
-          source_b: updatedChallenge.sourceB,
-          suggested_answer: updatedChallenge.suggestedAnswer
+          question_prompt: data.questionPrompt,
+          background_context: data.backgroundContext,
+          source_a: data.sourceA,
+          source_b: data.sourceB,
+          suggested_answer: data.suggestedAnswer
         }])
         .select()
         .single();
@@ -230,15 +239,22 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col font-sans" onClick={() => { if(showHighlightPopover) setShowHighlightPopover(false); }}>
-      {/* Floating Interactive Popover Badge */}
-      {showHighlightPopover && (
+    <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col font-sans relative">
+      
+      {/* Dynamic Right Click Highlighting Menu Card Overlay */}
+      {showContextMenu && (
         <div 
-          style={{ top: popoverCoords.top, left: popoverCoords.left }} 
-          className="absolute z-50 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[10px] py-1.5 px-3 rounded-xl shadow-xl border border-indigo-400 flex items-center gap-1.5 cursor-pointer transition"
-          onClick={(e) => { e.stopPropagation(); injectQuoteIntoWorkspace(); }}
+          style={{ top: contextMenuCoords.top, left: contextMenuCoords.left }}
+          className="absolute z-50 bg-slate-950 border border-slate-800 p-2 rounded-xl shadow-2xl flex flex-col min-w-[150px] space-y-1"
+          onClick={(e) => e.stopPropagation()}
         >
-          <span>✍️ Cite Quote</span>
+          <span className="text-[9px] font-bold text-slate-500 uppercase px-2 py-0.5">Highlight Concept</span>
+          <button onClick={() => applyHighlightColor('bg-yellow-500/30 text-yellow-100')} className="text-left text-xs font-semibold px-2 py-1 hover:bg-slate-900 rounded-md flex items-center gap-2"><span className="w-2 h-2 bg-yellow-400 rounded-full"></span> Assertion</button>
+          <button onClick={() => applyHighlightColor('bg-emerald-500/30 text-emerald-100')} className="text-left text-xs font-semibold px-2 py-1 hover:bg-slate-900 rounded-md flex items-center gap-2"><span className="w-2 h-2 bg-emerald-400 rounded-full"></span> Evidence</button>
+          <button onClick={() => applyHighlightColor('bg-sky-500/30 text-sky-100')} className="text-left text-xs font-semibold px-2 py-1 hover:bg-slate-900 rounded-md flex items-center gap-2"><span className="w-2 h-2 bg-sky-400 rounded-full"></span> Provenance</button>
+          <button onClick={() => applyHighlightColor('bg-rose-500/30 text-rose-100')} className="text-left text-xs font-semibold px-2 py-1 hover:bg-slate-900 rounded-md flex items-center gap-2"><span className="w-2 h-2 bg-rose-400 rounded-full"></span> Cross-Ref</button>
+          <div className="border-t border-slate-900 my-1"></div>
+          <button onClick={() => applyHighlightColor('clear')} className="text-left text-xs font-bold px-2 py-1 hover:bg-red-950/20 text-red-400 rounded-md">🧹 Clear Highlight</button>
         </div>
       )}
 
@@ -256,7 +272,7 @@ export default function DashboardPage() {
           
           <div className="relative" ref={dropdownRef}>
             <button 
-              onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+              onClick={(e) => { e.stopPropagation(); setIsSettingsOpen(!isSettingsOpen); }}
               className="w-9 h-9 rounded-full flex items-center justify-center border border-slate-800 hover:border-indigo-500 focus:outline-none transition relative overflow-hidden bg-gradient-to-br from-indigo-600 to-purple-700 shadow-lg group"
             >
               {userAvatar ? (
@@ -293,7 +309,7 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {/* Main Grid Content Panels */}
+      {/* Main Layout Grid Content */}
       <div className="flex-1 grid grid-cols-1 xl:grid-cols-5 p-6 gap-6 overflow-hidden">
         
         {/* Configurator */}
@@ -349,7 +365,7 @@ export default function DashboardPage() {
                         <option value="SBQ: Inference & Cross-Referencing (AO3)">SBQ: Inference & Cross-Referencing (AO3)</option>
                         <option value="SBQ: Analyzing Purpose & Intent (AO3)">SBQ: Purpose-Motive Evaluation (AO3)</option>
                         <option value="SBQ: Testing Utility & Reliability (AO3)">SBQ: Utility & Reliability Limits (AO3)</option>
-                        <option value="SBQ: Multiple Source Synthesis (AO3)">SBQ: Synthesis Assertion Matrix (AO3)</option>
+                        <option value="SBQ: Multiple Source Synthesis (AO3)">SBQ: Multiple Source Synthesis (AO3)</option>
                         <option value="SEQ: Constructing Historical Explanations (AO2)">SEQ: Structured Essay Question (AO2)</option>
                       </>
                     )}
@@ -369,7 +385,7 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* History Logger Side-panel */}
+          {/* History Panel */}
           <div className="flex-1 flex flex-col min-h-[220px]">
             <span className="text-[10px] font-black tracking-widest text-slate-500 uppercase mb-2">Practice History Logs</span>
             <div className="flex-1 space-y-2 overflow-y-auto max-h-[420px] pr-1">
@@ -390,42 +406,38 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Source Text Container with Highlight Listeners */}
+        {/* Source Text Container with Right Click Highlighting Nodes */}
         <div className="xl:col-span-1 space-y-3 max-h-[85vh] overflow-y-auto pr-1">
           {!isCustomMode ? (
-            challenge.backgroundContext ? (
-              <div onMouseUp={handleSourceMouseUp}>
-                <div className="bg-slate-950/40 border border-slate-900 rounded-xl p-4 text-xs space-y-1 mb-3">
-                  <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">Contextual Background</span>
-                  <p className="text-slate-400 leading-relaxed select-text">{challenge.backgroundContext}</p>
-                </div>
-                <div className="bg-slate-950/40 border border-slate-900 rounded-xl p-4 text-xs space-y-1 mb-3 hover:border-slate-800 transition">
-                  <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider flex justify-between items-center">
-                    <span>Source A</span>
-                    <span className="text-[8px] text-slate-600 font-normal normal-case">Highlight to cite</span>
-                  </span>
-                  <p className="text-slate-300 italic leading-relaxed select-text">{challenge.sourceA}</p>
-                </div>
-                <div className="bg-slate-950/40 border border-slate-900 rounded-xl p-4 text-xs space-y-1 hover:border-slate-800 transition">
-                  <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider flex justify-between items-center">
-                    <span>Source B</span>
-                    <span className="text-[8px] text-slate-600 font-normal normal-case">Highlight to cite</span>
-                  </span>
-                  <p className="text-slate-300 italic leading-relaxed select-text">{challenge.sourceB}</p>
-                </div>
+            <div onContextMenu={handleSourceContextMenu}>
+              <div className="bg-slate-950/40 border border-slate-900 rounded-xl p-4 text-xs space-y-1 mb-3">
+                <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">Contextual Background</span>
+                <p className="text-slate-400 leading-relaxed select-text">{challenge.backgroundContext}</p>
               </div>
-            ) : (
-              <div className="h-40 flex items-center justify-center border border-dashed border-slate-900 rounded-xl text-xs text-slate-600 p-4 text-center">Generate a core challenge task block to view contextual source resources.</div>
-            )
+              <div className="bg-slate-950/40 border border-slate-900 rounded-xl p-4 text-xs space-y-1 mb-3 hover:border-slate-800 transition">
+                <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider flex justify-between items-center">
+                  <span>Source A</span>
+                  <span className="text-[8px] text-slate-600 font-normal normal-case">Right-click text to color</span>
+                </span>
+                <p className="text-slate-300 italic leading-relaxed select-text whitespace-pre-line">{challenge.sourceA}</p>
+              </div>
+              <div className="bg-slate-950/40 border border-slate-900 rounded-xl p-4 text-xs space-y-1 hover:border-slate-800 transition">
+                <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider flex justify-between items-center">
+                  <span>Source B</span>
+                  <span className="text-[8px] text-slate-600 font-normal normal-case">Right-click text to color</span>
+                </span>
+                <p className="text-slate-300 italic leading-relaxed select-text whitespace-pre-line">{challenge.sourceB}</p>
+              </div>
+            </div>
           ) : (
             <div className="bg-indigo-950/10 border border-indigo-900/20 rounded-xl p-4 text-xs text-slate-400">
               <span className="font-bold text-indigo-400 block mb-1">Homework Vetting Mode</span>
-              Standalone assessment mode enabled. Source text boxes are bypassed. Copy your essay prompt assignment directly into the center field panel.
+              Source panels bypassed. Paste your standalone school essay tasks straight into the writing center.
             </div>
           )}
         </div>
 
-        {/* Center Writing Workspace Canvas */}
+        {/* Center Canvas */}
         <div className="xl:col-span-2 flex flex-col space-y-4">
           <div className="bg-indigo-950/20 border border-indigo-900/30 rounded-2xl p-4">
             <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Question Assignment Prompt</span>
@@ -464,7 +476,7 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        {/* Right Sidebar Metrics Panel */}
+        {/* Right Sidebar Analytics */}
         <div className="xl:col-span-1 space-y-4 max-h-[85vh] overflow-y-auto pr-1">
           <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-5 space-y-4 flex flex-col h-full">
             <div>
