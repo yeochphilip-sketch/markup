@@ -182,7 +182,7 @@ export default function DashboardPage() {
       loadHistoryLogs();
     } catch (err) {
       console.error(err);
-    } bits: {
+    } finally {
       setIsGenerating(false);
     }
   };
