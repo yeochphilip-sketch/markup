@@ -47,11 +47,11 @@ export default function DashboardPage() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [currentChallengeId, setCurrentChallengeId] = useState<string | null>(null);
 
-  // Timer States
-  const [timeLeft, setTimeLeft] = useState(3600); // 1 Hour Mock Timer Standard
+  // Timer Setup
+  const [timeLeft, setTimeLeft] = useState(3600); 
   const [isTimerActive, setIsTimerActive] = useState(false);
 
-  // Advanced Highlighting States
+  // Advanced Marker Highlighting Layout Nodes
   const [contextMenuCoords, setContextMenuCoords] = useState({ top: 0, left: 0 });
   const [showContextMenu, setShowContextMenu] = useState(false);
   const [currentSelectionRange, setCurrentSelectionRange] = useState<Range | null>(null);
@@ -84,7 +84,6 @@ export default function DashboardPage() {
     }
   }, [activeSubject]);
 
-  // Timer Effect
   useEffect(() => {
     let interval: any = null;
     if (isTimerActive && timeLeft > 0) {
@@ -168,7 +167,7 @@ export default function DashboardPage() {
         currentSelectionRange.surroundContents(span);
         await syncAnnotationsToSupabase();
       } catch (err) {
-        console.warn("Node wrapping complex subset layers bypassed.", err);
+        console.warn("Wrapped complex subset nodes bypassed.", err);
       }
     }
     window.getSelection()?.removeAllRanges();
@@ -193,7 +192,7 @@ export default function DashboardPage() {
     await supabase.auth.signOut();
     router.push('/auth');
   };
-  
+
   const handleGenerateChallenge = async () => {
     if (!userId) return;
     setIsGenerating(true);
@@ -322,7 +321,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Top Navbar Header */}
+      {/* Header Section */}
       <header className="border-b border-slate-900 px-6 py-4 flex items-center justify-between bg-slate-950/60 backdrop-blur-md relative z-40">
         <h1 className="text-xl font-black text-indigo-500 tracking-wider">MARKUP</h1>
         
@@ -370,10 +369,10 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {/* Main Panel Frame */}
+      {/* Main Panel Content Grid */}
       <div className="flex-1 grid grid-cols-1 xl:grid-cols-5 p-6 gap-6 overflow-hidden">
         
-        {/* Configurator */}
+        {/* Sidebar Configurator */}
         <div className="xl:col-span-1 flex flex-col space-y-4 max-h-[85vh] overflow-y-auto pr-1">
           <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-4 space-y-4">
             <h2 className="text-[10px] font-black tracking-widest text-slate-400 uppercase">Configurator</h2>
@@ -443,7 +442,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Source Text Layout Container */}
+        {/* Source Text Container with Context Highlight Handlers */}
         <div className="xl:col-span-1 space-y-3 max-h-[85vh] overflow-y-auto pr-1">
           {!isCustomMode ? (
             <div onContextMenu={handleSourceContextMenu}>
@@ -487,7 +486,7 @@ export default function DashboardPage() {
           <div className="flex-1 flex flex-col bg-slate-950/40 border border-slate-900 rounded-2xl p-5 relative min-h-[300px]">
             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Essay Input Workspace</span>
             {!hasScanned ? (
-              <textarea value={studentAnswer} onChange={(e) => setStudentAnswer(e.target.value)} placeholder="Draft your structured PEEL argument layers here..." className="w-full flex-1 bg-transparent text-slate-300 font-mono text-xs leading-relaxed resize-none focus:outline-none" />
+              <textarea value={studentAnswer} onChange={(e) => setStudentAnswer(e.target.value)} placeholder="Draft your structured PEEL response paragraph essay structure here..." className="w-full flex-1 bg-transparent text-slate-300 font-mono text-xs leading-relaxed resize-none focus:outline-none" />
             ) : (
               <div className="w-full flex-1 font-mono text-xs leading-relaxed overflow-y-auto whitespace-pre-wrap select-text text-slate-300">
                 {evaluation.segments.map((seg, idx) => (
@@ -505,7 +504,7 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        {/* Right Sidebar Analytics */}
+        {/* Right Sidebar Analytics Panel */}
         <div className="xl:col-span-1 space-y-4 max-h-[85vh] overflow-y-auto pr-1">
           <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-5 space-y-4 flex flex-col h-full">
             <div>
