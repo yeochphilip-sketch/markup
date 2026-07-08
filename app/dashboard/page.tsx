@@ -25,6 +25,43 @@ interface HistoryItem {
   annotated_source_b?: string;
 }
 
+// Future-proof matrix configuration mapping for easy scaling to new subjects
+const SYLLABUS_MAP: Record<string, { topics: string[]; skills: string[] }> = {
+  'Social Studies': {
+    topics: [
+      'Any Topic (Random Mix)',
+      'Issue 1: Exploring Citizenship and Governance',
+      'Issue 2: Living in a Diverse Society',
+      'Issue 3: Responding to a Globalised World'
+    ],
+    skills: [
+      'SBQ: Inference / Message (AO2)',
+      'SBQ: Comparison & Contrast (AO2)',
+      'SBQ: Purpose / Motive Evolution (AO2)',
+      'SBQ: Utility & Reliability Limits (AO2)',
+      'SBQ: Synthesis Matrix Assertion (AO2)',
+      'SRQ/SEQ: Structured Essay Explanations (AO1)'
+    ]
+  },
+  'Elective History': {
+    topics: [
+      'Any Topic (Random Mix)',
+      'Case Study: Nazi Germany (*SBCS)',
+      'Case Study: Militarist Japan',
+      'WWII: Outbreak in Europe (*SBCS)',
+      'Cold War: Origins in Europe (*SBCS)'
+    ],
+    skills: [
+      'SBQ: Inference / Message (AO3)',
+      'SBQ: Comparison & Contrast (AO3)',
+      'SBQ: Reliability & Cross-Referencing (AO3)',
+      'SBQ: Evaluation of Utility (AO3)',
+      'SBQ: Target Purpose Analysis (AO3)',
+      'SEQ: High-Scoring Essay Factor Prioritization (AO1/AO2)'
+    ]
+  }
+};
+
 export default function DashboardPage() {
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -48,16 +85,17 @@ export default function DashboardPage() {
   const [currentChallengeId, setCurrentChallengeId] = useState<string | null>(null);
   const [isExemplarOpen, setIsExemplarOpen] = useState(false);
 
-  // Stats, Streaks and XP Points Metrics
-  const [streakCount, setStreakCount] = useState(3);
-  const [masteryPoints, setMasteryPoints] = useState(1390);
+  // Gamification Metrics initialized safely to baseline ranks
+  const [streakCount, setStreakCount] = useState(0);
+  const [masteryPoints, setMasteryPoints] = useState(0); 
   const [skillRatings, setSkillRatings] = useState({
-    inference: 4,
-    comparison: 3,
-    reliability: 2,
-    essay: 3
+    inference: 1,  -- Initial lowest structural level rank
+    comparison: 1,
+    reliability: 1,
+    essay: 1
   });
 
+  // Safe L1/1 placeholder assignment states for unsubmitted papers
   const [challenge, setChallenge] = useState({
     backgroundContext: 'Click Generate Practice to load Singapore standard materials.',
     sourceA: 'Source A contents appear here once generated.',
@@ -67,7 +105,7 @@ export default function DashboardPage() {
   });
 
   const [evaluation, setEvaluation] = useState({
-    scoreEstimate: '',
+    scoreEstimate: 'L1/1', -- Fallback initialization band
     critique: [] as string[],
     segments: [] as Segment[]
   });
@@ -75,28 +113,25 @@ export default function DashboardPage() {
   const sourceARef = useRef<HTMLParagraphElement>(null);
   const sourceBRef = useRef<HTMLParagraphElement>(null);
 
-  // Sync Syllabus selections cleanly when switching tracks
+  // Handle dynamic dropdown recalibration cleanly when subject indices change
   useEffect(() => {
-    setSelectedTopic('Any Topic (Random Mix)');
-    if (activeSubject === 'Social Studies') {
-      setSelectedSkill('SBQ: Inference / Message (AO2)');
-    } else {
-      setSelectedSkill('SBQ: Inference / Message (AO3)');
+    const config = SYLLABUS_MAP[activeSubject];
+    if (config) {
+      setSelectedTopic(config.topics[0]);
+      setSelectedSkill(config.skills[0]);
     }
+    setEvaluation(prev => ({ ...prev, scoreEstimate: 'L1/1' }));
   }, [activeSubject]);
 
-  // Fetch real-time DB logs from Supabase
   const loadHistoryLogs = async () => {
     try {
       const { data, error } = await supabase
         .from('practice_history')
         .select('*')
         .order('created_at', { ascending: false });
-      if (data && !error) {
-        setHistory(data);
-      }
+      if (data && !error) setHistory(data);
     } catch (e) {
-      console.warn("History logs safety skip:", e);
+      console.warn("History logs read error catch:", e);
     }
   };
 
@@ -109,15 +144,14 @@ export default function DashboardPage() {
         .single();
       if (data) {
         setSkillRatings({
-          inference: data.sbq_inference_score || 4,
-          comparison: data.sbq_comparison_score || 3,
-          reliability: data.sbq_reliability_score || 2,
-          essay: data.seq_essay_score || 3
+          inference: data.sbq_inference_score || 1,
+          comparison: data.sbq_comparison_score || 1,
+          reliability: data.sbq_reliability_score || 1,
+          essay: data.seq_essay_score || 1
         });
-        setStreakCount(3);
       }
     } catch (err) {
-      console.warn("Metrics loader baseline set.");
+      console.warn("Metrics context initialized to standard baseline layers.");
     }
   };
 
@@ -132,7 +166,7 @@ export default function DashboardPage() {
           loadUserMetrics(session.user.id);
         }
       } catch (err) {
-        console.warn("Authentication initialization skip.");
+        console.warn("Session safety intercept context active.");
       }
       loadHistoryLogs();
     }
@@ -143,7 +177,7 @@ export default function DashboardPage() {
     setIsGenerating(true);
     setHasScanned(false);
     setIsExemplarOpen(false);
-    setEvaluation({ scoreEstimate: '', critique: [], segments: [] });
+    setEvaluation({ scoreEstimate: 'L1/1', critique: [], segments: [] });
     
     try {
       const res = await fetch('/api/generate-question', {
@@ -188,7 +222,7 @@ export default function DashboardPage() {
         loadHistoryLogs();
       }
     } catch (err) {
-      console.error("Pipeline breakdown details:", err);
+      console.error("Context matrix pipeline breakdown:", err);
     } finally {
       setIsGenerating(false);
     }
@@ -212,7 +246,7 @@ export default function DashboardPage() {
       const data = await res.json();
       
       setEvaluation({
-        scoreEstimate: data.scoreEstimate || 'L3/4',
+        scoreEstimate: data.scoreEstimate || 'L1/1',
         critique: data.critique || [],
         segments: data.highlightedSegments || []
       });
@@ -223,7 +257,7 @@ export default function DashboardPage() {
           .insert([{
             user_id: userId,
             student_essay: studentAnswer,
-            score_estimate: data.scoreEstimate || 'L3/4',
+            score_estimate: data.scoreEstimate || 'L1/1',
             critique_bullets: data.critique || []
           }]);
         setMasteryPoints(prev => prev + 150);
@@ -248,6 +282,7 @@ export default function DashboardPage() {
       questionPrompt: item.question_prompt,
       suggestedAnswer: item.suggested_answer || 'An exemplar answer will be available here after grading.'
     });
+    setEvaluation({ scoreEstimate: 'L1/1', critique: [], segments: [] });
   };
 
   const emailInitial = userEmail ? userEmail.charAt(0).toUpperCase() : 'S';
@@ -255,13 +290,13 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col font-sans relative">
       
-      {/* Upper Navigation Header */}
+      {/* Navigation Header */}
       <header className="border-b border-slate-900 px-6 py-4 flex items-center justify-between bg-slate-950/60 backdrop-blur-md relative z-40">
         <h1 className="text-xl font-black text-indigo-500 tracking-wider">MARKUP</h1>
         
         <div className="flex items-center gap-6">
           <div className="flex bg-slate-900 p-1 rounded-xl gap-1">
-            {['Social Studies', 'Elective History'].map((sub) => (
+            {Object.keys(SYLLABUS_MAP).map((sub) => (
               <button key={sub} onClick={() => setActiveSubject(sub)} className={`text-xs font-bold px-4 py-2 rounded-lg transition ${activeSubject === sub ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}>
                 {sub}
               </button>
@@ -295,7 +330,7 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {/* Gamification Hub Metric System */}
+      {/* Analytics Matrix Panel Grid Layout */}
       <div className="px-6 pt-4 grid grid-cols-1 md:grid-cols-6 gap-4">
         <div className="md:col-span-2 bg-indigo-600/10 border border-indigo-500/20 p-4 rounded-2xl flex items-center gap-4 relative overflow-hidden group">
           <div className="w-10 h-10 bg-indigo-500/20 text-indigo-400 rounded-xl flex items-center justify-center text-xl">🎯</div>
@@ -318,10 +353,10 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Main Structural Interface Workspace Canvas Grid */}
+      {/* Main Column Framework Grid */}
       <div className="flex-1 grid grid-cols-1 xl:grid-cols-6 p-6 gap-6 overflow-hidden">
         
-        {/* Sidebar Configurator Layout */}
+        {/* Scalable Configurator Sidebar */}
         <div className="xl:col-span-1 flex flex-col space-y-4 max-h-[75vh] overflow-y-auto pr-1">
           <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-4 space-y-4">
             <h2 className="text-[10px] font-black tracking-widest text-slate-400 uppercase">Configurator</h2>
@@ -336,33 +371,18 @@ export default function DashboardPage() {
                 <div className="space-y-1">
                   <label className="text-[9px] font-bold uppercase text-slate-500">Syllabus Topic Focus</label>
                   <select value={selectedTopic} onChange={(e) => setSelectedTopic(e.target.value)} className="w-full bg-slate-900 border border-slate-800 p-2.5 rounded-xl text-xs font-medium text-slate-200 focus:outline-none">
-                    <option value="Any Topic (Random Mix)">✨ Any Topic (Random Mix)</option>
-                    {activeSubject === 'Social Studies' ? (
-                      <>
-                        <option value="Issue 1: Exploring Citizenship and Governance">Issue 1: Citizenship & Governance</option>
-                        <option value="Issue 2: Living in a Diverse Society">Issue 2: Living in a Diverse Society</option>
-                        <option value="Issue 3: Responding to a Globalised World">Issue 3: Responding to a Globalised World</option>
-                      </>
-                    ) : (
-                      <>
-                        <option value="Case Study: Nazi Germany (*SBCS)">Case Study: Nazi Germany</option>
-                        <option value="Case Study: Militarist Japan">Case Study: Militarist Japan</option>
-                        <option value="WWII: Outbreak in Europe (*SBCS)">WWII: Outbreak in Europe</option>
-                        <option value="Cold War: Origins in Europe (*SBCS)">Cold War: Origins in Europe</option>
-                      </>
-                    )}
+                    {SYLLABUS_MAP[activeSubject]?.topics.map(topic => (
+                      <option key={topic} value={topic}>{topic.replace('Issue ', 'Is. ').replace('Case Study: ', '')}</option>
+                    ))}
                   </select>
                 </div>
 
                 <div className="space-y-1">
                   <label className="text-[9px] font-bold uppercase text-slate-500">Target Skill Objectives</label>
                   <select value={selectedSkill} onChange={(e) => setSelectedSkill(e.target.value)} className="w-full bg-slate-900 border border-slate-800 p-2.5 rounded-xl text-xs font-medium text-slate-200 focus:outline-none">
-                    <option value="SBQ: Inference / Message (AO2)">SBQ: Inference / Message</option>
-                    <option value="SBQ: Comparison & Contrast (AO2)">SBQ: Comparison & Contrast</option>
-                    <option value="SBQ: Purpose / Motive Evolution (AO2)">SBQ: Purpose / Motive Evolution</option>
-                    <option value="SBQ: Utility & Reliability Limits (AO2)">SBQ: Utility & Reliability Limits</option>
-                    <option value="SBQ: Synthesis Matrix Assertion (AO2)">SBQ: Synthesis Assertion Matrix</option>
-                    <option value="SRQ/SEQ: Structured Essay Explanations (AO1)">Structured Essay Question (SEQ / SRQ)</option>
+                    {SYLLABUS_MAP[activeSubject]?.skills.map(skill => (
+                      <option key={skill} value={skill}>{skill}</option>
+                    ))}
                   </select>
                 </div>
 
@@ -383,7 +403,6 @@ export default function DashboardPage() {
                   <div key={item.id} onClick={() => loadHistoricalItem(item)} className="bg-slate-950/30 hover:bg-slate-900/60 border border-slate-900 p-3 rounded-xl cursor-pointer transition text-left space-y-1.5 group">
                     <div className="flex justify-between items-center gap-2">
                       <span className="text-[9px] bg-slate-900 px-2 py-0.5 rounded text-indigo-400 font-bold uppercase">{item.subject === 'Social Studies' ? 'SS' : 'HIST'}</span>
-                      <span className="text-[8px] text-slate-500 truncate max-w-[90px]">{item.question_type.replace('SBQ: ', '')}</span>
                     </div>
                     <p className="text-[11px] text-slate-400 line-clamp-2 font-medium group-hover:text-slate-200 transition">{item.question_prompt}</p>
                   </div>
@@ -393,7 +412,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Source Text Layout Container */}
+        {/* Source Material View Columns */}
         <div className="xl:col-span-2 space-y-3 max-h-[75vh] overflow-y-auto pr-1">
           <div className="bg-slate-950/40 border border-slate-900 rounded-xl p-4 text-xs space-y-1">
             <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">Contextual Background</span>
@@ -409,7 +428,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Input Canvas & Writing Workspace Column */}
+        {/* Canvas Engine Layout Column */}
         <div className="xl:col-span-2 flex flex-col space-y-4">
           <div className="bg-indigo-950/20 border border-indigo-900/30 rounded-2xl p-4">
             <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Question Assignment Prompt</span>
@@ -452,12 +471,12 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        {/* Evaluation Metrics Layout */}
+        {/* LORMS Evaluation Grading Interface Panel */}
         <div className="xl:col-span-1 space-y-4 max-h-[75vh] overflow-y-auto pr-1">
           <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-5 space-y-4 flex flex-col h-full">
             <div>
               <span className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">Estimated Banding</span>
-              <div className="text-sm font-black text-indigo-400 tracking-tight mt-1">{evaluation.scoreEstimate || 'Awaiting Submission...'}</div>
+              <div className="text-xl font-black text-indigo-400 tracking-tight mt-1 font-mono">{evaluation.scoreEstimate}</div>
             </div>
             {evaluation.critique.length > 0 && (
               <div className="space-y-2 pt-2 border-t border-slate-900">
@@ -474,7 +493,7 @@ export default function DashboardPage() {
 
       </div>
 
-      {/* Sliding Model Essay Sidebar Asset Overlays */}
+      {/* Exemplar Bank Sliding Draw Asset */}
       {isExemplarOpen && (
         <div className="fixed inset-y-0 right-0 w-full md:w-1/2 lg:w-1/3 bg-slate-950 border-l border-slate-900 z-50 shadow-2xl p-6 flex flex-col animate-in slide-in-from-right duration-200">
           <div className="flex justify-between items-center border-b border-slate-900 pb-4 mb-4">
