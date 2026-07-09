@@ -89,7 +89,7 @@ export default function DashboardPage() {
   const [streakCount, setStreakCount] = useState(0);
   const [masteryPoints, setMasteryPoints] = useState(0); 
   const [skillRatings, setSkillRatings] = useState({
-    inference: 1,  -- Initial lowest structural level rank
+    inference: 1,  // Initial lowest structural level rank
     comparison: 1,
     reliability: 1,
     essay: 1
@@ -105,7 +105,7 @@ export default function DashboardPage() {
   });
 
   const [evaluation, setEvaluation] = useState({
-    scoreEstimate: 'L1/1', -- Fallback initialization band
+    scoreEstimate: 'L1/1', // Fallback initialization band
     critique: [] as string[],
     segments: [] as Segment[]
   });
@@ -113,7 +113,7 @@ export default function DashboardPage() {
   const sourceARef = useRef<HTMLParagraphElement>(null);
   const sourceBRef = useRef<HTMLParagraphElement>(null);
 
-  // Handle dynamic dropdown recalibration cleanly when subject indices change
+  // Handle dynamic dropdown recalibration cleanly when subject changes
   useEffect(() => {
     const config = SYLLABUS_MAP[activeSubject];
     if (config) {
