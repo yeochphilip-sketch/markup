@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/utils/supabase';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import FeedbackModal from '@/app/components/FeedbackModal';
 
 interface Segment {
   text: string;
@@ -83,17 +84,18 @@ export default function DashboardPage() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [currentChallengeId, setCurrentChallengeId] = useState<string | null>(null);
   const [isExemplarOpen, setIsExemplarOpen] = useState(false);
+  
+  // Feedback component visibility toggle state
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
 
-  const [streakCount, setStreakCount] = useState(0);
   const [masteryPoints, setMasteryPoints] = useState(0); 
   
-  // Refactored skill score maps including SEAB SEQ Conclusion baseline configurations
   const [skillRatings, setSkillRatings] = useState({
     inference: 1,
     comparison: 1,
     reliability: 1,
     essay: 1,
-    conclusion: 0 // Defaulted to 0 per instructions
+    conclusion: 0
   });
 
   const [challenge, setChallenge] = useState({
@@ -113,7 +115,6 @@ export default function DashboardPage() {
   const sourceARef = useRef<HTMLParagraphElement>(null);
   const sourceBRef = useRef<HTMLParagraphElement>(null);
 
-  // Dynamic visual helper logic to calculate color thresholds cleanly
   const getSkillColorClass = (val: number, isConclusion = false) => {
     if (isConclusion) {
       return val >= 2 ? 'text-emerald-400' : 'text-rose-500';
@@ -353,7 +354,6 @@ export default function DashboardPage() {
           <span className="text-lg font-black text-indigo-400 font-mono">{masteryPoints} <span className="text-[10px] text-slate-600 font-normal">pts</span></span>
         </div>
 
-        {/* Refactored dynamic grading grid incorporating new SEQ Conclusion thresholds */}
         <div className="md:col-span-4 bg-slate-950/80 border border-slate-900 p-4 rounded-2xl grid grid-cols-5 gap-2">
           <div className="text-center">
             <p className="text-[8px] font-bold text-slate-500 uppercase">Inference</p>
@@ -381,7 +381,7 @@ export default function DashboardPage() {
       {/* Main Work Grid Framework */}
       <div className="flex-1 grid grid-cols-1 xl:grid-cols-6 p-6 gap-6 overflow-hidden">
         
-        {/* Scalable Configurator Sidebar */}
+        {/* Configurator Sidebar */}
         <div className="xl:col-span-1 flex flex-col space-y-4 max-h-[75vh] overflow-y-auto pr-1">
           <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-4 space-y-4">
             <h2 className="text-[10px] font-black tracking-widest text-slate-400 uppercase">Configurator</h2>
@@ -518,7 +518,7 @@ export default function DashboardPage() {
 
       </div>
 
-      {/* Model Answer Bank Sliding Drawer */}
+      {/* Model Answer Sliding Drawer */}
       {isExemplarOpen && (
         <div className="fixed inset-y-0 right-0 w-full md:w-1/2 lg:w-1/3 bg-slate-950 border-l border-slate-900 z-50 shadow-2xl p-6 flex flex-col animate-in slide-in-from-right duration-200">
           <div className="flex justify-between items-center border-b border-slate-900 pb-4 mb-4">
@@ -532,6 +532,26 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* FLOATING ACTION INTERFACE LAYER */}
+      {/* Dynamic Feedback Button - Styled as a message cloud with dots icon layout */}
+      <button 
+        onClick={() => setIsFeedbackOpen(true)}
+        className="fixed bottom-6 right-20 w-12 h-12 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-indigo-400 rounded-full flex items-center justify-center shadow-2xl transition-all duration-200 hover:scale-105 group z-50"
+        title="Submit Platform Feedback"
+      >
+        <svg 
+          xmlns="http://www.w3.org/2000/svg" 
+          viewBox="0 0 24 24" 
+          fill="currentColor" 
+          className="w-5 h-5 transition-transform group-hover:rotate-3"
+        >
+          <path fillRule="evenodd" d="M4.848 2.771A49.144 49.144 0 0 1 12 2.25c2.43 0 4.817.178 7.152.52 1.237.18 2.165 1.259 2.165 2.511v7.41c0 1.253-.928 2.332-2.165 2.513a48.11 48.11 0 0 1 -3.125.328L12 19.539V15.53c-1.396-.01-2.775-.113-4.125-.303-1.237-.174-2.165-1.253-2.165-2.51v-7.44c0-1.25.928-2.329 2.165-2.507Zm7.152 6.479a1.125 1.125 0 1 0 0-2.25 1.125 1.125 0 0 0 0 2.25Zm3.375-1.125a1.125 1.125 0 1 1-2.25 0 1.125 1.125 0 0 1 2.25 0ZM9.75 9.25a1.125 1.125 0 1 0 0-2.25 1.125 1.125 0 0 0 0 2.25Z" clipRule="evenodd" />
+        </svg>
+      </button>
+
+      {/* Global telemetry feedback collection form modal frame */}
+      <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} />
 
     </div>
   );
