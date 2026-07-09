@@ -133,7 +133,7 @@ export default function DashboardPage() {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  const getSkillColorClass = (val: number, isConclusion = false) => {
+  const getSkillColorClass = (val: number) => {
     return val >= 2 ? 'text-emerald-400' : 'text-rose-500';
   };
 
@@ -235,8 +235,8 @@ export default function DashboardPage() {
             question_type: selectedSkill,
             question_prompt: newChallenge.questionPrompt,
             background_context: newChallenge.backgroundContext,
-            source_a: newChallenge.source_a,
-            source_b: newChallenge.source_b,
+            source_a: newChallenge.sourceA, // FIXED: Changed target properties to use correct key assignments
+            source_b: newChallenge.sourceB, // FIXED: Changed target properties to use correct key assignments
             suggested_answer: newChallenge.suggestedAnswer
           }])
           .select()
