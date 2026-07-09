@@ -84,11 +84,13 @@ export default function DashboardPage() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [currentChallengeId, setCurrentChallengeId] = useState<string | null>(null);
   const [isExemplarOpen, setIsExemplarOpen] = useState(false);
-  
-  // Feedback component visibility toggle state
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
 
   const [masteryPoints, setMasteryPoints] = useState(0); 
+
+  // Timer Integration States
+  const [timeLeft, setTimeLeft] = useState(1200); 
+  const [isTimerActive, setIsTimerActive] = useState(false);
   
   const [skillRatings, setSkillRatings] = useState({
     inference: 1,
@@ -115,10 +117,24 @@ export default function DashboardPage() {
   const sourceARef = useRef<HTMLParagraphElement>(null);
   const sourceBRef = useRef<HTMLParagraphElement>(null);
 
-  const getSkillColorClass = (val: number, isConclusion = false) => {
-    if (isConclusion) {
-      return val >= 2 ? 'text-emerald-400' : 'text-rose-500';
+  // Countdown clock loop rule handler
+  useEffect(() => {
+    let interval: any = null;
+    if (isTimerActive && timeLeft > 0) {
+      interval = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
+    } else if (timeLeft === 0) {
+      setIsTimerActive(false);
     }
+    return () => clearInterval(interval);
+  }, [isTimerActive, timeLeft]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+
+  const getSkillColorClass = (val: number, isConclusion = false) => {
     return val >= 2 ? 'text-emerald-400' : 'text-rose-500';
   };
 
@@ -469,7 +485,7 @@ export default function DashboardPage() {
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Writing Workspace</span>
               {challenge.suggestedAnswer && (
                 <button 
-                  onClick={() => setIsExemplarOpen(true)}
+                  onClick={() => { setIsExemplarOpen(true); }}
                   className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold px-3 py-1 rounded-full transition"
                 >
                   💡 View Model Essay
@@ -477,8 +493,23 @@ export default function DashboardPage() {
               )}
             </div>
 
+            {/* Improvement #1: Zero-State Onboarding Content Buffer Layout */}
             {!hasScanned ? (
-              <textarea value={studentAnswer} onChange={(e) => setStudentAnswer(e.target.value)} placeholder="Draft your structured PEEL response paragraph essay structure here..." className="w-full flex-1 bg-transparent text-slate-300 font-mono text-xs leading-relaxed resize-none focus:outline-none" />
+              challenge.questionPrompt.includes('No question active') ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-center p-6 border border-dashed border-slate-900 rounded-xl bg-slate-950/20">
+                  <p className="text-sm font-bold text-indigo-400">Ready to predict your SEAB grade?</p>
+                  <p className="text-[11px] text-slate-500 mt-1 max-w-xs leading-relaxed">
+                    Pick a topic and target skill on the left configurator panel, then hit ⚡ Generate Practice to load your workspace canvas.
+                  </p>
+                </div>
+              ) : (
+                <textarea 
+                  value={studentAnswer} 
+                  onChange={(e) => setStudentAnswer(e.target.value)} 
+                  placeholder="Draft your structured PEEL response paragraph essay structure here..." 
+                  className="w-full flex-1 bg-transparent text-slate-300 font-mono text-xs leading-relaxed resize-none focus:outline-none" 
+                />
+              )
             ) : (
               <div className="w-full flex-1 font-mono text-xs leading-relaxed overflow-y-auto whitespace-pre-wrap select-text text-slate-300">
                 {evaluation.segments.map((seg, idx) => (
@@ -489,18 +520,54 @@ export default function DashboardPage() {
                 </div>
               </div>
             )}
+
+            {/* Improvement #2: Live Character / Word Count Telemetry Footer Display */}
+            {!challenge.questionPrompt.includes('No question active') && !hasScanned && (
+              <div className="flex justify-between items-center mt-2 pt-2 border-t border-slate-900/60 text-[10px] font-mono text-slate-500">
+                <span>Format Focus: Analytical Argumentation</span>
+                <span>
+                  Words:{" "}
+                  <span className="text-slate-300 font-bold">
+                    {studentAnswer.trim() === "" ? 0 : studentAnswer.trim().split(/\s+/).length}
+                  </span>
+                </span>
+              </div>
+            )}
           </div>
 
-          <button onClick={handleScanStructure} disabled={isGrading || !studentAnswer} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl text-xs transition">
-            {isGrading ? 'Scanning response layers...' : 'Scan Answer Structure'}
-          </button>
+          {/* Improvement #4: Dynamic Workspace Countdown Timer Action Matrix */}
+          <div className="flex gap-2">
+            {!challenge.questionPrompt.includes('No question active') && (
+              <button 
+                onClick={() => { setIsTimerActive(!isTimerActive); if(timeLeft === 0) setTimeLeft(1200); }}
+                className={`px-4 rounded-xl text-xs font-mono font-bold transition whitespace-nowrap border ${isTimerActive ? 'bg-amber-600 border-amber-500 text-white animate-pulse' : 'bg-slate-950 border-slate-900 text-slate-400 hover:text-slate-200'}`}
+              >
+                ⏱️ {isTimerActive ? formatTime(timeLeft) : timeLeft === 1200 ? 'Start Timer' : 'Resume'}
+              </button>
+            )}
+            
+            <button onClick={handleScanStructure} disabled={isGrading || !studentAnswer} className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl text-xs transition disabled:opacity-40">
+              {isGrading ? 'Scanning response layers...' : 'Scan Answer Structure'}
+            </button>
+          </div>
         </div>
 
         {/* LORMS Evaluation Interface */}
         <div className="xl:col-span-1 space-y-4 max-h-[75vh] overflow-y-auto pr-1">
           <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-5 space-y-4 flex flex-col h-full">
             <div>
-              <span className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">Estimated Banding</span>
+              {/* Improvement #3: Clear LORMS Sub-Banding Interactive Hover Explanations Popup */}
+              <div className="group relative flex items-center gap-1.5 cursor-help">
+                <span className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">Estimated Banding</span>
+                <span className="text-[10px] text-slate-600 font-bold bg-slate-900 px-1.5 py-0.2 rounded-md group-hover:text-indigo-400 group-hover:border-indigo-500/30 transition">ⓘ</span>
+                
+                <div className="absolute top-6 left-0 hidden group-hover:block bg-slate-950 border border-slate-900 p-3.5 rounded-xl shadow-2xl z-50 w-60 text-[10px] text-slate-400 space-y-2 leading-relaxed backdrop-blur-xl">
+                  <p className="font-black text-slate-200 border-b border-slate-900 pb-1.5 uppercase tracking-wider">SEAB LORMS Baseline</p>
+                  <p><strong className="text-indigo-400 font-mono">L1:</strong> Surface details / unstructured points missing analytical weight.</p>
+                  <p><strong className="text-indigo-400 font-mono">L2:</strong> Structured essay criteria explaining single-sided factors.</p>
+                  <p><strong className="text-indigo-400 font-mono">L3+:</strong> Fully balanced matrix mapping target evaluations + conclusions.</p>
+                </div>
+              </div>
               <div className="text-xl font-black text-indigo-400 tracking-tight mt-1 font-mono">{evaluation.scoreEstimate}</div>
             </div>
             {evaluation.critique.length > 0 && (
@@ -533,24 +600,17 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* FLOATING ACTION INTERFACE LAYER */}
-      {/* Dynamic Feedback Button - Styled as a message cloud with dots icon layout */}
+      {/* Floating Action Interface Button */}
       <button 
         onClick={() => setIsFeedbackOpen(true)}
         className="fixed bottom-6 right-20 w-12 h-12 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-indigo-400 rounded-full flex items-center justify-center shadow-2xl transition-all duration-200 hover:scale-105 group z-50"
         title="Submit Platform Feedback"
       >
-        <svg 
-          xmlns="http://www.w3.org/2000/svg" 
-          viewBox="0 0 24 24" 
-          fill="currentColor" 
-          className="w-5 h-5 transition-transform group-hover:rotate-3"
-        >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 transition-transform group-hover:rotate-3">
           <path fillRule="evenodd" d="M4.848 2.771A49.144 49.144 0 0 1 12 2.25c2.43 0 4.817.178 7.152.52 1.237.18 2.165 1.259 2.165 2.511v7.41c0 1.253-.928 2.332-2.165 2.513a48.11 48.11 0 0 1 -3.125.328L12 19.539V15.53c-1.396-.01-2.775-.113-4.125-.303-1.237-.174-2.165-1.253-2.165-2.51v-7.44c0-1.25.928-2.329 2.165-2.507Zm7.152 6.479a1.125 1.125 0 1 0 0-2.25 1.125 1.125 0 0 0 0 2.25Zm3.375-1.125a1.125 1.125 0 1 1-2.25 0 1.125 1.125 0 0 1 2.25 0ZM9.75 9.25a1.125 1.125 0 1 0 0-2.25 1.125 1.125 0 0 0 0 2.25Z" clipRule="evenodd" />
         </svg>
       </button>
 
-      {/* Global telemetry feedback collection form modal frame */}
       <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} />
 
     </div>
