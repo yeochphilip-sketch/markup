@@ -25,7 +25,6 @@ interface HistoryItem {
   annotated_source_b?: string;
 }
 
-// Future-proof matrix configuration mapping for easy scaling to new subjects
 const SYLLABUS_MAP: Record<string, { topics: string[]; skills: string[] }> = {
   'Social Studies': {
     topics: [
@@ -85,17 +84,18 @@ export default function DashboardPage() {
   const [currentChallengeId, setCurrentChallengeId] = useState<string | null>(null);
   const [isExemplarOpen, setIsExemplarOpen] = useState(false);
 
-  // Gamification Metrics initialized safely to baseline ranks
   const [streakCount, setStreakCount] = useState(0);
   const [masteryPoints, setMasteryPoints] = useState(0); 
+  
+  // Refactored skill score maps including SEAB SEQ Conclusion baseline configurations
   const [skillRatings, setSkillRatings] = useState({
-    inference: 1,  // Initial lowest structural level rank
+    inference: 1,
     comparison: 1,
     reliability: 1,
-    essay: 1
+    essay: 1,
+    conclusion: 0 // Defaulted to 0 per instructions
   });
 
-  // Safe L1/1 placeholder assignment states for unsubmitted papers
   const [challenge, setChallenge] = useState({
     backgroundContext: 'Click Generate Practice to load Singapore standard materials.',
     sourceA: 'Source A contents appear here once generated.',
@@ -105,7 +105,7 @@ export default function DashboardPage() {
   });
 
   const [evaluation, setEvaluation] = useState({
-    scoreEstimate: 'L1/1', // Fallback initialization band
+    scoreEstimate: 'L1/1',
     critique: [] as string[],
     segments: [] as Segment[]
   });
@@ -113,7 +113,14 @@ export default function DashboardPage() {
   const sourceARef = useRef<HTMLParagraphElement>(null);
   const sourceBRef = useRef<HTMLParagraphElement>(null);
 
-  // Handle dynamic dropdown recalibration cleanly when subject changes
+  // Dynamic visual helper logic to calculate color thresholds cleanly
+  const getSkillColorClass = (val: number, isConclusion = false) => {
+    if (isConclusion) {
+      return val >= 2 ? 'text-emerald-400' : 'text-rose-500';
+    }
+    return val >= 2 ? 'text-emerald-400' : 'text-rose-500';
+  };
+
   useEffect(() => {
     const config = SYLLABUS_MAP[activeSubject];
     if (config) {
@@ -131,7 +138,7 @@ export default function DashboardPage() {
         .order('created_at', { ascending: false });
       if (data && !error) setHistory(data);
     } catch (e) {
-      console.warn("History logs read error catch:", e);
+      console.warn("History logs read context catch:", e);
     }
   };
 
@@ -147,11 +154,12 @@ export default function DashboardPage() {
           inference: data.sbq_inference_score || 1,
           comparison: data.sbq_comparison_score || 1,
           reliability: data.sbq_reliability_score || 1,
-          essay: data.seq_essay_score || 1
+          essay: data.seq_essay_score || 1,
+          conclusion: data.seq_conclusion_score !== undefined ? data.seq_conclusion_score : 0
         });
       }
     } catch (err) {
-      console.warn("Metrics context initialized to standard baseline layers.");
+      console.warn("Metrics context safely defaulted.");
     }
   };
 
@@ -166,7 +174,7 @@ export default function DashboardPage() {
           loadUserMetrics(session.user.id);
         }
       } catch (err) {
-        console.warn("Session safety intercept context active.");
+        console.warn("Session safety block active.");
       }
       loadHistoryLogs();
     }
@@ -332,11 +340,11 @@ export default function DashboardPage() {
 
       {/* Analytics Matrix Panel Grid Layout */}
       <div className="px-6 pt-4 grid grid-cols-1 md:grid-cols-6 gap-4">
-        <div className="md:col-span-2 bg-indigo-600/10 border border-indigo-500/20 p-4 rounded-2xl flex items-center gap-4 relative overflow-hidden group">
+        <div className="md:col-span-1 bg-indigo-600/10 border border-indigo-500/20 p-4 rounded-2xl flex items-center gap-4 relative overflow-hidden group">
           <div className="w-10 h-10 bg-indigo-500/20 text-indigo-400 rounded-xl flex items-center justify-center text-xl">🎯</div>
           <div>
-            <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Weak Spot Recommendation</h4>
-            <p className="text-xs font-bold text-slate-200">You're trailing on <span className="text-indigo-400">Reliability Checks</span>. Focus there to hit L5.</p>
+            <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Focus Target</h4>
+            <p className="text-[11px] font-bold text-slate-300 leading-tight">Master local metrics to step up ranks.</p>
           </div>
         </div>
 
@@ -345,15 +353,32 @@ export default function DashboardPage() {
           <span className="text-lg font-black text-indigo-400 font-mono">{masteryPoints} <span className="text-[10px] text-slate-600 font-normal">pts</span></span>
         </div>
 
-        <div className="md:col-span-3 bg-slate-950/80 border border-slate-900 p-4 rounded-2xl grid grid-cols-4 gap-2">
-          <div className="text-center"><p className="text-[8px] font-bold text-slate-500 uppercase">Inference</p><p className="text-xs font-bold text-emerald-400">L{skillRatings.inference}/5</p></div>
-          <div className="text-center"><p className="text-[8px] font-bold text-slate-500 uppercase">Compare</p><p className="text-xs font-bold text-emerald-400">L{skillRatings.comparison}/6</p></div>
-          <div className="text-center"><p className="text-[8px] font-bold text-slate-500 uppercase">Reliability</p><p className="text-xs font-bold text-rose-400">L{skillRatings.reliability}/6</p></div>
-          <div className="text-center"><p className="text-[8px] font-bold text-slate-500 uppercase">SEQ Essay</p><p className="text-xs font-bold text-emerald-400">L{skillRatings.essay}/8</p></div>
+        {/* Refactored dynamic grading grid incorporating new SEQ Conclusion thresholds */}
+        <div className="md:col-span-4 bg-slate-950/80 border border-slate-900 p-4 rounded-2xl grid grid-cols-5 gap-2">
+          <div className="text-center">
+            <p className="text-[8px] font-bold text-slate-500 uppercase">Inference</p>
+            <p className={`text-xs font-black font-mono ${getSkillColorClass(skillRatings.inference)}`}>L{skillRatings.inference}/5</p>
+          </div>
+          <div className="text-center">
+            <p className="text-[8px] font-bold text-slate-500 uppercase">Compare</p>
+            <p className={`text-xs font-black font-mono ${getSkillColorClass(skillRatings.comparison)}`}>L{skillRatings.comparison}/6</p>
+          </div>
+          <div className="text-center">
+            <p className="text-[8px] font-bold text-slate-500 uppercase">Reliability</p>
+            <p className={`text-xs font-black font-mono ${getSkillColorClass(skillRatings.reliability)}`}>L{skillRatings.reliability}/6</p>
+          </div>
+          <div className="text-center">
+            <p className="text-[8px] font-bold text-slate-500 uppercase">SEQ Essay</p>
+            <p className={`text-xs font-black font-mono ${getSkillColorClass(skillRatings.essay)}`}>L{skillRatings.essay}/8</p>
+          </div>
+          <div className="text-center border-l border-slate-900 pl-1">
+            <p className="text-[8px] font-bold text-slate-400 uppercase">SEQ Conclusion</p>
+            <p className={`text-xs font-black font-mono ${getSkillColorClass(skillRatings.conclusion, true)}`}>L{skillRatings.conclusion}/2</p>
+          </div>
         </div>
       </div>
 
-      {/* Main Column Framework Grid */}
+      {/* Main Work Grid Framework */}
       <div className="flex-1 grid grid-cols-1 xl:grid-cols-6 p-6 gap-6 overflow-hidden">
         
         {/* Scalable Configurator Sidebar */}
@@ -412,7 +437,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Source Material View Columns */}
+        {/* Source Material Columns */}
         <div className="xl:col-span-2 space-y-3 max-h-[75vh] overflow-y-auto pr-1">
           <div className="bg-slate-950/40 border border-slate-900 rounded-xl p-4 text-xs space-y-1">
             <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">Contextual Background</span>
@@ -471,7 +496,7 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        {/* LORMS Evaluation Grading Interface Panel */}
+        {/* LORMS Evaluation Interface */}
         <div className="xl:col-span-1 space-y-4 max-h-[75vh] overflow-y-auto pr-1">
           <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-5 space-y-4 flex flex-col h-full">
             <div>
@@ -493,7 +518,7 @@ export default function DashboardPage() {
 
       </div>
 
-      {/* Exemplar Bank Sliding Draw Asset */}
+      {/* Model Answer Bank Sliding Drawer */}
       {isExemplarOpen && (
         <div className="fixed inset-y-0 right-0 w-full md:w-1/2 lg:w-1/3 bg-slate-950 border-l border-slate-900 z-50 shadow-2xl p-6 flex flex-col animate-in slide-in-from-right duration-200">
           <div className="flex justify-between items-center border-b border-slate-900 pb-4 mb-4">
