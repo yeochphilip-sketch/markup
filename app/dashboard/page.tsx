@@ -117,7 +117,6 @@ export default function DashboardPage() {
   const sourceARef = useRef<HTMLParagraphElement>(null);
   const sourceBRef = useRef<HTMLParagraphElement>(null);
 
-  // Countdown clock loop rule handler
   useEffect(() => {
     let interval: any = null;
     if (isTimerActive && timeLeft > 0) {
@@ -236,8 +235,8 @@ export default function DashboardPage() {
             question_type: selectedSkill,
             question_prompt: newChallenge.questionPrompt,
             background_context: newChallenge.backgroundContext,
-            source_a: newChallenge.sourceA,
-            source_b: newChallenge.sourceB,
+            source_a: newChallenge.source_a,
+            source_b: newChallenge.source_b,
             suggested_answer: newChallenge.suggestedAnswer
           }])
           .select()
@@ -278,8 +277,7 @@ export default function DashboardPage() {
 
       if (userId) {
         await supabase
-          .from('essay_evaluations')
-          .insert([{
+          .from('essay_evaluations').insert([{
             user_id: userId,
             student_essay: studentAnswer,
             score_estimate: data.scoreEstimate || 'L1/1',
@@ -311,6 +309,7 @@ export default function DashboardPage() {
   };
 
   const emailInitial = userEmail ? userEmail.charAt(0).toUpperCase() : 'S';
+  const isQuestionPromptInactive = challenge.questionPrompt.includes('No question active');
 
   return (
     <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col font-sans relative">
@@ -355,7 +354,7 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {/* Analytics Matrix Panel Grid Layout */}
+      {/* Analytics Matrix Panel */}
       <div className="px-6 pt-4 grid grid-cols-1 md:grid-cols-6 gap-4">
         <div className="md:col-span-1 bg-indigo-600/10 border border-indigo-500/20 p-4 rounded-2xl flex items-center gap-4 relative overflow-hidden group">
           <div className="w-10 h-10 bg-indigo-500/20 text-indigo-400 rounded-xl flex items-center justify-center text-xl">🎯</div>
@@ -389,7 +388,7 @@ export default function DashboardPage() {
           </div>
           <div className="text-center border-l border-slate-900 pl-1">
             <p className="text-[8px] font-bold text-slate-400 uppercase">SEQ Conclusion</p>
-            <p className={`text-xs font-black font-mono ${getSkillColorClass(skillRatings.conclusion, true)}`}>L{skillRatings.conclusion}/2</p>
+            <p className={`text-xs font-black font-mono ${getSkillColorClass(skillRatings.conclusion)}`}>L{skillRatings.conclusion}/2</p>
           </div>
         </div>
       </div>
@@ -407,31 +406,31 @@ export default function DashboardPage() {
               <button onClick={() => { setIsCustomMode(true); setHasScanned(false); }} className={`text-[10px] font-bold py-2 rounded-lg transition ${isCustomMode ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}>Vet Homework</button>
             </div>
 
-            {!isCustomMode && (
-              <div className="space-y-3 pt-1">
-                <div className="space-y-1">
-                  <label className="text-[9px] font-bold uppercase text-slate-500">Syllabus Topic Focus</label>
-                  <select value={selectedTopic} onChange={(e) => setSelectedTopic(e.target.value)} className="w-full bg-slate-900 border border-slate-800 p-2.5 rounded-xl text-xs font-medium text-slate-200 focus:outline-none">
-                    {SYLLABUS_MAP[activeSubject]?.topics.map(topic => (
-                      <option key={topic} value={topic}>{topic.replace('Issue ', 'Is. ').replace('Case Study: ', '')}</option>
-                    ))}
-                  </select>
-                </div>
+            <div className="space-y-3 pt-1">
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold uppercase text-slate-500">Syllabus Topic Focus</label>
+                <select value={selectedTopic} onChange={(e) => setSelectedTopic(e.target.value)} className="w-full bg-slate-900 border border-slate-800 p-2.5 rounded-xl text-xs font-medium text-slate-200 focus:outline-none">
+                  {SYLLABUS_MAP[activeSubject]?.topics.map(topic => (
+                    <option key={topic} value={topic}>{topic.replace('Issue ', 'Is. ').replace('Case Study: ', '')}</option>
+                  ))}
+                </select>
+              </div>
 
-                <div className="space-y-1">
-                  <label className="text-[9px] font-bold uppercase text-slate-500">Target Skill Objectives</label>
-                  <select value={selectedSkill} onChange={(e) => setSelectedSkill(e.target.value)} className="w-full bg-slate-900 border border-slate-800 p-2.5 rounded-xl text-xs font-medium text-slate-200 focus:outline-none">
-                    {SYLLABUS_MAP[activeSubject]?.skills.map(skill => (
-                      <option key={skill} value={skill}>{skill}</option>
-                    ))}
-                  </select>
-                </div>
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold uppercase text-slate-500">Target Skill Objectives</label>
+                <select value={selectedSkill} onChange={(e) => setSelectedSkill(e.target.value)} className="w-full bg-slate-900 border border-slate-800 p-2.5 rounded-xl text-xs font-medium text-slate-200 focus:outline-none">
+                  {SYLLABUS_MAP[activeSubject]?.skills.map(skill => (
+                    <option key={skill} value={skill}>{skill}</option>
+                  ))}
+                </select>
+              </div>
 
+              {!isCustomMode && (
                 <button onClick={handleGenerateChallenge} disabled={isGenerating} className="w-full bg-indigo-600 text-white text-xs font-bold py-2.5 rounded-xl transition disabled:opacity-50 mt-1">
                   {isGenerating ? 'Drafting Sheet...' : '⚡ Generate Practice'}
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           <div className="flex-1 flex flex-col min-h-[160px]">
@@ -457,15 +456,15 @@ export default function DashboardPage() {
         <div className="xl:col-span-2 space-y-3 max-h-[75vh] overflow-y-auto pr-1">
           <div className="bg-slate-950/40 border border-slate-900 rounded-xl p-4 text-xs space-y-1">
             <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">Contextual Background</span>
-            <p className="text-slate-400 leading-relaxed select-text">{challenge.backgroundContext}</p>
+            <p className="text-slate-400 leading-relaxed select-text">{isCustomMode ? 'Optional context parameter when analyzing custom homework files.' : challenge.backgroundContext}</p>
           </div>
           <div className="bg-slate-950/40 border border-slate-900 rounded-xl p-4 text-xs space-y-1 hover:border-slate-800 transition">
             <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">Source A</span>
-            <p ref={sourceARef} className="text-slate-300 italic leading-relaxed select-text whitespace-pre-line">{challenge.sourceA}</p>
+            <p ref={sourceARef} className="text-slate-300 italic leading-relaxed select-text whitespace-pre-line">{isCustomMode ? 'Paste any historical document source texts directly into your main response engine block below if applicable.' : challenge.sourceA}</p>
           </div>
           <div className="bg-slate-950/40 border border-slate-900 rounded-xl p-4 text-xs space-y-1 hover:border-slate-800 transition">
             <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">Source B</span>
-            <p ref={sourceBRef} className="text-slate-300 italic leading-relaxed select-text whitespace-pre-line">{challenge.sourceB}</p>
+            <p ref={sourceBRef} className="text-slate-300 italic leading-relaxed select-text whitespace-pre-line">{isCustomMode ? 'Reference materials map dynamically inside active system context.' : challenge.sourceB}</p>
           </div>
         </div>
 
@@ -474,7 +473,7 @@ export default function DashboardPage() {
           <div className="bg-indigo-950/20 border border-indigo-900/30 rounded-2xl p-4">
             <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Question Assignment Prompt</span>
             {isCustomMode ? (
-              <input type="text" value={customPrompt} onChange={(e) => setCustomPrompt(e.target.value)} placeholder="Type or paste custom question prompt..." className="w-full bg-slate-900 border border-slate-800 p-2.5 mt-2 rounded-xl text-xs text-slate-200 focus:outline-none" />
+              <input type="text" value={customPrompt} onChange={(e) => setCustomPrompt(e.target.value)} placeholder="Type or paste your school assignment question prompt here..." className="w-full bg-slate-900 border border-slate-800 p-2.5 mt-2 rounded-xl text-xs text-slate-200 focus:outline-none" />
             ) : (
               <p className="text-xs font-bold text-slate-200 mt-1">{challenge.questionPrompt}</p>
             )}
@@ -483,7 +482,7 @@ export default function DashboardPage() {
           <div className="flex-1 flex flex-col bg-slate-950/40 border border-slate-900 rounded-2xl p-5 relative min-h-[250px]">
             <div className="flex justify-between items-center mb-2">
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Writing Workspace</span>
-              {challenge.suggestedAnswer && (
+              {challenge.suggestedAnswer && !isCustomMode && (
                 <button 
                   onClick={() => { setIsExemplarOpen(true); }}
                   className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold px-3 py-1 rounded-full transition"
@@ -493,9 +492,8 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {/* Improvement #1: Zero-State Onboarding Content Buffer Layout */}
             {!hasScanned ? (
-              challenge.questionPrompt.includes('No question active') ? (
+              (!isCustomMode && isQuestionPromptInactive) ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-center p-6 border border-dashed border-slate-900 rounded-xl bg-slate-950/20">
                   <p className="text-sm font-bold text-indigo-400">Ready to predict your SEAB grade?</p>
                   <p className="text-[11px] text-slate-500 mt-1 max-w-xs leading-relaxed">
@@ -506,7 +504,7 @@ export default function DashboardPage() {
                 <textarea 
                   value={studentAnswer} 
                   onChange={(e) => setStudentAnswer(e.target.value)} 
-                  placeholder="Draft your structured PEEL response paragraph essay structure here..." 
+                  placeholder={isCustomMode ? "Type or paste your homework response paragraph here..." : "Draft your structured PEEL response paragraph essay structure here..."} 
                   className="w-full flex-1 bg-transparent text-slate-300 font-mono text-xs leading-relaxed resize-none focus:outline-none" 
                 />
               )
@@ -521,8 +519,7 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* Improvement #2: Live Character / Word Count Telemetry Footer Display */}
-            {!challenge.questionPrompt.includes('No question active') && !hasScanned && (
+            {(!isQuestionPromptInactive || isCustomMode) && !hasScanned && (
               <div className="flex justify-between items-center mt-2 pt-2 border-t border-slate-900/60 text-[10px] font-mono text-slate-500">
                 <span>Format Focus: Analytical Argumentation</span>
                 <span>
@@ -535,9 +532,9 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* Improvement #4: Dynamic Workspace Countdown Timer Action Matrix */}
+          {/* Action Matrix */}
           <div className="flex gap-2">
-            {!challenge.questionPrompt.includes('No question active') && (
+            {(!isQuestionPromptInactive || isCustomMode) && (
               <button 
                 onClick={() => { setIsTimerActive(!isTimerActive); if(timeLeft === 0) setTimeLeft(1200); }}
                 className={`px-4 rounded-xl text-xs font-mono font-bold transition whitespace-nowrap border ${isTimerActive ? 'bg-amber-600 border-amber-500 text-white animate-pulse' : 'bg-slate-950 border-slate-900 text-slate-400 hover:text-slate-200'}`}
@@ -546,7 +543,11 @@ export default function DashboardPage() {
               </button>
             )}
             
-            <button onClick={handleScanStructure} disabled={isGrading || !studentAnswer} className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl text-xs transition disabled:opacity-40">
+            <button 
+              onClick={handleScanStructure} 
+              disabled={isGrading || !studentAnswer || (isCustomMode && !customPrompt.trim())} 
+              className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl text-xs transition disabled:opacity-40"
+            >
               {isGrading ? 'Scanning response layers...' : 'Scan Answer Structure'}
             </button>
           </div>
@@ -556,7 +557,6 @@ export default function DashboardPage() {
         <div className="xl:col-span-1 space-y-4 max-h-[75vh] overflow-y-auto pr-1">
           <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-5 space-y-4 flex flex-col h-full">
             <div>
-              {/* Improvement #3: Clear LORMS Sub-Banding Interactive Hover Explanations Popup */}
               <div className="group relative flex items-center gap-1.5 cursor-help">
                 <span className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">Estimated Banding</span>
                 <span className="text-[10px] text-slate-600 font-bold bg-slate-900 px-1.5 py-0.2 rounded-md group-hover:text-indigo-400 group-hover:border-indigo-500/30 transition">ⓘ</span>
