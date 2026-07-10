@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Export dynamic to tell Next.js not to statically optimize or pre-evaluate this route at build time
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
@@ -12,6 +11,11 @@ export async function POST(req: Request) {
     if (!studentAnswer || !questionPrompt) {
       return NextResponse.json({ error: 'Missing active fields.' }, { status: 400 });
     }
+
+    // Initialize OpenAI INSIDE the handler so it only triggers at runtime when a request hits it
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
 
     const isHistory = subject === 'Elective History';
 
