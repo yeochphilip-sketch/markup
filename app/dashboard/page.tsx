@@ -250,7 +250,7 @@ export default function DashboardPage() {
       }
     } catch (err) {
       console.error(err);
-    } fillAll {
+    } finally {
       setIsGenerating(false);
     }
   };
