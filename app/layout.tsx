@@ -1,21 +1,13 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
+import GlobalFeedbackWrapper from "@/app/components/GlobalFeedbackWrapper";
 
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'MARKUP | O-Level Humanities AI Examiner',
-  description: 'Instant SEAB-aligned structural feedback for Social Studies and Elective History essays.',
+  title: "MARKUP - Secondary Humanities Suite",
+  description: "LORMS-aligned diagnostic essay suite for Social Studies and Elective History.",
 };
 
 export default function RootLayout({
@@ -24,11 +16,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="en">
+      <body className={`${inter.className} bg-[#07090e] antialiased`}>
+        <GlobalFeedbackWrapper>
+          {children}
+        </GlobalFeedbackWrapper>
+      </body>
     </html>
   );
 }
