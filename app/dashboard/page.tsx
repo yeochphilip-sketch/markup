@@ -250,7 +250,7 @@ export default function DashboardPage() {
       }
     } catch (err) {
       console.error(err);
-    } finally {
+    } fillAll {
       setIsGenerating(false);
     }
   };
@@ -298,18 +298,18 @@ export default function DashboardPage() {
     }
   };
 
-  const handlePasteShortcut = async () => {
+  const handlePasteFromClipboard = async () => {
     try {
       const text = await navigator.clipboard.readText();
       if (text) setStudentAnswer(text);
     } catch (err) {
-      alert("Please allow clipboard access or use Ctrl+V / Cmd+V directly.");
+      console.warn("Clipboard access denied.");
     }
   };
 
-  const handleInsertPeelScaffold = () => {
-    const scaffold = `Point (P): [Make your direct analytical claim here]\nEvidence (E): [Quote or cite specific source data layer here]\nExplanation (E): [Link the evidence to the historical or societal context]\nLink (L): [Therefore, this proves that...]`;
-    setStudentAnswer(scaffold);
+  const handleInjectPeelFrame = () => {
+    const frame = `Point: [State your direct claim matching the prompt parameters here]\nEvidence: [Quote historical or source cross-reference data here]\nExplanation: [Analyze why this evidence supports your argument using LORMS properties]\nLink: [Therefore, wrap back to the question statement...]`;
+    setStudentAnswer(frame);
   };
 
   const handleSubmitFeedback = async () => {
@@ -538,14 +538,14 @@ export default function DashboardPage() {
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Writing Workspace</span>
                 {!hasScanned && (
                   <>
-                    <button onClick={handlePasteShortcut} type="button" className="text-[10px] text-indigo-400 hover:underline">📋 Paste</button>
-                    <button onClick={handleInsertPeelScaffold} type="button" className="text-[10px] text-slate-400 hover:underline ml-1">💡 PEEL Frame</button>
+                    <button onClick={handlePasteFromClipboard} type="button" className="text-[10px] text-indigo-400 hover:underline">📋 Paste</button>
+                    <button onClick={handleInjectPeelFrame} type="button" className="text-[10px] text-slate-400 hover:underline ml-1">💡 PEEL Frame</button>
                   </>
                 )}
               </div>
               <div className="flex items-center gap-2">
                 {studentAnswer && !hasScanned && (
-                  <button onClick={() => setStudentAnswer('')} title="Clear draft" className="text-slate-600 hover:text-rose-400 text-xs px-1">🗑️</button>
+                  <button onClick={() => setStudentAnswer('')} title="Clear draft text canvas" className="text-slate-600 hover:text-rose-400 text-xs px-1">🗑️</button>
                 )}
                 {challenge.suggestedAnswer && !isCustomMode && (
                   <button 
