@@ -35,8 +35,8 @@ export async function POST(req: Request) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            from: 'MARKUP System <system@resend.dev>',
-            to: 'your-personal-email@gmail.com', // Remember to swap this with your real email later!
+            from: 'MARKUP System <onboarding@resend.dev>', // MUST be onboarding@resend.dev for testing
+            to: 'yeochphilip@gmail.com',         // Make sure this is the exact email you used to sign up for Resend!
             subject: `🚨 New Beta Feedback: [${feedbackType || 'General'}]`,
             html: `
               <h3>New Tester Feedback Received</h3>
