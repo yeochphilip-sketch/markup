@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import GlobalFeedbackWrapper from "@/app/components/GlobalFeedbackWrapper";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,9 +17,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} bg-[#07090e] antialiased`}>
-        <GlobalFeedbackWrapper>
-          {children}
-        </GlobalFeedbackWrapper>
+        {children}
       </body>
     </html>
   );
