@@ -112,7 +112,7 @@ export default function DashboardPage() {
   });
 
   const [evaluation, setEvaluation] = useState({
-    scoreEstimate: 'L1/1',
+    scoreEstimate: '',
     critique: [] as string[],
     segments: [] as Segment[]
   });
@@ -143,7 +143,7 @@ export default function DashboardPage() {
       setSelectedTopic(config.topics[0]);
       setSelectedSkill(config.skills[0]);
     }
-    setEvaluation(prev => ({ ...prev, scoreEstimate: 'L1/1' }));
+    setEvaluation({ scoreEstimate: '', critique: [], segments: [] });
   }, [activeSubject]);
 
   const loadHistoryLogs = async (uid?: string) => {
@@ -204,7 +204,7 @@ export default function DashboardPage() {
     setIsGenerating(true);
     setHasScanned(false);
     setIsExemplarOpen(false);
-    setEvaluation({ scoreEstimate: 'L1/1', critique: [], segments: [] });
+    setEvaluation({ scoreEstimate: '', critique: [], segments: [] });
     
     try {
       const res = await fetch('/api/generate-question', {
@@ -298,6 +298,20 @@ export default function DashboardPage() {
     }
   };
 
+  const handlePasteShortcut = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) setStudentAnswer(text);
+    } catch (err) {
+      alert("Please allow clipboard access or use Ctrl+V / Cmd+V directly.");
+    }
+  };
+
+  const handleInsertPeelScaffold = () => {
+    const scaffold = `Point (P): [Make your direct analytical claim here]\nEvidence (E): [Quote or cite specific source data layer here]\nExplanation (E): [Link the evidence to the historical or societal context]\nLink (L): [Therefore, this proves that...]`;
+    setStudentAnswer(scaffold);
+  };
+
   const handleSubmitFeedback = async () => {
     if (!textInput.trim()) return;
     try {
@@ -335,14 +349,14 @@ export default function DashboardPage() {
       questionPrompt: item.question_prompt,
       suggestedAnswer: item.suggested_answer || ''
     });
-    setEvaluation({ scoreEstimate: 'L1/1', critique: [], segments: [] });
+    setEvaluation({ scoreEstimate: '', critique: [], segments: [] });
   };
 
   const emailInitial = userEmail ? userEmail.charAt(0).toUpperCase() : 'S';
   const isQuestionPromptInactive = challenge.questionPrompt.includes('No question active');
 
   return (
-    <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col font-sans relative">
+    <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col font-sans relative selection:bg-indigo-500/30">
       
       {/* Navigation Header */}
       <header className="border-b border-slate-900 px-6 py-4 flex items-center justify-between bg-slate-950/60 backdrop-blur-md relative z-40">
@@ -486,7 +500,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Source Material Columns Display Layout */}
-        <div className="xl:col-span-2 space-y-4 max-h-[75vh] overflow-y-auto pr-1">
+        <div className="xl:col-span-2 space-y-4 max-h-[75vh] overflow-y-auto pr-1 select-text">
           <div className="bg-slate-950/40 border border-slate-900 rounded-xl p-4 text-xs space-y-1">
             <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">Contextual Background</span>
             <p className="text-slate-400 leading-relaxed select-text">{isCustomMode ? 'Analyze school assignment files.' : challenge.backgroundContext}</p>
@@ -514,21 +528,34 @@ export default function DashboardPage() {
             {isCustomMode ? (
               <input type="text" value={customPrompt} onChange={(e) => setCustomPrompt(e.target.value)} placeholder="Type or paste your school assignment question prompt here..." className="w-full bg-slate-900 border border-slate-800 p-2.5 mt-2 rounded-xl text-xs text-slate-200 focus:outline-none" />
             ) : (
-              <p className="text-xs font-bold text-slate-200 mt-1">{challenge.questionPrompt}</p>
+              <p className="text-xs font-bold text-slate-200 mt-1 select-text">{challenge.questionPrompt}</p>
             )}
           </div>
 
           <div className="flex-1 flex flex-col bg-slate-950/40 border border-slate-900 rounded-2xl p-5 relative min-h-[250px]">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Writing Workspace</span>
-              {challenge.suggestedAnswer && !isCustomMode && (
-                <button 
-                  onClick={() => { setIsExemplarOpen(true); }}
-                  className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold px-3 py-1 rounded-full transition"
-                >
-                  💡 View Model Essay
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Writing Workspace</span>
+                {!hasScanned && (
+                  <>
+                    <button onClick={handlePasteShortcut} type="button" className="text-[10px] text-indigo-400 hover:underline">📋 Paste</button>
+                    <button onClick={handleInsertPeelScaffold} type="button" className="text-[10px] text-slate-400 hover:underline ml-1">💡 PEEL Frame</button>
+                  </>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {studentAnswer && !hasScanned && (
+                  <button onClick={() => setStudentAnswer('')} title="Clear draft" className="text-slate-600 hover:text-rose-400 text-xs px-1">🗑️</button>
+                )}
+                {challenge.suggestedAnswer && !isCustomMode && (
+                  <button 
+                    onClick={() => { setIsExemplarOpen(true); }}
+                    className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold px-3 py-1 rounded-full transition"
+                  >
+                    💡 View Model Essay
+                  </button>
+                )}
+              </div>
             </div>
 
             {!hasScanned ? (
@@ -544,11 +571,11 @@ export default function DashboardPage() {
                   value={studentAnswer} 
                   onChange={(e) => setStudentAnswer(e.target.value)} 
                   placeholder="Draft your structured PEEL argument string paragraphs here..." 
-                  className="w-full flex-1 bg-transparent text-slate-300 font-mono text-xs leading-relaxed resize-none focus:outline-none" 
+                  className="w-full flex-1 bg-transparent text-slate-300 font-mono text-xs leading-relaxed resize-none focus:outline-none select-text" 
                 />
               )
             ) : (
-              <div className="w-full flex-1 font-mono text-xs leading-relaxed overflow-y-auto whitespace-pre-wrap select-text text-slate-300">
+              <div className="w-full flex-1 font-mono text-xs leading-relaxed overflow-y-auto whitespace-pre-wrap select-text text-slate-300 pr-1">
                 {evaluation.segments.map((seg, idx) => (
                   <span key={idx} className={seg.type === 'error' ? 'underline decoration-red-500 decoration-wavy bg-red-500/10' : seg.type === 'weak' ? 'bg-yellow-500/20 underline decoration-yellow-500' : ''}>{seg.text}</span>
                 ))}
@@ -593,23 +620,31 @@ export default function DashboardPage() {
 
         {/* Diagnostic Grading Interface Column */}
         <div className="xl:col-span-1 space-y-4 max-h-[75vh] overflow-y-auto pr-1">
-          <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-5 space-y-4 flex flex-col h-full">
-            <div>
-              <div className="group relative flex items-center gap-1.5 cursor-help">
-                <span className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">Estimated Banding</span>
-                <span className="text-[10px] text-slate-600 font-bold bg-slate-900 px-1.5 py-0.2 rounded-md">ⓘ</span>
+          <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-5 space-y-4 flex flex-col h-full min-h-[220px]">
+            {!evaluation.scoreEstimate ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-2 text-slate-600 font-mono text-[10px] italic">
+                Banding parameters will show up here after running an structural engine scan.
               </div>
-              <div className="text-xl font-black text-indigo-400 tracking-tight mt-1 font-mono">{evaluation.scoreEstimate}</div>
-            </div>
-            {evaluation.critique.length > 0 && (
-              <div className="space-y-2 pt-2 border-t border-slate-900">
-                <span className="text-[10px] font-bold tracking-widest text-slate-500 uppercase block">Diagnostics Checklist</span>
-                <ul className="space-y-2">
-                  {evaluation.critique.map((bullet, idx) => (
-                    <li key={idx} className="text-[11px] text-slate-400 flex items-start gap-2"><span className="text-indigo-500">•</span><span>{bullet}</span></li>
-                  ))}
-                </ul>
-              </div>
+            ) : (
+              <>
+                <div>
+                  <div className="group relative flex items-center gap-1.5 cursor-help">
+                    <span className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">Estimated Banding</span>
+                    <span className="text-[9px] text-indigo-400 font-bold bg-indigo-950/50 px-1.5 py-0.5 rounded border border-indigo-900/40" title="L1: Surface Details Only • L2: Source Content Used • L3: LORMS Target Objective Met">LORMS Criteria ⓘ</span>
+                  </div>
+                  <div className="text-xl font-black text-indigo-400 tracking-tight mt-1.5 font-mono select-text">{evaluation.scoreEstimate}</div>
+                </div>
+                {evaluation.critique.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t border-slate-900">
+                    <span className="text-[10px] font-bold tracking-widest text-slate-500 uppercase block">Diagnostics Checklist</span>
+                    <ul className="space-y-2 select-text">
+                      {evaluation.critique.map((bullet, idx) => (
+                        <li key={idx} className="text-[11px] text-slate-400 flex items-start gap-2"><span className="text-indigo-500">•</span><span>{bullet}</span></li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
