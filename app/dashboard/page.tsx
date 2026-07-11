@@ -86,6 +86,10 @@ export default function DashboardPage() {
   const [isExemplarOpen, setIsExemplarOpen] = useState(false);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
 
+  // Feedback State hooks (Fixed Scope Errors)
+  const [selectedType, setSelectedType] = useState('General');
+  const [textInput, setTextInput] = useState('');
+
   const [masteryPoints, setMasteryPoints] = useState(0); 
 
   // Timer Integration States
@@ -117,6 +121,7 @@ export default function DashboardPage() {
   const sourceARef = useRef<HTMLParagraphElement>(null);
   const sourceBRef = useRef<HTMLParagraphElement>(null);
 
+  // Timer Countdown Effect Function
   useEffect(() => {
     let interval: any = null;
     if (isTimerActive && timeLeft > 0) {
@@ -235,8 +240,8 @@ export default function DashboardPage() {
             question_type: selectedSkill,
             question_prompt: newChallenge.questionPrompt,
             background_context: newChallenge.backgroundContext,
-            source_a: newChallenge.sourceA, // FIXED: Changed target properties to use correct key assignments
-            source_b: newChallenge.sourceB, // FIXED: Changed target properties to use correct key assignments
+            source_a: newChallenge.sourceA, 
+            source_b: newChallenge.sourceB, 
             suggested_answer: newChallenge.suggestedAnswer
           }])
           .select()
@@ -264,7 +269,8 @@ export default function DashboardPage() {
           studentAnswer, 
           questionPrompt: activePrompt,
           questionType: selectedSkill, 
-          subject: activeSubject 
+          subject: activeSubject,
+          topic: selectedTopic
         }),
       });
       const data = await res.json();
@@ -291,6 +297,31 @@ export default function DashboardPage() {
       console.error(err);
     } finally {
       setIsGrading(false);
+    }
+  };
+
+  // Connected Modal Feedback Trigger Pipeline
+  const handleSubmitFeedback = async () => {
+    if (!textInput.trim()) return;
+    try {
+      const res = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          userEmail,
+          feedbackType: selectedType,
+          description: textInput,
+        }),
+      });
+      
+      if (res.ok) {
+        setTextInput('');
+        setIsFeedbackOpen(false);
+        alert("Feedback saved directly to your core development database. Thank you!");
+      }
+    } catch (err) {
+      console.error('Error logging user testing notes:', err);
     }
   };
 
@@ -611,7 +642,16 @@ export default function DashboardPage() {
         </svg>
       </button>
 
-      <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} />
+      {/* Custom Component Modal Catchment */}
+      <FeedbackModal 
+        isOpen={isFeedbackOpen} 
+        onClose={() => setIsFeedbackOpen(false)} 
+        selectedType={selectedType}
+        setSelectedType={setSelectedType}
+        textInput={textInput}
+        setTextInput={setTextInput}
+        onSubmit={handleSubmitFeedback}
+      />
 
     </div>
   );
