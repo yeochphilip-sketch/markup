@@ -1,87 +1,65 @@
 'use client';
 
-import { useState } from 'react';
-import { supabase } from '@/utils/supabase';
+interface FeedbackModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  selectedType: string;
+  setSelectedType: (val: string) => void;
+  textInput: string;
+  setTextInput: (val: string) => void;
+  onSubmit: () => Promise<void>;
+}
 
-export default function FeedbackModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-  const [type, setType] = useState('Bug');
-  const [description, setDescription] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
-
+export default function FeedbackModal({
+  isOpen,
+  onClose,
+  selectedType,
+  setSelectedType,
+  textInput,
+  setTextInput,
+  onSubmit
+}: FeedbackModalProps) {
   if (!isOpen) return null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!description.trim()) return;
-
-    setIsSubmitting(true);
-    setStatus('idle');
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      const { error } = await supabase.from('user_feedback').insert([{
-        user_id: session?.user?.id || null,
-        user_email: session?.user?.email || 'Anonymous',
-        feedback_type: type,
-        description: description.trim()
-      }]);
-
-      if (error) throw error;
-      
-      setStatus('success');
-      setDescription('');
-      setTimeout(() => { onClose(); setStatus('idle'); }, 2000);
-    } catch (err) {
-      console.error(err);
-      setStatus('error');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-slate-950 border border-slate-900 w-full max-w-md p-6 rounded-2xl shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
-        
-        <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-slate-300 transition">✕</button>
-        
-        <h3 className="text-sm font-black tracking-wider text-indigo-400 uppercase mb-4">Submit Platform Feedback</h3>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-slate-950 border border-slate-900 w-full max-w-md p-6 rounded-2xl shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+        <div className="flex justify-between items-center border-b border-slate-900 pb-3">
+          <h3 className="text-sm font-black tracking-wider text-indigo-400 uppercase">Submit Testing Notes</h3>
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-300 text-xs">✕</button>
+        </div>
+
+        <div className="space-y-3">
           <div className="space-y-1">
-            <label className="text-[9px] font-bold uppercase text-slate-500">Feedback Category</label>
-            <select value={type} onChange={(e) => setType(e.target.value)} className="w-full bg-slate-900 border border-slate-800 p-2.5 rounded-xl text-xs text-slate-200 focus:outline-none">
-              <option value="Bug">Bug / Technical Issue</option>
-              <option value="Syllabus Issue">Syllabus / Wrong Marking Criteria</option>
-              <option value="Feature Request">Feature Request</option>
-              <option value="Other">General Feedback</option>
+            <label className="text-[9px] font-bold text-slate-500 uppercase">Feedback Category</label>
+            <select 
+              value={selectedType} 
+              onChange={(e) => setSelectedType(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-800 p-2 rounded-xl text-xs text-slate-200 focus:outline-none"
+            >
+              <option value="General">General Review</option>
+              <option value="Bug">Technical Bug / Crash</option>
+              <option value="AI Accuracy">Humanities LORMS Accuracy</option>
+              <option value="UI Suggestion">UX / Visual Polish</option>
             </select>
           </div>
 
           <div className="space-y-1">
-            <label className="text-[9px] font-bold uppercase text-slate-500">Description</label>
-            <textarea 
-              value={description} 
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="What went wrong? Tell us what question or step you were on..." 
+            <label className="text-[9px] font-bold text-slate-500 uppercase">Description Details</label>
+            <textarea
+              value={textInput}
+              onChange={(e) => setTextInput(e.target.value)}
+              placeholder="What did you spot? Let us know what to tweak before launch..."
               rows={4}
-              className="w-full bg-slate-900 border border-slate-800 p-3 rounded-xl text-xs text-slate-200 focus:outline-none resize-none font-mono leading-relaxed"
+              className="w-full bg-slate-900 border border-slate-800 p-3 rounded-xl text-xs text-slate-200 focus:outline-none font-sans resize-none"
             />
           </div>
+        </div>
 
-          {status === 'success' && <p className="text-xs text-emerald-400 font-bold">✓ Logged! Thank you for sharpening the engine.</p>}
-          {status === 'error' && <p className="text-xs text-rose-400 font-bold">❌ Error uploading telemetry log. Retry?</p>}
-
-          <button 
-            type="submit" 
-            disabled={isSubmitting || !description.trim()} 
-            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold py-2.5 rounded-xl transition disabled:opacity-40"
-          >
-            {isSubmitting ? 'Transmitting logs...' : 'Send Feedback'}
-          </button>
-        </form>
+        <div className="flex justify-end gap-2 pt-2 border-t border-slate-900">
+          <button onClick={onClose} className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 font-bold px-4 py-2 rounded-xl text-xs transition">Cancel</button>
+          <button onClick={onSubmit} disabled={!textInput.trim()} className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-5 py-2 rounded-xl text-xs transition disabled:opacity-40">Submit Log</button>
+        </div>
       </div>
     </div>
   );
