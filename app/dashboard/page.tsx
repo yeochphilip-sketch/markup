@@ -1,5 +1,8 @@
 'use client';
 
+// 🚀 Forces Vercel to serve this page fresh on every single load, picking up active tokens
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/utils/supabase';
 import Image from 'next/image';
