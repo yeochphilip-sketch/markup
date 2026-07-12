@@ -16,7 +16,8 @@ export default function AuthPage() {
     try {
       await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: `${window.location.origin}/pricing` }
+        // Redirecting Google sign-ins straight to the dashboard workspace
+        options: { redirectTo: `${window.location.origin}/dashboard` }
       });
     } catch (err) {
       console.error(err);
@@ -31,22 +32,30 @@ export default function AuthPage() {
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({ email, password });
+        // NEW SIGN UP FLOW
+        const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        setMessage('Registration successful! Redirecting...');
-        setTimeout(() => router.push('/pricing'), 1500);
+        
+        if (data?.session) {
+          await supabase.auth.setSession(data.session);
+        }
+        setMessage('Registration successful! Sending to plans...');
+        setTimeout(() => {
+          router.push('/pricing');
+          router.refresh();
+        }, 1000);
+        
       } else {
+        // RETURNING USER LOGIN FLOW
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         
-        // 🛠️ CRITICAL FIX: Explicitly mount the session cookie mapping before changing paths
         if (data?.session) {
           await supabase.auth.setSession(data.session);
-          router.push('/dashboard');
-          router.refresh(); // Forces App Router contexts to read user context strings immediately
-        } else {
-          router.push('/dashboard');
         }
+        // Logs in straight to the dashboard workspace
+        router.push('/dashboard');
+        router.refresh();
       }
     } catch (err: any) {
       setMessage(err.message || 'An error occurred during authentication.');
@@ -66,7 +75,6 @@ export default function AuthPage() {
           </p>
         </div>
 
-        {/* Primary OAuth Gateway Action */}
         <button 
           onClick={handleGoogleLogin}
           className="w-full bg-white text-slate-900 font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-3 hover:bg-slate-100 transition text-sm shadow-md"
@@ -80,7 +88,6 @@ export default function AuthPage() {
           Continue with Google
         </button>
 
-        {/* Alternative Email Gateway Interface Selector */}
         <div className="flex flex-col space-y-4 pt-2 border-t border-slate-900">
           <form onSubmit={handleEmailAuth} className="flex flex-col space-y-3">
             <input 
