@@ -187,11 +187,16 @@ export default function DashboardPage() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
-          setUserId(session.user.id);
-          setUserEmail(session.user.email || '');
-          setUserAvatar(session.user.user_metadata?.avatar_url || '');
-          loadUserMetrics(session.user.id);
-          loadHistoryLogs(session.user.id);
+          const user = session.user;
+          setUserId(user.id);
+          
+          // Normalized mapping tracking fix
+          const normalizedEmail = (user.email || '').toLowerCase();
+          setUserEmail(normalizedEmail);
+          
+          setUserAvatar(user.user_metadata?.avatar_url || '');
+          loadUserMetrics(user.id);
+          loadHistoryLogs(user.id);
         }
       } catch (err) {
         console.warn(err);
@@ -371,8 +376,8 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          {/* 📊 SECURE ADMIN-ONLY PLATFORM INSIGHTS SHORTCUT LINK BUTTON */}
-          {userEmail === 'yeochphilip@gmail.com' && (
+          {/* 📊 PLATFORM INSIGHTS BUTTON (Change email string below to match exactly) */}
+          {userEmail === 'your-actual-email@domain.com' && (
             <button 
               onClick={() => router.push('/admin/analytics')} 
               className="hidden sm:inline-flex bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 text-[11px] font-bold px-3 py-1.5 rounded-xl transition items-center gap-1.5 animate-pulse"
@@ -400,7 +405,7 @@ export default function DashboardPage() {
                   <p className="text-xs text-slate-200 font-semibold truncate mt-1 bg-slate-900 px-2.5 py-1.5 rounded-xl border border-slate-900">{userEmail || 'Active Student'}</p>
                 </div>
                 <div className="pt-2 border-t border-slate-900 flex flex-col space-y-1">
-                  {userEmail === 'yeochphilip@gmail.com' && (
+                  {userEmail === 'your-actual-email@domain.com' && (
                     <button onClick={() => { router.push('/admin/analytics'); setIsSettingsOpen(false); }} className="w-full text-left text-amber-400 hover:text-amber-300 text-xs font-bold py-2 px-1 transition">
                       ⚡ View Admin Telemetry
                     </button>
