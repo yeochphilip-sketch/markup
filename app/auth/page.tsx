@@ -32,19 +32,29 @@ export default function AuthPage() {
 
     try {
       if (isSignUp) {
-        // NEW SIGN UP FLOW
         const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
         
-        if (data?.session) {
-          await supabase.auth.setSession(data.session);
+        if (data?.user) {
+          // Extract the username part from the email (e.g., "alex" from "alex@school.com")
+          const fallbackName = email.split('@')[0];
+
+          // 🚀 Manually seed their matching public profile tracking metrics row
+          await supabase.from('user_profiles').insert([{
+            id: data.user.id,
+            full_name: fallbackName, // 🌟 Now dynamically uses their email prefix!
+            email_address: email.toLowerCase().trim(),
+            selected_plan: 'Free',
+            billing_rate: 0,
+            account_status: 'Active'
+          }]);
         }
+        
         setMessage('Registration successful! Sending to plans...');
         setTimeout(() => {
           router.push('/pricing');
           router.refresh();
         }, 1000);
-        
       } else {
         // RETURNING USER LOGIN FLOW
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
