@@ -404,13 +404,14 @@ export default function DashboardPage() {
           </div>
 
           {/* 📊 SUPER ADMIN BYPASS HOOK */}
-          {(userEmail === 'yeochphilip@gmail.com' || (typeof window !== 'undefined' && localStorage.getItem('admin_override') === 'true')) && (
-            <button 
-              onClick={() => router.push('/admin/analytics')} 
-              className="hidden sm:inline-flex bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 text-[11px] font-bold px-3 py-1.5 rounded-xl transition items-center gap-1.5 animate-pulse"
+          {/* 📊 Native Link Anchor Redirect Framework */}
+          {(userEmail === 'your-actual-email@domain.com' || (typeof window !== 'undefined' && localStorage.getItem('admin_override') === 'true')) && (
+            <a 
+              href="/admin/analytics" 
+              className="hidden sm:inline-flex bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 text-[11px] font-bold px-3 py-1.5 rounded-xl transition items-center gap-1.5 animate-pulse cursor-pointer"
             >
               📊 Platform Insights
-            </button>
+            </a>
           )}
           
           <div className="relative" ref={dropdownRef}>
