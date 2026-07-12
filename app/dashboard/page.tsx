@@ -190,8 +190,9 @@ export default function DashboardPage() {
           const user = session.user;
           setUserId(user.id);
           
-          // Normalized mapping tracking fix
-          const normalizedEmail = (user.email || '').toLowerCase();
+          // Check standard email, fallback to metadata provider identities
+          const rawEmail = user.email || user.user_metadata?.email || '';
+          const normalizedEmail = rawEmail.toLowerCase().trim();
           setUserEmail(normalizedEmail);
           
           setUserAvatar(user.user_metadata?.avatar_url || '');
