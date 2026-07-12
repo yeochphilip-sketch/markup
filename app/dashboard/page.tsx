@@ -183,15 +183,33 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    // 1. Check current session immediately on mount
-    async function checkInitialSession() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        handleUserSession(session.user);
+    async function forceRetrieveSession() {
+      try {
+        // 1. Force fetch directly from the active client handler
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          handleUserSession(session.user);
+          return;
+        }
+
+        // 2. Backup: Look into your local storage directly if cookies failed to load
+        const localStorageKey = Object.keys(localStorage).find(key => key.startsWith('sb-') && key.endsWith('-auth-token'));
+        if (localStorageKey) {
+          const rawData = localStorage.getItem(localStorageKey);
+          if (rawData) {
+            const parsed = JSON.parse(rawData);
+            if (parsed?.user) {
+              handleUserSession(parsed.user);
+              return;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Session retrieval fallback failed:", err);
       }
     }
 
-    // 2. Helper to set all state correctly
     function handleUserSession(user: any) {
       setUserId(user.id);
       const rawEmail = user.email || user.user_metadata?.email || '';
@@ -201,15 +219,11 @@ export default function DashboardPage() {
       loadHistoryLogs(user.id);
     }
 
-    checkInitialSession();
+    forceRetrieveSession();
 
-    // 3. Set up a live listener to catch auth updates dynamically
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         handleUserSession(session.user);
-      } else {
-        setUserId(null);
-        setUserEmail('');
       }
     });
 
@@ -217,7 +231,6 @@ export default function DashboardPage() {
       subscription.unsubscribe();
     };
   }, []);
-
   const handleGenerateChallenge = async () => {
     setIsGenerating(true);
     setHasScanned(false);
