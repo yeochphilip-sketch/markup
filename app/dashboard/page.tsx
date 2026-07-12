@@ -38,6 +38,7 @@ const SYLLABUS_MAP: Record<string, { topics: string[]; skills: string[] }> = {
       'Issue 3: Responding to a Globalised World'
     ],
     skills: [
+      'All Formats (SBCS + SEQ + SRQ Bundle)',
       'SBQ: Inference / Message (AO2)',
       'SBQ: Comparison & Contrast (AO2)',
       'SBQ: Purpose / Motive Evolution (AO2)',
@@ -55,6 +56,7 @@ const SYLLABUS_MAP: Record<string, { topics: string[]; skills: string[] }> = {
       'Cold War: Origins in Europe (*SBCS)'
     ],
     skills: [
+      'All Formats (SBCS + SEQ + SRQ Bundle)',
       'SBQ: Inference / Message (AO3)',
       'SBQ: Comparison & Contrast (AO3)',
       'SBQ: Reliability & Cross-Referencing (AO3)',
@@ -71,15 +73,23 @@ export default function DashboardPage() {
   
   const [activeSubject, setActiveSubject] = useState('Social Studies');
   const [selectedTopic, setSelectedTopic] = useState('Any Topic (Random Mix)');
-  const [selectedSkill, setSelectedSkill] = useState('SBQ: Inference / Message (AO2)');
+  const [selectedSkill, setSelectedSkill] = useState('All Formats (SBCS + SEQ + SRQ Bundle)');
   
   const [isCustomMode, setIsCustomMode] = useState(false);
   const [customPrompt, setCustomPrompt] = useState('');
   
-  const [studentAnswer, setStudentAnswer] = useState('');
+  // 🌟 Dedicated O-Level individual canvas states 
+  const [sbcsAnswer, setSbcsAnswer] = useState('');
+  const [seqAnswer, setSeqAnswer] = useState('');
+  const [srqAnswer, setSrqAnswer] = useState('');
+
   const [userAvatar, setUserAvatar] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [userId, setUserId] = useState<string | null>(null);
+  
+  // Auth state listener guard
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGrading, setIsGrading] = useState(false);
   const [hasScanned, setHasScanned] = useState(false);
@@ -111,6 +121,9 @@ export default function DashboardPage() {
     sourceBProvenance: 'Source B sample provenance information context.',
     sourceB: 'Source B contents appear here once generated.',
     questionPrompt: 'No question active. Use the configurator panel on the left to start.',
+    sbcsPrompt: 'SBCS evaluation task criteria will render here.',
+    seqPrompt: 'SEQ structural essay prompt query will render here.',
+    srqPrompt: 'SRQ contextual evaluation prompt query will render here.',
     suggestedAnswer: ''
   });
 
@@ -188,15 +201,12 @@ export default function DashboardPage() {
   useEffect(() => {
     async function forceRetrieveSession() {
       try {
-        // 1. Force fetch directly from the active client handler
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
+        const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           handleUserSession(session.user);
           return;
         }
 
-        // 2. Backup: Look into your local storage directly if cookies failed to load
         const localStorageKey = Object.keys(localStorage).find(key => key.startsWith('sb-') && key.endsWith('-auth-token'));
         if (localStorageKey) {
           const rawData = localStorage.getItem(localStorageKey);
@@ -210,6 +220,8 @@ export default function DashboardPage() {
         }
       } catch (err) {
         console.warn("Session retrieval fallback failed:", err);
+      } finally {
+        setIsAuthLoading(false);
       }
     }
 
@@ -220,6 +232,7 @@ export default function DashboardPage() {
       setUserAvatar(user.user_metadata?.avatar_url || '');
       loadUserMetrics(user.id);
       loadHistoryLogs(user.id);
+      setIsAuthLoading(false);
     }
 
     forceRetrieveSession();
@@ -234,6 +247,7 @@ export default function DashboardPage() {
       subscription.unsubscribe();
     };
   }, []);
+
   const handleGenerateChallenge = async () => {
     setIsGenerating(true);
     setHasScanned(false);
@@ -258,7 +272,10 @@ export default function DashboardPage() {
         sourceA: data.sourceA || '',
         sourceBProvenance: data.sourceBProvenance || '',
         sourceB: data.sourceB || '',
-        questionPrompt: data.questionPrompt || '',
+        questionPrompt: data.questionPrompt || 'O-Level Comprehensive Sheet Bundle',
+        sbcsPrompt: data.sbcsPrompt || 'How far does Source A support the claim? Explain your answer.',
+        seqPrompt: data.seqPrompt || 'Explain the impact of the policy decisions on the local population.',
+        srqPrompt: data.srqPrompt || 'In your opinion, is institutional intervention or local management more vital?',
         suggestedAnswer: data.suggestedAnswer || ''
       });
 
@@ -270,7 +287,7 @@ export default function DashboardPage() {
             subject: activeSubject,
             topic: selectedTopic,
             question_type: selectedSkill,
-            question_prompt: data.questionPrompt,
+            question_prompt: data.questionPrompt || 'Comprehensive Sheet Bundle',
             background_context: data.backgroundContext,
             source_a: data.sourceA, 
             source_b: data.sourceB, 
@@ -290,7 +307,7 @@ export default function DashboardPage() {
   };
 
   const handleScanStructure = async () => {
-    if (!studentAnswer.trim()) return;
+    if (!sbcsAnswer.trim() && !seqAnswer.trim() && !srqAnswer.trim()) return;
     setIsGrading(true);
     try {
       const activePrompt = isCustomMode ? customPrompt : challenge.questionPrompt;
@@ -298,7 +315,9 @@ export default function DashboardPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          studentAnswer, 
+          sbcsAnswer,
+          seqAnswer,
+          srqAnswer,
           questionPrompt: activePrompt,
           questionType: selectedSkill, 
           subject: activeSubject,
@@ -308,20 +327,20 @@ export default function DashboardPage() {
       const data = await res.json();
       
       setEvaluation({
-        scoreEstimate: data.scoreEstimate || 'L2/3',
+        scoreEstimate: data.scoreEstimate || 'L3/6 Bundle Matrix',
         critique: data.critique || [],
-        segments: data.highlightedSegments || [{ text: studentAnswer, type: 'correct' }]
+        segments: data.highlightedSegments || [{ text: sbcsAnswer + '\n' + seqAnswer + '\n' + srqAnswer, type: 'correct' }]
       });
 
       if (userId) {
         await supabase
           .from('essay_evaluations').insert([{
             user_id: userId,
-            student_essay: studentAnswer,
-            score_estimate: data.scoreEstimate || 'L2/3',
+            student_essay: `SBCS: ${sbcsAnswer}\nSEQ: ${seqAnswer}\nSRQ: ${srqAnswer}`,
+            score_estimate: data.scoreEstimate || 'L3/6 Bundle Matrix',
             critique_bullets: data.critique || []
           }]);
-        setMasteryPoints(prev => prev + 120);
+        setMasteryPoints(prev => prev + 150);
       }
 
       setHasScanned(true);
@@ -332,18 +351,24 @@ export default function DashboardPage() {
     }
   };
 
-  const handlePasteFromClipboard = async () => {
+  const handlePasteFromClipboard = async (target: 'sbcs' | 'seq' | 'srq') => {
     try {
       const text = await navigator.clipboard.readText();
-      if (text) setStudentAnswer(text);
+      if (text) {
+        if (target === 'sbcs') setSbcsAnswer(text);
+        if (target === 'seq') setSeqAnswer(text);
+        if (target === 'srq') setSrqAnswer(text);
+      }
     } catch (err) {
       console.warn("Clipboard access denied.");
     }
   };
 
-  const handleInjectPeelFrame = () => {
-    const frame = `Point: [State your direct claim matching the prompt parameters here]\nEvidence: [Quote historical or source cross-reference data here]\nExplanation: [Analyze why this evidence supports your argument using LORMS properties]\nLink: [Therefore, wrap back to the question statement...]`;
-    setStudentAnswer(frame);
+  const handleInjectPeelFrame = (target: 'sbcs' | 'seq' | 'srq') => {
+    const frame = `Point: [State your direct claim matching prompt criteria here]\nEvidence: [Quote historical data or cross-reference records here]\nExplanation: [Analyze why this validation satisfies LORMS matrices]\nLink: [Therefore, wrap cleanly back to the question statement...]`;
+    if (target === 'sbcs') setSbcsAnswer(frame);
+    if (target === 'seq') setSeqAnswer(frame);
+    if (target === 'srq') setSrqAnswer(frame);
   };
 
   const handleSubmitFeedback = async () => {
@@ -381,13 +406,24 @@ export default function DashboardPage() {
       sourceBProvenance: item.source_b_provenance || 'Source B Context:',
       sourceB: item.source_b,
       questionPrompt: item.question_prompt,
+      sbcsPrompt: 'Historical record segment task.',
+      seqPrompt: 'Historical prioritization prompt layer.',
+      srqPrompt: 'Contextual recommendations query segment.',
       suggestedAnswer: item.suggested_answer || ''
     });
     setEvaluation({ scoreEstimate: '', critique: [], segments: [] });
   };
 
   const emailInitial = userEmail ? userEmail.charAt(0).toUpperCase() : 'S';
-  const isQuestionPromptInactive = challenge.questionPrompt.includes('No question active');
+  const isQuestionPromptInactive = challenge.backgroundContext.includes('Click Generate Practice');
+
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen bg-[#07090e] text-slate-400 font-mono flex items-center justify-center text-xs">
+        Verifying Security Shell Handshake...
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col font-sans relative selection:bg-indigo-500/30">
@@ -397,13 +433,11 @@ export default function DashboardPage() {
         <h1 className="text-xl font-black text-indigo-500 tracking-wider">MARKUP</h1>
         
         <div className="flex items-center gap-6">
-          {/* 📊 DIAGNOSTIC TOGGLE: This prints exactly what your app sees */}
           <div className="text-[10px] bg-slate-900 border border-slate-800 p-2 rounded-xl text-slate-400 font-mono">
             <div>ID: <span className="text-amber-400">{userId || 'NULL'}</span></div>
             <div>Email: <span className="text-emerald-400">"{userEmail || 'EMPTY'}"</span></div>
           </div>
 
-          {/* 📊 PERMANENT LOCAL STORAGE BYPASS */}
           {(typeof window !== 'undefined' && localStorage.getItem('admin_override') === 'true') && (
             <a 
               href="/admin/analytics" 
@@ -432,11 +466,6 @@ export default function DashboardPage() {
                   <p className="text-xs text-slate-200 font-semibold truncate mt-1 bg-slate-900 px-2.5 py-1.5 rounded-xl border border-slate-900">{userEmail || 'Active Student'}</p>
                 </div>
                 <div className="pt-2 border-t border-slate-900 flex flex-col space-y-1">
-                  {userEmail === 'your-actual-email@domain.com' && (
-                    <button onClick={() => { router.push('/admin/analytics'); setIsSettingsOpen(false); }} className="w-full text-left text-amber-400 hover:text-amber-300 text-xs font-bold py-2 px-1 transition">
-                      ⚡ View Admin Telemetry
-                    </button>
-                  )}
                   <button onClick={() => { setIsFeedbackOpen(true); setIsSettingsOpen(false); }} className="w-full text-left text-slate-400 hover:text-indigo-400 text-xs font-bold py-2 px-1 transition">
                     🐛 Submit Bug / Feedback
                   </button>
@@ -487,11 +516,11 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Main Work Grid Framework */}
-      <div className="flex-1 grid grid-cols-1 xl:grid-cols-6 p-6 gap-6 overflow-hidden">
+      {/* Main Grid Framework Layout */}
+      <div className="flex-1 grid grid-cols-1 xl:grid-cols-6 p-6 gap-6 overflow-hidden max-h-[78vh]">
         
         {/* Configurator Sidebar */}
-        <div className="xl:col-span-1 flex flex-col space-y-4 max-h-[75vh] overflow-y-auto pr-1">
+        <div className="xl:col-span-1 flex flex-col space-y-4 overflow-y-auto pr-1">
           <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-4 space-y-4">
             <h2 className="text-[10px] font-black tracking-widest text-slate-400 uppercase">Configurator</h2>
             
@@ -546,8 +575,8 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Source Material Columns Display Layout */}
-        <div className="xl:col-span-2 space-y-4 max-h-[75vh] overflow-y-auto pr-1 select-text">
+        {/* 🌟 SCROLLABLE Source Material Columns Display Layout */}
+        <div className="xl:col-span-2 space-y-4 max-h-[75vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800 select-text">
           <div className="bg-slate-950/40 border border-slate-900 rounded-xl p-4 text-xs space-y-1">
             <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">Contextual Background</span>
             <p className="text-slate-400 leading-relaxed select-text">{isCustomMode ? 'Analyze school assignment files.' : challenge.backgroundContext}</p>
@@ -555,22 +584,23 @@ export default function DashboardPage() {
           
           <div className="space-y-1.5">
             <span className="text-[11px] font-bold text-slate-200 block select-text">{isCustomMode ? 'Source A Provenance' : challenge.sourceAProvenance}</span>
-            <div className="bg-transparent border border-slate-400 rounded-md p-4 text-xs">
+            <div className="bg-transparent border border-slate-800 rounded-xl p-4 text-xs">
               <p className="text-slate-300 leading-relaxed select-text whitespace-pre-line font-serif">{isCustomMode ? 'Paste school source texts here...' : challenge.sourceA}</p>
             </div>
           </div>
 
           <div className="space-y-1.5">
             <span className="text-[11px] font-bold text-slate-200 block select-text">{isCustomMode ? 'Source B Provenance' : challenge.sourceBProvenance}</span>
-            <div className="bg-transparent border border-slate-400 rounded-md p-4 text-xs">
+            <div className="bg-transparent border border-slate-800 rounded-xl p-4 text-xs">
               <p className="text-slate-300 leading-relaxed select-text whitespace-pre-line font-serif">{isCustomMode ? 'Reference document texts...' : challenge.sourceB}</p>
             </div>
           </div>
         </div>
 
-        {/* Canvas Workspace Entry Layout */}
-        <div className="xl:col-span-2 flex flex-col space-y-4">
-          <div className="bg-indigo-950/20 border border-indigo-900/30 rounded-2xl p-4">
+        {/* 🌟 SCROLLABLE Workspace Textareas & Prompt Column Suite */}
+        <div className="xl:col-span-2 flex flex-col space-y-4 max-h-[75vh] overflow-y-auto pr-2">
+          
+          <div className="bg-indigo-950/20 border border-indigo-900/30 rounded-2xl p-4 shrink-0">
             <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Question Assignment Prompt</span>
             {isCustomMode ? (
               <input type="text" value={customPrompt} onChange={(e) => setCustomPrompt(e.target.value)} placeholder="Type or paste your school assignment question prompt here..." className="w-full bg-slate-900 border border-slate-800 p-2.5 mt-2 rounded-xl text-xs text-slate-200 focus:outline-none" />
@@ -579,73 +609,80 @@ export default function DashboardPage() {
             )}
           </div>
 
-          <div className="flex-1 flex flex-col bg-slate-950/40 border border-slate-900 rounded-2xl p-5 relative min-h-[250px]">
-            <div className="flex justify-between items-center mb-2">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Writing Workspace</span>
-                {!hasScanned && (
-                  <>
-                    <button onClick={handlePasteFromClipboard} type="button" className="text-[10px] text-indigo-400 hover:underline">📋 Paste</button>
-                    <button onClick={handleInjectPeelFrame} type="button" className="text-[10px] text-slate-400 hover:underline ml-1">💡 PEEL Frame</button>
-                  </>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                {studentAnswer && !hasScanned && (
-                  <button onClick={() => setStudentAnswer('')} title="Clear draft text canvas" className="text-slate-600 hover:text-rose-400 text-xs px-1">🗑️</button>
-                )}
-                {challenge.suggestedAnswer && !isCustomMode && (
-                  <button 
-                    onClick={() => { setIsExemplarOpen(true); }}
-                    className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold px-3 py-1 rounded-full transition"
-                  >
-                    💡 View Model Essay
-                  </button>
-                )}
-              </div>
+          <div className="flex-1 space-y-4 min-h-[300px]">
+            <div className="flex justify-between items-center px-1">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Writing Canvas</span>
+              {challenge.suggestedAnswer && !isCustomMode && (
+                <button 
+                  onClick={() => setIsExemplarOpen(true)}
+                  className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold px-3 py-1 rounded-full transition"
+                >
+                  💡 View Model Essay
+                </button>
+              )}
             </div>
 
             {!hasScanned ? (
               (!isCustomMode && isQuestionPromptInactive) ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-center p-6 border border-dashed border-slate-900 rounded-xl bg-slate-950/20">
-                  <p className="text-sm font-bold text-indigo-400">Ready to evaluate your essay response?</p>
-                  <p className="text-[11px] text-slate-500 mt-1 max-w-xs leading-relaxed">
-                    Pick a focus skill, generate a Cambridge standard mock sheet, and type your draft argument block.
-                  </p>
+                <div className="h-full flex flex-col items-center justify-center text-center p-6 border border-dashed border-slate-900 rounded-2xl bg-slate-950/20">
+                  <p className="text-sm font-bold text-indigo-400">Ready to initiate O-Level practice simulation?</p>
+                  <p className="text-[11px] text-slate-500 mt-1">Configure parameters and tap "Generate" to retrieve your full source package.</p>
                 </div>
               ) : (
-                <textarea 
-                  value={studentAnswer} 
-                  onChange={(e) => setStudentAnswer(e.target.value)} 
-                  placeholder="Draft your structured PEEL argument string paragraphs here..." 
-                  className="w-full flex-1 bg-transparent text-slate-300 font-mono text-xs leading-relaxed resize-none focus:outline-none select-text" 
-                />
+                <div className="space-y-4">
+                  {/* SBCS Segment Block */}
+                  <div className="bg-slate-950/60 border border-slate-900 p-4 rounded-xl space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase font-mono">Section A: Source-Based Question (SBCS)</label>
+                      <div className="flex gap-2">
+                        <button onClick={() => handlePasteFromClipboard('sbcs')} type="button" className="text-[10px] text-indigo-400 hover:underline">📋 Paste</button>
+                        <button onClick={() => handleInjectPeelFrame('sbcs')} type="button" className="text-[10px] text-slate-400 hover:underline">💡 PEEL</button>
+                      </div>
+                    </div>
+                    <p className="text-xs font-medium text-slate-300 bg-slate-900/40 p-2.5 rounded-lg border border-slate-800">{challenge.sbcsPrompt}</p>
+                    <textarea value={sbcsAnswer} onChange={(e) => setSbcsAnswer(e.target.value)} placeholder="Type source inference or comparison analysis here..." className="w-full min-h-[100px] bg-transparent text-slate-300 border border-slate-850 p-2.5 font-mono text-xs focus:outline-none focus:border-indigo-600 bg-slate-950 rounded-xl resize-none" />
+                  </div>
+
+                  {/* SEQ Segment Block */}
+                  <div className="bg-slate-950/60 border border-slate-900 p-4 rounded-xl space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase font-mono">Section B: Structured Essay Question (SEQ)</label>
+                      <div className="flex gap-2">
+                        <button onClick={() => handlePasteFromClipboard('seq')} type="button" className="text-[10px] text-indigo-400 hover:underline">📋 Paste</button>
+                        <button onClick={() => handleInjectPeelFrame('seq')} type="button" className="text-[10px] text-slate-400 hover:underline">💡 PEEL</button>
+                      </div>
+                    </div>
+                    <p className="text-xs font-medium text-slate-300 bg-slate-900/40 p-2.5 rounded-lg border border-slate-800">{challenge.seqPrompt}</p>
+                    <textarea value={seqAnswer} onChange={(e) => setSeqAnswer(e.target.value)} placeholder="Draft factor prioritization essay structure here..." className="w-full min-h-[100px] bg-transparent text-slate-300 border border-slate-850 p-2.5 font-mono text-xs focus:outline-none focus:border-indigo-600 bg-slate-950 rounded-xl resize-none" />
+                  </div>
+
+                  {/* SRQ Segment Block */}
+                  <div className="bg-slate-950/60 border border-slate-900 p-4 rounded-xl space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase font-mono">Section C: Structured Response Question (SRQ)</label>
+                      <div className="flex gap-2">
+                        <button onClick={() => handlePasteFromClipboard('srq')} type="button" className="text-[10px] text-indigo-400 hover:underline">📋 Paste</button>
+                        <button onClick={() => handleInjectPeelFrame('srq')} type="button" className="text-[10px] text-slate-400 hover:underline">💡 PEEL</button>
+                      </div>
+                    </div>
+                    <p className="text-xs font-medium text-slate-300 bg-slate-900/40 p-2.5 rounded-lg border border-slate-800">{challenge.srqPrompt}</p>
+                    <textarea value={srqAnswer} onChange={(e) => setSrqAnswer(e.target.value)} placeholder="State your assertions and balanced evaluation judgments here..." className="w-full min-h-[100px] bg-transparent text-slate-300 border border-slate-850 p-2.5 font-mono text-xs focus:outline-none focus:border-indigo-600 bg-slate-950 rounded-xl resize-none" />
+                  </div>
+                </div>
               )
             ) : (
-              <div className="w-full flex-1 font-mono text-xs leading-relaxed overflow-y-auto whitespace-pre-wrap select-text text-slate-300 pr-1">
+              <div className="bg-slate-950 border border-slate-900 p-4 rounded-xl font-mono text-xs leading-relaxed overflow-y-auto max-h-[400px]">
                 {evaluation.segments.map((seg, idx) => (
-                  <span key={idx} className={seg.type === 'error' ? 'underline decoration-red-500 decoration-wavy bg-red-500/10' : seg.type === 'weak' ? 'bg-yellow-500/20 underline decoration-yellow-500' : ''}>{seg.text}</span>
+                  <span key={idx} className={seg.type === 'error' ? 'underline decoration-red-500 bg-red-500/10' : seg.type === 'weak' ? 'bg-yellow-500/20 text-yellow-300' : ''}>{seg.text}</span>
                 ))}
-                <div className="mt-6 pt-4 border-t border-slate-900">
+                <div className="mt-4 pt-4 border-t border-slate-900">
                   <button onClick={() => setHasScanned(false)} className="text-[10px] bg-slate-900 text-slate-400 font-bold px-3 py-1.5 rounded-lg border border-slate-800">✏️ Resume Editing</button>
                 </div>
               </div>
             )}
-
-            {(!isQuestionPromptInactive || isCustomMode) && !hasScanned && (
-              <div className="flex justify-between items-center mt-2 pt-2 border-t border-slate-900/60 text-[10px] font-mono text-slate-500">
-                <span>Analytical Validation Frame</span>
-                <span>
-                  Words:{" "}
-                  <span className="text-slate-300 font-bold">
-                    {studentAnswer.trim() === "" ? 0 : studentAnswer.trim().split(/\s+/).length}
-                  </span>
-                </span>
-              </div>
-            )}
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 shrink-0 pt-2">
             {(!isQuestionPromptInactive || isCustomMode) && (
               <button 
                 onClick={() => { setIsTimerActive(!isTimerActive); if(timeLeft === 0) setTimeLeft(1200); }}
@@ -657,10 +694,10 @@ export default function DashboardPage() {
             
             <button 
               onClick={handleScanStructure} 
-              disabled={isGrading || !studentAnswer || (isCustomMode && !customPrompt.trim())} 
-              className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl text-xs transition"
+              disabled={isGrading || (!sbcsAnswer && !seqAnswer && !srqAnswer) || (isCustomMode && !customPrompt.trim())} 
+              className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-xl text-xs transition uppercase font-mono tracking-wider disabled:opacity-40"
             >
-              {isGrading ? 'Scanning structural criteria layers...' : 'Scan Answer Structure'}
+              {isGrading ? 'Processing All Content Streams...' : '⚡ Scan All Answers Simultaneously'}
             </button>
           </div>
         </div>
