@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/utils/supabase';
+import { useRouter, useSearchParams } from 'next/navigation'; // 🌟 Added useSearchParams
 
-// Define strict typing maps for your standardized pricing framework
 interface ProfileRow {
   id: string;
   full_name: string;
@@ -14,11 +14,24 @@ interface ProfileRow {
 }
 
 export default function AdminAnalyticsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams(); // 🌟 Hooks into the URL bar
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const ADMIN_UUID = '815ac133-d392-4fbf-b6eb-a4f903705731';
-  
+  const [isAuthorized, setIsAuthorized] = useState(false);
+
   useEffect(() => {
+    // 🔒 Passkey check: Looks for ?passkey=humanities123 in your URL
+    const passkey = searchParams.get('passkey');
+    
+    if (passkey !== 'humanities123') {
+      // If the URL secret doesn't match, send them away!
+      router.push('/dashboard');
+      return;
+    }
+
+    setIsAuthorized(true);
+
     async function streamAccountRegistry() {
       try {
         const { data, error } = await supabase
@@ -36,13 +49,15 @@ export default function AdminAnalyticsPage() {
     }
 
     streamAccountRegistry();
-  }, []);
+  }, [router, searchParams]);
 
-  // Compute live aggregates from your automated data collection matrices
+  if (!isAuthorized) {
+    return <div className="min-h-screen bg-[#07090e] text-slate-500 font-mono flex items-center justify-center text-xs">Loading Secure Registry Profile Matrix...</div>;
+  }
+  // 🚀 PASTE THIS BLOCK RIGHT ABOVE YOUR RETURN STATEMENT:
   const totalRevenue = profiles.reduce((sum, item) => sum + Number(item.billing_rate || 0), 0);
   const premiumCount = profiles.filter(p => p.selected_plan === 'Premium Pro').length;
   const conversionRate = profiles.length > 0 ? ((premiumCount / profiles.length) * 100).toFixed(1) : '0.0';
-
   return (
     <div className="min-h-screen bg-[#07090e] text-slate-100 p-8 font-sans">
       <div className="max-w-6xl mx-auto space-y-8">
