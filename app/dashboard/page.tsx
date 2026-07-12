@@ -377,11 +377,11 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          {/* 📊 PLATFORM INSIGHTS BUTTON (Change email string below to match exactly) */}
-          {userEmail === 'yeochphilip@gmail.com' && (
+          {/* Use your exact Supabase UUID string inside the check */}
+          {userId === '815ac133-d392-4fbf-b6eb-a4f903705731' && (
             <button 
               onClick={() => router.push('/admin/analytics')} 
-              className="hidden sm:inline-flex bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 text-[11px] font-bold px-3 py-1.5 rounded-xl transition items-center gap-1.5 animate-pulse"
+              className="hidden sm:inline-flex bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 text-[11px] font-bold px-3 py-1.5 rounded-xl transition items-center gap-1.5"
             >
               📊 Platform Insights
             </button>
