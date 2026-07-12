@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/utils/supabase';
+import { useRouter } from 'next/navigation';
 
-// Define strict typing maps for your standardized pricing framework
+// Secured UUID Anchor
+const ADMIN_UUID = '815ac133-d392-4fbf-b6eb-a4f903705731';
+
 interface ProfileRow {
   id: string;
   full_name: string;
@@ -14,12 +17,26 @@ interface ProfileRow {
 }
 
 export default function AdminAnalyticsPage() {
+  const router = useRouter();
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
-    async function streamAccountRegistry() {
+    async function verifyAndStream() {
       try {
+        // 🔒 Step 3: Server-side Identity check using dynamic token verification
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        
+        if (authError || !user || user.id !== ADMIN_UUID) {
+          // Kick any unauthorized peers straight back to the safe dashboard route
+          router.push('/dashboard');
+          return;
+        }
+
+        setIsAuthorized(true);
+
+        // Fetch live rows from Supabase now that identity is established
         const { data, error } = await supabase
           .from('user_profiles')
           .select('id, full_name, email_address, selected_plan, billing_rate, account_status')
@@ -28,14 +45,24 @@ export default function AdminAnalyticsPage() {
         if (error) throw error;
         if (data) setProfiles(data as ProfileRow[]);
       } catch (err) {
-        console.error('Error fetching analytics registry data:', err);
+        console.error('Security verification error:', err);
+        router.push('/dashboard');
       } finally {
         setLoading(false);
       }
     }
 
-    streamAccountRegistry();
-  }, []);
+    verifyAndStream();
+  }, [router]);
+
+  // Loading indicator for authorization validation phase
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen bg-[#07090e] text-slate-500 font-mono flex items-center justify-center text-xs">
+        Verifying Security Layer Authentication Tokens...
+      </div>
+    );
+  }
 
   // Compute live aggregates from your automated data collection matrices
   const totalRevenue = profiles.reduce((sum, item) => sum + Number(item.billing_rate || 0), 0);
