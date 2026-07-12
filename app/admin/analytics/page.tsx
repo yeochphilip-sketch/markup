@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react'; // 🌟 Added Suspense
 import { supabase } from '@/utils/supabase';
-import { useRouter, useSearchParams } from 'next/navigation'; // 🌟 Added useSearchParams
+import { useRouter, useSearchParams } from 'next/navigation';
 
 interface ProfileRow {
   id: string;
@@ -13,19 +13,18 @@ interface ProfileRow {
   account_status: string;
 }
 
-export default function AdminAnalyticsPage() {
+// 1. Move the analytics logic into its own internal sub-component
+function AnalyticsDashboardContent() {
   const router = useRouter();
-  const searchParams = useSearchParams(); // 🌟 Hooks into the URL bar
+  const searchParams = useSearchParams();
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
-    // 🔒 Passkey check: Looks for ?passkey=humanities123 in your URL
     const passkey = searchParams.get('passkey');
     
     if (passkey !== 'humanities123') {
-      // If the URL secret doesn't match, send them away!
       router.push('/dashboard');
       return;
     }
@@ -54,10 +53,11 @@ export default function AdminAnalyticsPage() {
   if (!isAuthorized) {
     return <div className="min-h-screen bg-[#07090e] text-slate-500 font-mono flex items-center justify-center text-xs">Loading Secure Registry Profile Matrix...</div>;
   }
-  // 🚀 PASTE THIS BLOCK RIGHT ABOVE YOUR RETURN STATEMENT:
+
   const totalRevenue = profiles.reduce((sum, item) => sum + Number(item.billing_rate || 0), 0);
   const premiumCount = profiles.filter(p => p.selected_plan === 'Premium Pro').length;
   const conversionRate = profiles.length > 0 ? ((premiumCount / profiles.length) * 100).toFixed(1) : '0.0';
+
   return (
     <div className="min-h-screen bg-[#07090e] text-slate-100 p-8 font-sans">
       <div className="max-w-6xl mx-auto space-y-8">
@@ -145,5 +145,15 @@ export default function AdminAnalyticsPage() {
 
       </div>
     </div>
+  );
+}
+
+
+// 2. Main Page export wrapped neatly in a client Suspense block
+export default function AdminAnalyticsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#07090e] text-slate-500 font-mono flex items-center justify-center text-xs">Loading Security Shell...</div>}>
+      <AnalyticsDashboardContent />
+    </Suspense>
   );
 }
