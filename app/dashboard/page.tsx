@@ -183,27 +183,39 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    async function initSession() {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          const user = session.user;
-          setUserId(user.id);
-          
-          // Check standard email, fallback to metadata provider identities
-          const rawEmail = user.email || user.user_metadata?.email || '';
-          const normalizedEmail = rawEmail.toLowerCase().trim();
-          setUserEmail(normalizedEmail);
-          
-          setUserAvatar(user.user_metadata?.avatar_url || '');
-          loadUserMetrics(user.id);
-          loadHistoryLogs(user.id);
-        }
-      } catch (err) {
-        console.warn(err);
+    // 1. Check current session immediately on mount
+    async function checkInitialSession() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        handleUserSession(session.user);
       }
     }
-    initSession();
+
+    // 2. Helper to set all state correctly
+    function handleUserSession(user: any) {
+      setUserId(user.id);
+      const rawEmail = user.email || user.user_metadata?.email || '';
+      setUserEmail(rawEmail.toLowerCase().trim());
+      setUserAvatar(user.user_metadata?.avatar_url || '');
+      loadUserMetrics(user.id);
+      loadHistoryLogs(user.id);
+    }
+
+    checkInitialSession();
+
+    // 3. Set up a live listener to catch auth updates dynamically
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        handleUserSession(session.user);
+      } else {
+        setUserId(null);
+        setUserEmail('');
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleGenerateChallenge = async () => {
