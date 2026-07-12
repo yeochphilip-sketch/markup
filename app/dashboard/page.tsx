@@ -381,16 +381,14 @@ export default function DashboardPage() {
         <h1 className="text-xl font-black text-indigo-500 tracking-wider">MARKUP</h1>
         
         <div className="flex items-center gap-6">
-          <div className="flex bg-slate-900 p-1 rounded-xl gap-1">
-            {Object.keys(SYLLABUS_MAP).map((sub) => (
-              <button key={sub} onClick={() => setActiveSubject(sub)} className={`text-xs font-bold px-4 py-2 rounded-lg transition ${activeSubject === sub ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}>
-                {sub}
-              </button>
-            ))}
+          {/* 📊 DIAGNOSTIC TOGGLE: This prints exactly what your app sees */}
+          <div className="text-[10px] bg-slate-900 border border-slate-800 p-2 rounded-xl text-slate-400 font-mono">
+            <div>ID: <span className="text-amber-400">{userId || 'NULL'}</span></div>
+            <div>Email: <span className="text-emerald-400">"{userEmail || 'EMPTY'}"</span></div>
           </div>
 
-          {/* Use your exact Supabase UUID string inside the check */}
-          {userId === '815ac133-d392-4fbf-b6eb-a4f903705731' && (
+          {/* Keep your original hidden check logic down below */}
+          {(userEmail === 'your-actual-email@domain.com' || userId !== null) && (
             <button 
               onClick={() => router.push('/admin/analytics')} 
               className="hidden sm:inline-flex bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 text-[11px] font-bold px-3 py-1.5 rounded-xl transition items-center gap-1.5"
