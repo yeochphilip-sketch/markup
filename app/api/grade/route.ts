@@ -1,17 +1,30 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize Supabase Service Role or Client
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // Use service role to bypass RLS if writing metrics
-);
+// 💡 Avoid executing createClient immediately at the top level to prevent build time crashes
+let supabaseAdminInstance: any = null;
+
+function getSupabaseAdmin() {
+  if (!supabaseAdminInstance) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    // Provide a clear error log or graceful fallback during static building
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.warn("⚠️ Supabase environment variables missing. Client instantiation deferred.");
+      // Return a dummy client or null during build evaluation
+      return null;
+    }
+
+    supabaseAdminInstance = createClient(supabaseUrl, supabaseServiceKey);
+  }
+  return supabaseAdminInstance;
+}
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     
-    // 🛠️ Updated Input Destructuring for the 3 individual canvases
     const { 
       sbcsAnswer = '', 
       seqAnswer = '', 
@@ -23,11 +36,9 @@ export async function POST(request: Request) {
       userId 
     } = body;
 
-    // Build the diagnostic evaluation prompt using specific multi-canvas instructions
     const combinedEssaySubmission = `SBCS: ${sbcsAnswer}\n\nSEQ: ${seqAnswer}\n\nSRQ: ${srqAnswer}`;
 
     // --- Placeholder for your LLM / Evaluation engine call ---
-    // In your actual implementation, you will send combinedEssaySubmission along with questionPrompt to OpenAI/Anthropic.
     const mockScoreEstimate = "L3/6 Bundle Matrix";
     const mockCritique = [
       "SBCS inference successfully grounded in Source A details.",
@@ -41,13 +52,15 @@ export async function POST(request: Request) {
     ];
     // ---------------------------------------------------------
 
-    // 🗄️ Database Schema Alignment: Insert combined string safely to legacy column
-    if (userId) {
+    // Get the instance safely inside the request context
+    const supabaseAdmin = getSupabaseAdmin();
+
+    if (userId && supabaseAdmin) {
       const { error: dbError } = await supabaseAdmin
         .from('essay_evaluations')
         .insert([{
           user_id: userId,
-          student_essay: combinedEssaySubmission, // Combined structured payload safely saved
+          student_essay: combinedEssaySubmission, 
           score_estimate: mockScoreEstimate,
           critique_bullets: mockCritique,
           created_at: new Date().toISOString()
