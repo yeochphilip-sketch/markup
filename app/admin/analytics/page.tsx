@@ -68,9 +68,6 @@ function AnalyticsDashboardContent() {
             <h1 className="text-2xl font-black text-indigo-400 tracking-tight">Platform Insights</h1>
             <p className="text-xs text-slate-400 mt-1">Live data streams pulling users, tiers, and subscription allocations from your SQL database</p>
           </div>
-          <a href="/dashboard" className="text-xs bg-slate-900 border border-slate-800 px-4 py-2 rounded-xl text-slate-300 hover:bg-slate-800 transition">
-            ← Return to Dashboard
-          </a>
         </div>
 
         {/* Dynamic Metric Display Panels */}

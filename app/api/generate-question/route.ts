@@ -1,53 +1,49 @@
 import { NextResponse } from 'next/server';
 
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
-    const { subject, topic, questionType } = await req.json();
+    const body = await request.json();
+    const { subject, topic, questionType } = body;
 
-    // Authentic Cambridge O-Level Examination Phrasing Generator Patterns
-    let backgroundContext = "In 1950, tensions escalated rapidly across the Korean peninsula following territorial fraction adjustments along the 38th Parallel.";
-    let sourceAProvenance = "Source A: From an official commentary extract released by the North Korean central news broadcast agency, July 1950.";
-    let sourceA = `The aggressive intervention of Western imperialist units threatens to destabilize local sovereignty entirely.\n\nOur cooperative defensive measures remain fully aligned with regional stabilizing tasks, protecting vulnerable workforces from direct outside capital disruption fields.`;
-    
-    let sourceBProvenance = "Source B: From a secret intelligence summary memo transmitted from US diplomatic envoys in Seoul back to Washington, late 1950.";
-    let sourceB = `Local security forces have suffered highly critical infrastructure setbacks following surprise maneuvers.\n\nImmediate deployment frameworks are vital to arrest further ideological expansion across neighboring coastal territories.`;
-    
-    let questionPrompt = "Study Source A. Why was this commentary published in July 1950? Explain your answer using details from the source and your historical knowledge. [5]";
+    // Determine default prompts depending on whether a student chosen bundle mode or custom strategic filters
+    let sbcsPromptFallback = "How far does Source A support the claim? Explain your answer.";
+    let seqPromptFallback = "Explain the impact of the policy decisions on the local population.";
+    let srqPromptFallback = "In your opinion, is institutional intervention or local management more vital?";
 
-    if (questionType.includes('Comparison')) {
-      questionPrompt = "Study Sources A and B. How far do these sources agree on the primary driver of regional hostility? Explain your answer. [6]";
-    } else if (questionType.includes('Utility') || questionType.includes('Reliability')) {
-      questionPrompt = "Study Source B. How useful is this source as evidence regarding the strategic intent of local security forces? Explain your answer. [6]";
-    } else if (questionType.includes('Assertion') || questionType.includes('Synthesis')) {
-      questionPrompt = "Study all the sources. 'External military intervention was purely defensive.' How far do these sources support this view? Explain your answer. [8]";
-    } else if (questionType.includes('Essay') || questionType.includes('SEQ')) {
-      questionPrompt = "Explain why global superpowers prioritized direct military intervention frameworks in the region. [8]";
+    // If a student isolates strategy to a specific objective, we provide target instructions 
+    if (questionType && !questionType.includes('All Formats')) {
+      if (questionType.includes('SBQ')) {
+        sbcsPromptFallback = `Target Focus Evaluation Task [${questionType}]: Focus explicitly on evaluating validity and reliability rules.`;
+        seqPromptFallback = "Optional: Section deactivated for focused skill strategy simulation.";
+        srqPromptFallback = "Optional: Section deactivated for focused skill strategy simulation.";
+      } else if (questionType.includes('SEQ') || questionType.includes('SRQ')) {
+        sbcsPromptFallback = "Optional: Section deactivated for focused essay strategy simulation.";
+        seqPromptFallback = "Structured Essay query handling direct causal analysis patterns.";
+        srqPromptFallback = "State explicit personal recommendation matrices.";
+      }
     }
 
-    // Explicitly formatted O-Level LORMS Model Answers to prevent "omitted" state flags
-    const suggestedAnswer = `[SEAB EXAM MODEL ANSWER - HIGH ACCURACY CAPSTONE MATRIX]
+    // Example AI payload response structure mimicking standard Singapore syllabus examination packets
+    const generatedChallenge = {
+      backgroundContext: `Historical study focusing on ${topic || 'General Syllabus Mix'} within the ${subject} curriculum framework.`,
+      sourceAProvenance: "Source A: Excerpt from an official administrative record published during the policy implementation phase.",
+      sourceA: "The introduction of structural support grids allowed decentralized groups to expand their workflows efficiently. However, centralized monitors noted variance in reporting accuracy during initial operational reviews.",
+      sourceBProvenance: "Source B: Commentaries from a regional independent analyst review board looking back at strategic execution frameworks.",
+      sourceB: "While early indicators promised substantial speed improvements, structural constraints became apparent as scale multiplied. Without unified guidelines, localized updates produced cascading discrepancies.",
+      questionPrompt: `O-Level Standard Practice Paper: Comprehensive evaluation of structural frameworks across ${topic}.`,
+      
+      // 📑 Safe Multi-prompt fallbacks to populate text fields seamlessly
+      sbcsPrompt: sbcsPromptFallback,
+      seqPrompt: seqPromptFallback,
+      srqPrompt: srqPromptFallback,
+      
+      suggestedAnswer: "MODEL ANSWER GUIDELINE:\n\nSBCS: Source A shows initial local success whereas Source B disputes long-term strategic viability.\n\nSEQ: Unified guidelines reduce cascading errors significantly.\n\nSRQ: Local management offers agility, but central standardization ensures system safety."
+    };
 
-LEVEL 3 / LEVEL 4 HIGHEST-BAND ASSESSMENT EXEMPLAR:
+    return NextResponse.json(generatedChallenge);
 
-The primary objective of Source A was to consolidate domestic support and validate immediate regional military movements by shifting complete strategic culpability onto Western forces. The phrase "aggressive intervention of Western imperialist units" acts as explicit context framing to build an urgent defensive rationale for local citizen target blocks.
-
-This sub-vocal purpose is further supported when cross-examined against historical knowledge from the 1950 baseline framework, where media outlets systematically leveraged ideological messaging models to preemptively shield regional actors from international economic or military sanctions.
-
-CRITICAL ASSESSMENT CHECKPOINTS MET:
-• Explicit attribution parameters applied perfectly.
-• Cross-reference loops established cleanly to maximize LORMS validation weight.
-• Balanced source evaluation avoids generic passive gaps.`;
-
-    return NextResponse.json({
-      backgroundContext,
-      sourceAProvenance,
-      sourceA,
-      sourceBProvenance,
-      sourceB,
-      questionPrompt,
-      suggestedAnswer
-    });
-  } catch (error) {
-    return NextResponse.json({ error: 'Could not structure mock exam paper' }, { status: 500 });
+  } catch (error: any) {
+    console.error("Question compilation error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
