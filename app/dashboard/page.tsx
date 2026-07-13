@@ -269,7 +269,7 @@ export default function DashboardPage() {
         sourceA: data.sourceA || '',
         sourceBProvenance: data.sourceBProvenance || '',
         sourceB: data.sourceB || '',
-        questionPrompt: data.questionPrompt || 'O-Level Comprehensive Sheet Bundle',
+        questionPrompt: data.questionPrompt || `${activeSubject} Comprehensive Suite`,
         sbcsPrompt: data.sbcsPrompt || 'How far does Source A support the claim? Explain your answer.',
         seqPrompt: data.seqPrompt || 'Explain the impact of the policy decisions on the local population.',
         srqPrompt: data.srqPrompt || 'In your opinion, is institutional intervention or local management more vital?',
@@ -414,6 +414,14 @@ export default function DashboardPage() {
   const emailInitial = userEmail ? userEmail.charAt(0).toUpperCase() : 'S';
   const isQuestionPromptInactive = challenge.backgroundContext.includes('Click Generate Practice');
 
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen bg-[#07090e] text-slate-400 font-mono flex items-center justify-center text-xs">
+        Verifying Security Shell Handshake...
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col font-sans relative selection:bg-indigo-500/30">
       
@@ -422,11 +430,6 @@ export default function DashboardPage() {
         <h1 className="text-xl font-black text-indigo-500 tracking-wider">MARKUP</h1>
         
         <div className="flex items-center gap-6">
-          <div className="text-[10px] bg-slate-900 border border-slate-800 p-2 rounded-xl text-slate-400 font-mono">
-            <div>ID: <span className="text-amber-400">{userId || 'NULL'}</span></div>
-            <div>Email: <span className="text-emerald-400">"{userEmail || 'EMPTY'}"</span></div>
-          </div>
-
           {(typeof window !== 'undefined' && localStorage.getItem('admin_override') === 'true') && (
             <a 
               href="/admin/analytics" 
@@ -513,6 +516,15 @@ export default function DashboardPage() {
           <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-4 space-y-4">
             <h2 className="text-[10px] font-black tracking-widest text-slate-400 uppercase">Configurator</h2>
             
+            {/* Subject Toggle Container */}
+            <div className="flex flex-col space-y-1">
+              <label className="text-[9px] font-bold uppercase text-slate-500">Syllabus Subject</label>
+              <div className="grid grid-cols-2 bg-slate-900 p-1 rounded-xl border border-slate-800">
+                <button onClick={() => setActiveSubject('Social Studies')} className={`text-[10px] font-bold py-1.5 rounded-lg transition ${activeSubject === 'Social Studies' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}>SS</button>
+                <button onClick={() => setActiveSubject('Elective History')} className={`text-[10px] font-bold py-1.5 rounded-lg transition ${activeSubject === 'Elective History' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}>History</button>
+              </div>
+            </div>
+            
             <div className="grid grid-cols-2 bg-slate-900 p-1 rounded-xl border border-slate-800">
               <button onClick={() => { setIsCustomMode(false); setHasScanned(false); }} className={`text-[10px] font-bold py-2 rounded-lg transition ${!isCustomMode ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}>AI Paper</button>
               <button onClick={() => { setIsCustomMode(true); setHasScanned(false); }} className={`text-[10px] font-bold py-2 rounded-lg transition ${isCustomMode ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}>Vet Homework</button>
@@ -586,7 +598,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* 📜 SCROLLABLE Workspace Textareas & Prompt Column Suite */}
+        {/* Workspace Textareas & Prompt Column Suite */}
         <div className="xl:col-span-2 flex flex-col space-y-4 max-h-[75vh]">
           
           <div className="bg-indigo-950/20 border border-indigo-900/30 rounded-2xl p-4 shrink-0">
@@ -598,7 +610,7 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* This wrapper div handles vertical scrolling for all text canvases, isolating text areas while keeping action triggers pinned below */}
+          {/* Canvas Scroll Wrapper Container */}
           <div className="flex-1 space-y-4 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800">
             <div className="flex justify-between items-center px-1 sticky top-0 bg-[#07090e] z-10 py-1">
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Writing Canvas</span>
