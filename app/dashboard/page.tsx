@@ -311,14 +311,16 @@ export default function DashboardPage() {
       const res = await fetch('/api/grade', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           sbcsAnswer,
           seqAnswer,
           srqAnswer,
           questionPrompt: activePrompt,
-          questionType: selectedSkill, 
+          questionType: selectedSkill,
           subject: activeSubject,
-          topic: selectedTopic
+          topic: selectedTopic,
+          userId,
+          questionId: currentChallengeId,
         }),
       });
       const data = await res.json();
