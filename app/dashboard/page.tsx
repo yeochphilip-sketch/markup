@@ -78,7 +78,7 @@ export default function DashboardPage() {
   const [isCustomMode, setIsCustomMode] = useState(false);
   const [customPrompt, setCustomPrompt] = useState('');
   
-  // 🌟 Dedicated O-Level individual canvas states 
+  // O-Level canvas states
   const [sbcsAnswer, setSbcsAnswer] = useState('');
   const [seqAnswer, setSeqAnswer] = useState('');
   const [srqAnswer, setSrqAnswer] = useState('');
@@ -86,10 +86,7 @@ export default function DashboardPage() {
   const [userAvatar, setUserAvatar] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [userId, setUserId] = useState<string | null>(null);
-  
-  // Auth state listener guard
   const [isAuthLoading, setIsAuthLoading] = useState(true);
-
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGrading, setIsGrading] = useState(false);
   const [hasScanned, setHasScanned] = useState(false);
@@ -417,14 +414,6 @@ export default function DashboardPage() {
   const emailInitial = userEmail ? userEmail.charAt(0).toUpperCase() : 'S';
   const isQuestionPromptInactive = challenge.backgroundContext.includes('Click Generate Practice');
 
-  if (isAuthLoading) {
-    return (
-      <div className="min-h-screen bg-[#07090e] text-slate-400 font-mono flex items-center justify-center text-xs">
-        Verifying Security Shell Handshake...
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col font-sans relative selection:bg-indigo-500/30">
       
@@ -575,7 +564,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* 🌟 SCROLLABLE Source Material Columns Display Layout */}
+        {/* SCROLLABLE Source Material Columns Display Layout */}
         <div className="xl:col-span-2 space-y-4 max-h-[75vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800 select-text">
           <div className="bg-slate-950/40 border border-slate-900 rounded-xl p-4 text-xs space-y-1">
             <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">Contextual Background</span>
@@ -597,8 +586,8 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* 🌟 SCROLLABLE Workspace Textareas & Prompt Column Suite */}
-        <div className="xl:col-span-2 flex flex-col space-y-4 max-h-[75vh] overflow-y-auto pr-2">
+        {/* 📜 SCROLLABLE Workspace Textareas & Prompt Column Suite */}
+        <div className="xl:col-span-2 flex flex-col space-y-4 max-h-[75vh]">
           
           <div className="bg-indigo-950/20 border border-indigo-900/30 rounded-2xl p-4 shrink-0">
             <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Question Assignment Prompt</span>
@@ -609,8 +598,9 @@ export default function DashboardPage() {
             )}
           </div>
 
-          <div className="flex-1 space-y-4 min-h-[300px]">
-            <div className="flex justify-between items-center px-1">
+          {/* This wrapper div handles vertical scrolling for all text canvases, isolating text areas while keeping action triggers pinned below */}
+          <div className="flex-1 space-y-4 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800">
+            <div className="flex justify-between items-center px-1 sticky top-0 bg-[#07090e] z-10 py-1">
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Writing Canvas</span>
               {challenge.suggestedAnswer && !isCustomMode && (
                 <button 
@@ -624,12 +614,12 @@ export default function DashboardPage() {
 
             {!hasScanned ? (
               (!isCustomMode && isQuestionPromptInactive) ? (
-                <div className="h-full flex flex-col items-center justify-center text-center p-6 border border-dashed border-slate-900 rounded-2xl bg-slate-950/20">
+                <div className="h-64 flex flex-col items-center justify-center text-center p-6 border border-dashed border-slate-900 rounded-2xl bg-slate-950/20">
                   <p className="text-sm font-bold text-indigo-400">Ready to initiate O-Level practice simulation?</p>
                   <p className="text-[11px] text-slate-500 mt-1">Configure parameters and tap "Generate" to retrieve your full source package.</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-4 pb-4">
                   {/* SBCS Segment Block */}
                   <div className="bg-slate-950/60 border border-slate-900 p-4 rounded-xl space-y-2">
                     <div className="flex items-center justify-between">
@@ -640,7 +630,7 @@ export default function DashboardPage() {
                       </div>
                     </div>
                     <p className="text-xs font-medium text-slate-300 bg-slate-900/40 p-2.5 rounded-lg border border-slate-800">{challenge.sbcsPrompt}</p>
-                    <textarea value={sbcsAnswer} onChange={(e) => setSbcsAnswer(e.target.value)} placeholder="Type source inference or comparison analysis here..." className="w-full min-h-[100px] bg-transparent text-slate-300 border border-slate-850 p-2.5 font-mono text-xs focus:outline-none focus:border-indigo-600 bg-slate-950 rounded-xl resize-none" />
+                    <textarea value={sbcsAnswer} onChange={(e) => setSbcsAnswer(e.target.value)} placeholder="Type source inference or comparison analysis here..." className="w-full min-h-[140px] bg-transparent text-slate-300 border border-slate-800 p-2.5 font-mono text-xs focus:outline-none focus:border-indigo-600 bg-slate-950 rounded-xl resize-none" />
                   </div>
 
                   {/* SEQ Segment Block */}
@@ -653,7 +643,7 @@ export default function DashboardPage() {
                       </div>
                     </div>
                     <p className="text-xs font-medium text-slate-300 bg-slate-900/40 p-2.5 rounded-lg border border-slate-800">{challenge.seqPrompt}</p>
-                    <textarea value={seqAnswer} onChange={(e) => setSeqAnswer(e.target.value)} placeholder="Draft factor prioritization essay structure here..." className="w-full min-h-[100px] bg-transparent text-slate-300 border border-slate-850 p-2.5 font-mono text-xs focus:outline-none focus:border-indigo-600 bg-slate-950 rounded-xl resize-none" />
+                    <textarea value={seqAnswer} onChange={(e) => setSeqAnswer(e.target.value)} placeholder="Draft factor prioritization essay structure here..." className="w-full min-h-[140px] bg-transparent text-slate-300 border border-slate-800 p-2.5 font-mono text-xs focus:outline-none focus:border-indigo-600 bg-slate-950 rounded-xl resize-none" />
                   </div>
 
                   {/* SRQ Segment Block */}
@@ -666,12 +656,12 @@ export default function DashboardPage() {
                       </div>
                     </div>
                     <p className="text-xs font-medium text-slate-300 bg-slate-900/40 p-2.5 rounded-lg border border-slate-800">{challenge.srqPrompt}</p>
-                    <textarea value={srqAnswer} onChange={(e) => setSrqAnswer(e.target.value)} placeholder="State your assertions and balanced evaluation judgments here..." className="w-full min-h-[100px] bg-transparent text-slate-300 border border-slate-850 p-2.5 font-mono text-xs focus:outline-none focus:border-indigo-600 bg-slate-950 rounded-xl resize-none" />
+                    <textarea value={srqAnswer} onChange={(e) => setSrqAnswer(e.target.value)} placeholder="State your assertions and balanced evaluation judgments here..." className="w-full min-h-[140px] bg-transparent text-slate-300 border border-slate-800 p-2.5 font-mono text-xs focus:outline-none focus:border-indigo-600 bg-slate-950 rounded-xl resize-none" />
                   </div>
                 </div>
               )
             ) : (
-              <div className="bg-slate-950 border border-slate-900 p-4 rounded-xl font-mono text-xs leading-relaxed overflow-y-auto max-h-[400px]">
+              <div className="bg-slate-950 border border-slate-900 p-4 rounded-xl font-mono text-xs leading-relaxed overflow-y-auto max-h-[450px]">
                 {evaluation.segments.map((seg, idx) => (
                   <span key={idx} className={seg.type === 'error' ? 'underline decoration-red-500 bg-red-500/10' : seg.type === 'weak' ? 'bg-yellow-500/20 text-yellow-300' : ''}>{seg.text}</span>
                 ))}
@@ -682,7 +672,7 @@ export default function DashboardPage() {
             )}
           </div>
 
-          <div className="flex gap-2 shrink-0 pt-2">
+          <div className="flex gap-2 shrink-0 pt-2 border-t border-slate-900 bg-[#07090e] pb-1">
             {(!isQuestionPromptInactive || isCustomMode) && (
               <button 
                 onClick={() => { setIsTimerActive(!isTimerActive); if(timeLeft === 0) setTimeLeft(1200); }}
