@@ -224,6 +224,8 @@ ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS level_title      
 ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS last_practice_date DATE;
 ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS current_streak    INTEGER DEFAULT 0;
 ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS longest_streak    INTEGER DEFAULT 0;
+ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS achievements       TEXT[] DEFAULT '{}';
+ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS total_evaluations  INTEGER DEFAULT 0;
 
 -- Ensure UNIQUE on user_id (for ON CONFLICT in seed query)
 DO $$ BEGIN

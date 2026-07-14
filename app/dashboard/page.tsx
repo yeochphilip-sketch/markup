@@ -8,7 +8,7 @@ import { supabase } from '@/utils/supabase';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import FeedbackModal from '@/app/components/FeedbackModal';
-import { getLevelConfig, getLevelTitle, getNextLevelXp, getPrevLevelXp, LEVEL_THRESHOLDS } from '@/lib/gamification';
+import { getLevelConfig, getLevelTitle, getNextLevelXp, getPrevLevelXp, LEVEL_THRESHOLDS, playGradeCompleteSound, playLevelUpSound, playAchievementSound, isDailyGoalMet, ACHIEVEMENT_DEFS } from '@/lib/gamification';
 
 interface Segment {
   text: string;
@@ -108,6 +108,14 @@ export default function DashboardPage() {
   const [leaderboardData, setLeaderboardData] = useState<any>(null);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(false);
+  const [achievements, setAchievements] = useState<string[]>([]);
+  const [newlyUnlocked, setNewlyUnlocked] = useState<any[]>([]);
+  const [showAchievementUnlocked, setShowAchievementUnlocked] = useState(false);
+  const [isAchievementsOpen, setIsAchievementsOpen] = useState(false);
+  const [isSoundEnabled, setIsSoundEnabled] = useState(true);
+  const [dailyGoalMet, setDailyGoalMet] = useState(false);
+  const [dailyGoalBonus, setDailyGoalBonus] = useState(0);
+  const [showDailyGoalToast, setShowDailyGoalToast] = useState(false);
 
   const [timeLeft, setTimeLeft] = useState(1200); 
   const [isTimerActive, setIsTimerActive] = useState(false);
@@ -212,8 +220,7 @@ export default function DashboardPage() {
         .from('user_skill_metrics')
         .select('*')
         .eq('user_id', uid)
-        .single();
-      if (metricsData) {
+        .single();        if (metricsData) {
         setSkillRatings({
           inference: metricsData.sbq_inference_score || 1,
           comparison: metricsData.sbq_comparison_score || 1,
@@ -229,6 +236,8 @@ export default function DashboardPage() {
           current: metricsData.current_streak ?? 0,
           longest: metricsData.longest_streak ?? 0,
         });
+        setAchievements(metricsData.achievements ?? []);
+        setDailyGoalMet(isDailyGoalMet(metricsData.last_practice_date));
         // Calculate XP progress to next level
         const nextLevelXp = getNextLevelXp(xp);
         const prevLevelXp = getPrevLevelXp(xp);
@@ -388,9 +397,20 @@ export default function DashboardPage() {
 
         // Gamification: apply XP earned from the grade response
         const xpEarned = data.gamification?.xpEarned ?? 0;
-        if (xpEarned > 0) {
+        let totalXpGained = xpEarned;
+
+        // Daily goal bonus
+        const bonus = data._dailyGoalBonus ?? 0;
+        if (bonus > 0) {
+          totalXpGained += bonus;
+          setDailyGoalBonus(bonus);
+          setDailyGoalMet(true);
+          if (!showDailyGoalToast) setShowDailyGoalToast(true);
+        }
+
+        if (totalXpGained > 0) {
           const prevXp = masteryPoints;
-          const newXp = prevXp + xpEarned;
+          const newXp = prevXp + totalXpGained;
           const prevTitle = levelTitle;
           const newTitle = getLevelTitle(newXp);
 
@@ -406,9 +426,23 @@ export default function DashboardPage() {
           if (prevTitle !== newTitle) {
             setLevelUpInfo({ from: prevTitle, to: newTitle });
             setShowLevelUp(true);
+            if (isSoundEnabled) playLevelUpSound();
           }
         }
-        // Update streak (approximate from response — real state lives on server)
+
+        // Achievement unlocks
+        const newAchs = data._newAchievements;
+        if (newAchs && newAchs.length > 0) {
+          setNewlyUnlocked(newAchs);
+          setShowAchievementUnlocked(true);
+          setAchievements(prev => [...prev, ...newAchs.map((a: any) => a.id)]);
+          if (isSoundEnabled) playAchievementSound();
+        }
+
+        // Play grade complete sound
+        if (isSoundEnabled) playGradeCompleteSound();
+
+        // Update streak
         setStreakData(prev => ({ ...prev, current: prev.current + 1 }));
       }
 
@@ -501,7 +535,23 @@ export default function DashboardPage() {
       <header className="border-b border-slate-900 px-6 py-4 flex items-center justify-between bg-slate-950/60 backdrop-blur-md relative z-40">
         <h1 className="text-xl font-black text-indigo-500 tracking-wider">MARKUP</h1>
         
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4">
+          {/* Sound toggle */}
+          <button
+            onClick={() => setIsSoundEnabled(!isSoundEnabled)}
+            className="text-[11px] text-slate-500 hover:text-slate-300 transition"
+            title={isSoundEnabled ? 'Mute sounds' : 'Enable sounds'}
+          >
+            {isSoundEnabled ? '🔊' : '🔇'}
+          </button>
+
+          {/* Achievements button */}
+          <button
+            onClick={() => setIsAchievementsOpen(true)}
+            className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[9px] font-bold px-2 py-1.5 rounded-lg transition text-slate-400 hover:text-slate-200"
+          >
+            🏅 {achievements.length}/{ACHIEVEMENT_DEFS.length}
+          </button>
           {(typeof window !== 'undefined' && localStorage.getItem('admin_override') === 'true') && (
             <a 
               href="/admin/analytics" 
@@ -583,6 +633,23 @@ export default function DashboardPage() {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Daily Goal */}
+        <div className={`md:col-span-1 bg-slate-950/80 border p-4 rounded-2xl flex flex-col justify-center items-center text-center transition ${
+          dailyGoalMet ? 'border-emerald-500/30' : 'border-slate-900'
+        }`}>
+          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+            {dailyGoalMet ? '✅ Done' : '📋 Goal'}
+          </span>
+          <div className="flex items-baseline gap-1 mt-1">
+            <span className={`text-lg font-black font-mono ${dailyGoalMet ? 'text-emerald-400' : 'text-slate-500'}`}>
+              {dailyGoalMet ? 'Complete!' : '1 paper'}
+            </span>
+          </div>
+          <span className="text-[8px] text-slate-600 font-mono">
+            {dailyGoalMet ? `+25 pts earned` : 'Scan 1 paper today'}
+          </span>
         </div>
 
         {/* Streak Counter */}
@@ -1117,6 +1184,86 @@ export default function DashboardPage() {
                 <p className="text-xs text-slate-500">Could not load community data.</p>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Achievement Unlocked Toast */}
+      {showAchievementUnlocked && newlyUnlocked.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300" onClick={() => setShowAchievementUnlocked(false)}>
+          <div className="bg-slate-950 border border-emerald-500/40 rounded-2xl p-5 shadow-2xl shadow-emerald-500/10 max-w-sm mx-auto text-center">
+            <p className="text-xs text-emerald-400 font-bold uppercase tracking-widest mb-2">🎉 Achievement Unlocked!</p>
+            {newlyUnlocked.map((ach: any, i: number) => (
+              <div key={ach.id || i} className="flex items-center gap-3 py-1.5">
+                <span className="text-2xl">{ach.icon}</span>
+                <div className="text-left">
+                  <p className="text-sm font-bold text-white">{ach.title}</p>
+                  <p className="text-[10px] text-slate-400">{ach.description}</p>
+                </div>
+              </div>
+            ))}
+            <button
+              onClick={() => setShowAchievementUnlocked(false)}
+              className="mt-3 text-[10px] text-slate-500 hover:text-slate-300 font-bold underline underline-offset-2"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Daily Goal Bonus Toast — auto-dismisses after 4s */}
+      {showDailyGoalToast && (
+        <div
+          className="fixed top-24 right-6 z-50 animate-in slide-in-from-right-5 fade-in duration-300 cursor-pointer"
+          onClick={() => setShowDailyGoalToast(false)}
+        >
+          <div className="bg-emerald-900/30 border border-emerald-500/30 rounded-xl p-3 shadow-lg">
+            <p className="text-[10px] text-emerald-400 font-bold">✅ Daily Goal +{dailyGoalBonus} XP</p>
+          </div>
+        </div>
+      )}
+
+      {/* Achievements Drawer */}
+      {isAchievementsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setIsAchievementsOpen(false)}>
+          <div
+            className="bg-slate-950 border border-slate-800 rounded-3xl p-6 max-w-sm w-full mx-4 max-h-[80vh] overflow-y-auto shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-5">
+              <h2 className="text-sm font-black tracking-widest text-slate-300 uppercase">🏅 Achievements</h2>
+              <button onClick={() => setIsAchievementsOpen(false)} className="text-slate-500 hover:text-white text-sm">✕</button>
+            </div>
+
+            <div className="text-[10px] text-slate-500 font-mono mb-4 text-center">
+              {achievements.length} / {ACHIEVEMENT_DEFS.length} unlocked
+            </div>
+
+            <div className="space-y-2">
+              {ACHIEVEMENT_DEFS.map((ach) => {
+                const unlocked = achievements.includes(ach.id);
+                return (
+                  <div
+                    key={ach.id}
+                    className={`rounded-xl p-3 border flex items-center gap-3 transition ${
+                      unlocked
+                        ? 'bg-emerald-500/5 border-emerald-500/20'
+                        : 'bg-slate-900/30 border-slate-800/50 opacity-50'
+                    }`}
+                  >
+                    <span className={`text-xl ${unlocked ? '' : 'grayscale'}`}>{ach.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-xs font-bold ${unlocked ? 'text-white' : 'text-slate-500'}`}>
+                        {ach.title}
+                      </p>
+                      <p className="text-[10px] text-slate-500 truncate">{ach.description}</p>
+                    </div>
+                    {unlocked && <span className="text-[9px] text-emerald-400">✅</span>}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}

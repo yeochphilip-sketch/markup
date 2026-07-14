@@ -4,7 +4,7 @@ import { generateObject } from 'ai';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
 import { getGradeSystemPrompt, getGradeUserPrompt } from '@/lib/prompts';
-import { getXpForLevel, getLevelTitle } from '@/lib/gamification';
+import { getXpForLevel, getLevelTitle, DAILY_GOAL_BONUS_XP, checkNewAchievements } from '@/lib/gamification';
 
 export const runtime = 'nodejs';
 export const maxDuration = 90;
@@ -284,7 +284,10 @@ export async function POST(request: Request) {
             return;
           }
 
-          const currentXp = (metrics.total_xp ?? 0) + earnedXp;
+          const totalEvalCount = (metrics.total_evaluations ?? 0) + 1;
+          const dailyGoalJustMet = metrics.last_practice_date !== todayStr;
+          const dailyBonus = dailyGoalJustMet ? DAILY_GOAL_BONUS_XP : 0;
+          const currentXp = (metrics.total_xp ?? 0) + earnedXp + dailyBonus;
           const currentTitle = getLevelTitle(currentXp);
           const previousTitle = metrics.level_title ?? 'Novice';
           const leveledUp = previousTitle !== currentTitle;
@@ -308,6 +311,19 @@ export async function POST(request: Request) {
 
           const longestStreak = Math.max(newStreak, metrics.longest_streak ?? 0);
 
+          // ── Check achievements ──
+          const existingAchievements = metrics.achievements ?? [];
+          const newAchievements = checkNewAchievements({
+            newLevel,
+            newXp: currentXp,
+            totalEvalCount,
+            currentStreak: newStreak,
+            subject: resolvedSubject,
+            previousAchivements: existingAchievements,
+            dailyGoalMet: dailyGoalJustMet,
+          });
+          const allAchievements = [...existingAchievements, ...newAchievements.map(a => a.id)];
+
           const { error: gamErr } = await supabaseAdmin!
             .from('user_skill_metrics')
             .update({
@@ -316,8 +332,23 @@ export async function POST(request: Request) {
               last_practice_date: todayStr,
               current_streak: newStreak,
               longest_streak: longestStreak,
+              achievements: allAchievements,
+              total_evaluations: totalEvalCount,
             } as never)
             .eq('user_id', userId);
+
+          // Attach new achievements to response so frontend can show them
+          if (newAchievements.length > 0 && response) {
+            (response as any)._newAchievements = newAchievements.map(a => ({
+              id: a.id,
+              title: a.title,
+              description: a.description,
+              icon: a.icon,
+            }));
+          }
+          if (dailyBonus > 0 && response) {
+            (response as any)._dailyGoalBonus = dailyBonus;
+          }
 
           if (gamErr) {
             console.warn('Non-fatal: failed to update gamification state', gamErr);
