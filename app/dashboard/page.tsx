@@ -3,12 +3,12 @@
 // 🚀 Forces Vercel to serve this page fresh on every single load, picking up active tokens
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/utils/supabase';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import FeedbackModal from '@/app/components/FeedbackModal';
-import { getLevelConfig, getLevelTitle, getNextLevelXp, getPrevLevelXp, LEVEL_THRESHOLDS, playGradeCompleteSound, playLevelUpSound, playAchievementSound, isDailyGoalMet, ACHIEVEMENT_DEFS } from '@/lib/gamification';
+import { getLevelConfig, getLevelTitle, getNextLevelXp, getPrevLevelXp, LEVEL_THRESHOLDS, playGradeCompleteSound, playLevelUpSound, playAchievementSound, isDailyGoalMet, ACHIEVEMENT_DEFS, calculateXpDecay, getDecayWarning } from '@/lib/gamification';
 
 interface Segment {
   text: string;
@@ -116,6 +116,9 @@ export default function DashboardPage() {
   const [dailyGoalMet, setDailyGoalMet] = useState(false);
   const [dailyGoalBonus, setDailyGoalBonus] = useState(0);
   const [showDailyGoalToast, setShowDailyGoalToast] = useState(false);
+  const [streakBonus, setStreakBonus] = useState(0);
+  const [xpDecayed, setXpDecayed] = useState(0);
+  const [decayWarning, setDecayWarning] = useState({ show: false, message: '', severity: 'warning' as 'warning' | 'danger' });
 
   const [timeLeft, setTimeLeft] = useState(1200); 
   const [isTimerActive, setIsTimerActive] = useState(false);
@@ -168,6 +171,8 @@ export default function DashboardPage() {
   const getSkillColorClass = (val: number) => {
     return val >= 3 ? 'text-emerald-400' : 'text-rose-500';
   };
+
+  const dismissBanner = useCallback(() => setShowAchievementUnlocked(false), []);
 
   const fetchLeaderboard = async () => {
     if (!userId) return;
@@ -238,6 +243,7 @@ export default function DashboardPage() {
         });
         setAchievements(metricsData.achievements ?? []);
         setDailyGoalMet(isDailyGoalMet(metricsData.last_practice_date));
+        setDecayWarning(getDecayWarning(metricsData.last_practice_date, xp));
         // Calculate XP progress to next level
         const nextLevelXp = getNextLevelXp(xp);
         const prevLevelXp = getPrevLevelXp(xp);
@@ -408,6 +414,20 @@ export default function DashboardPage() {
           if (!showDailyGoalToast) setShowDailyGoalToast(true);
         }
 
+        // Streak bonus
+        const streakBonusVal = data._streakBonus?.bonus ?? 0;
+        if (streakBonusVal > 0) {
+          totalXpGained += streakBonusVal;
+          setStreakBonus(streakBonusVal);
+        }
+
+        // XP decay
+        const decayed = data._xpDecayed ?? 0;
+        if (decayed > 0) {
+          setXpDecayed(decayed);
+          setMasteryPoints(prev => Math.max(0, prev - decayed));
+        }
+
         if (totalXpGained > 0) {
           const prevXp = masteryPoints;
           const newXp = prevXp + totalXpGained;
@@ -532,8 +552,15 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col font-sans relative selection:bg-indigo-500/30">
       
       {/* Navigation Header */}
-      <header className="border-b border-slate-900 px-6 py-4 flex items-center justify-between bg-slate-950/60 backdrop-blur-md relative z-40">
-        <h1 className="text-xl font-black text-indigo-500 tracking-wider">MARKUP</h1>
+      <header className="border-b border-slate-900 px-6 py-4 flex items-center justify-between bg-slate-950/60 backdrop-blur-md relative z-40">          <div className="flex items-center gap-4">
+            <h1 className="text-xl font-black text-indigo-500 tracking-wider">MARKUP</h1>
+            <button
+              onClick={() => router.push('/dashboard/profile')}
+              className="hidden sm:inline-flex bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[9px] font-bold px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-slate-200 items-center gap-1.5"
+            >
+              📊 Stats
+            </button>
+          </div>
         
         <div className="flex items-center gap-4">
           {/* Sound toggle */}
@@ -652,8 +679,13 @@ export default function DashboardPage() {
           </span>
         </div>
 
-        {/* Streak Counter */}
-        <div className="md:col-span-1 bg-slate-950/80 border border-slate-900 p-4 rounded-2xl flex flex-col justify-center items-center text-center">
+        {/* Streak Counter with bonus indicator */}
+        <div className="md:col-span-1 bg-slate-950/80 border border-slate-900 p-4 rounded-2xl flex flex-col justify-center items-center text-center relative">
+          {streakBonus > 0 && (
+            <div className="absolute -top-2 -right-2 bg-emerald-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full animate-in zoom-in-95">
+              +{streakBonus}
+            </div>
+          )}
           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">
             {streakData.current > 0 ? '🔥 Streak' : 'Streak'}
           </span>
@@ -667,6 +699,18 @@ export default function DashboardPage() {
             <span className="text-[8px] text-slate-600 font-mono">Best: {streakData.longest}</span>
           )}
         </div>
+
+        {/* XP Decay Warning */}
+        {decayWarning.show && (
+          <div className={`md:col-span-2 flex items-center gap-3 p-3 rounded-2xl border ${
+            decayWarning.severity === 'danger' ? 'bg-rose-500/10 border-rose-500/20' : 'bg-amber-500/10 border-amber-500/20'
+          }`}>
+            <span className={`text-lg ${decayWarning.severity === 'danger' ? 'animate-pulse' : ''}`}>⚠️</span>
+            <p className={`text-[10px] font-medium ${decayWarning.severity === 'danger' ? 'text-rose-300' : 'text-amber-300'}`}>
+              {decayWarning.message}
+            </p>
+          </div>
+        )}
 
         <div className="md:col-span-4 bg-slate-950/80 border border-slate-900 p-4 rounded-2xl grid grid-cols-5 gap-2">
           <div className="text-center">
@@ -1188,28 +1232,11 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Achievement Unlocked Toast */}
-      {showAchievementUnlocked && newlyUnlocked.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300" onClick={() => setShowAchievementUnlocked(false)}>
-          <div className="bg-slate-950 border border-emerald-500/40 rounded-2xl p-5 shadow-2xl shadow-emerald-500/10 max-w-sm mx-auto text-center">
-            <p className="text-xs text-emerald-400 font-bold uppercase tracking-widest mb-2">🎉 Achievement Unlocked!</p>
-            {newlyUnlocked.map((ach: any, i: number) => (
-              <div key={ach.id || i} className="flex items-center gap-3 py-1.5">
-                <span className="text-2xl">{ach.icon}</span>
-                <div className="text-left">
-                  <p className="text-sm font-bold text-white">{ach.title}</p>
-                  <p className="text-[10px] text-slate-400">{ach.description}</p>
-                </div>
-              </div>
-            ))}
-            <button
-              onClick={() => setShowAchievementUnlocked(false)}
-              className="mt-3 text-[10px] text-slate-500 hover:text-slate-300 font-bold underline underline-offset-2"
-            >
-              Dismiss
-            </button>
-          </div>
-        </div>
+      {/* Achievement Unlocked Banner — top of screen with countdown bar & close button */}
+      {showAchievementUnlocked && newlyUnlocked.length > 0 && (            <AchievementBanner
+              newlyUnlocked={newlyUnlocked}
+              onDismiss={dismissBanner}
+            />
       )}
 
       {/* Daily Goal Bonus Toast — auto-dismisses after 4s */}
@@ -1278,6 +1305,46 @@ export default function DashboardPage() {
         onSubmit={handleSubmitFeedback}
       />
 
+    </div>
+  );
+}
+
+/** Achievement banner component with countdown bar and close button */
+function AchievementBanner({ newlyUnlocked, onDismiss }: { newlyUnlocked: any[]; onDismiss: () => void }) {
+  useEffect(() => {
+    const timer = setTimeout(onDismiss, 5200);
+    return () => clearTimeout(timer);
+  }, [onDismiss]);
+
+  return (
+    <div className="fixed top-0 left-0 right-0 z-[60] animate-in slide-in-from-top-3 fade-in duration-300">
+      <div className="bg-gradient-to-r from-emerald-950/95 via-slate-950/95 to-indigo-950/95 border-b border-emerald-500/30 backdrop-blur-xl shadow-2xl shadow-emerald-500/10 relative overflow-hidden">
+        {/* Countdown bar at bottom */}
+        <div className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-emerald-400 to-emerald-600 animate-shrink-width" />
+
+        {/* Close button top right */}
+        <button
+          onClick={onDismiss}
+          className="absolute top-3 right-4 text-slate-400 hover:text-white transition text-sm font-bold z-10"
+        >
+          ✕
+        </button>
+
+        <div className="max-w-3xl mx-auto px-6 py-4 pr-12">
+          <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest mb-2">🎉 Achievement Unlocked!</p>
+          <div className="flex items-center gap-4">
+            {newlyUnlocked.map((ach: any, i: number) => (
+              <div key={ach.id || i} className="flex items-center gap-3 py-1">
+                <span className="text-3xl">{ach.icon}</span>
+                <div>
+                  <p className="text-sm font-bold text-white">{ach.title}</p>
+                  <p className="text-[11px] text-slate-400">{ach.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

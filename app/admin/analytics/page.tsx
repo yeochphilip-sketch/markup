@@ -30,6 +30,17 @@ interface EssayRow {
   score_estimate: string;
 }
 
+interface SkillMetricsRow {
+  user_id: string;
+  total_xp: number;
+  level_title: string;
+  current_streak: number;
+  longest_streak: number;
+  achievements: string[];
+  total_evaluations: number;
+  total_xp_decayed: number;
+}
+
 // ── Helpers ──────────────────────────────────────────────────
 
 function csvDownload(data: Record<string, string>[], filename: string) {
@@ -136,6 +147,8 @@ function AnalyticsDashboardContent() {
   const [loading, setLoading] = useState(true);
   const [loadingWaitlist, setLoadingWaitlist] = useState(true);
   const [loadingEssays, setLoadingEssays] = useState(true);
+  const [skillMetrics, setSkillMetrics] = useState<SkillMetricsRow[]>([]);
+  const [loadingMetrics, setLoadingMetrics] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
@@ -185,6 +198,20 @@ function AnalyticsDashboardContent() {
         setLoadingWaitlist(false);
       }
 
+      // Fetch skill metrics for gamification stats
+      try {
+        const { data, error } = await supabase
+          .from('user_skill_metrics')
+          .select('user_id, total_xp, level_title, current_streak, longest_streak, achievements, total_evaluations, total_xp_decayed');
+
+        if (error) throw error;
+        if (data) setSkillMetrics(data as SkillMetricsRow[]);
+      } catch (err) {
+        console.error('Error fetching skill metrics:', err);
+      } finally {
+        setLoadingMetrics(false);
+      }
+
       // Fetch essays
       try {
         const { data, error } = await supabase
@@ -203,6 +230,41 @@ function AnalyticsDashboardContent() {
 
     bootstrap();
   }, [router]);
+
+  // ── Gamification derived stats ────────────────────────────
+
+  const totalXpAll = useMemo(
+    () => skillMetrics.reduce((sum, m) => sum + (m.total_xp || 0), 0),
+    [skillMetrics],
+  );
+
+  const avgXpPerUser = skillMetrics.length > 0
+    ? Math.round(totalXpAll / skillMetrics.length)
+    : 0;
+
+  const totalXpDecayedAll = useMemo(
+    () => skillMetrics.reduce((sum, m) => sum + (m.total_xp_decayed || 0), 0),
+    [skillMetrics],
+  );
+
+  const totalAchievementsUnlocked = useMemo(
+    () => skillMetrics.reduce((sum, m) => sum + (m.achievements?.length || 0), 0),
+    [skillMetrics],
+  );
+
+  const usersWithStreaks = useMemo(
+    () => skillMetrics.filter(m => (m.current_streak || 0) >= 3).length,
+    [skillMetrics],
+  );
+
+  const topLevelCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    skillMetrics.forEach(m => {
+      const t = m.level_title || 'Novice';
+      counts[t] = (counts[t] || 0) + 1;
+    });
+    return counts;
+  }, [skillMetrics]);
 
   // ── Derived stats ──────────────────────────────────────────
 
@@ -379,7 +441,59 @@ function AnalyticsDashboardContent() {
           </div>
         </div>
 
-        {/* ── Row 2: Essay + usage KPI tiles ──────────────── */}
+        {/* ── Gamification KPI tiles ────────────────────── */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-slate-950 border border-emerald-500/20 p-5 rounded-2xl">
+            <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
+              Total XP Earned
+            </div>
+            <div className="text-3xl font-black text-emerald-400 mt-1">
+              {loadingMetrics ? '…' : totalXpAll.toLocaleString()}
+            </div>
+            <div className="text-[9px] text-emerald-500 font-mono mt-1">Avg {avgXpPerUser}/user</div>
+          </div>
+          <div className="bg-slate-950 border border-amber-500/20 p-5 rounded-2xl">
+            <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
+              Achievements
+            </div>
+            <div className="text-3xl font-black text-amber-400 mt-1">
+              {loadingMetrics ? '…' : totalAchievementsUnlocked}
+            </div>
+            <div className="text-[9px] text-amber-500 font-mono mt-1">Unlocked across all users</div>
+          </div>
+          <div className="bg-slate-950 border border-rose-500/20 p-5 rounded-2xl">
+            <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
+              XP Decayed
+            </div>
+            <div className="text-3xl font-black text-rose-400 mt-1">
+              {loadingMetrics ? '…' : totalXpDecayedAll}
+            </div>
+            <div className="text-[9px] text-rose-500 font-mono mt-1">Lost to inactivity</div>
+          </div>
+          <div className="bg-slate-950 border border-indigo-500/20 p-5 rounded-2xl">
+            <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
+              Streak Users
+            </div>
+            <div className="text-3xl font-black text-indigo-400 mt-1">
+              {loadingMetrics ? '…' : usersWithStreaks}
+            </div>
+            <div className="text-[9px] text-indigo-500 font-mono mt-1">≥3 day streak</div>
+          </div>
+        </div>
+
+        {/* ── Level distribution ── */}
+        {!loadingMetrics && Object.keys(topLevelCounts).length > 0 && (
+          <div className="grid grid-cols-5 gap-2">
+            {Object.entries(topLevelCounts).map(([level, count]) => (
+              <div key={level} className="bg-slate-950 border border-slate-900 p-3 rounded-xl text-center">
+                <div className="text-xs font-black text-white">{count}</div>
+                <div className="text-[9px] text-slate-500 font-mono mt-0.5">{level}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── Row: Essay + usage KPI tiles ──────────────── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-slate-950 border border-indigo-500/20 p-5 rounded-2xl">
             <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">

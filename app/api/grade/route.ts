@@ -4,7 +4,7 @@ import { generateObject } from 'ai';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
 import { getGradeSystemPrompt, getGradeUserPrompt } from '@/lib/prompts';
-import { getXpForLevel, getLevelTitle, DAILY_GOAL_BONUS_XP, checkNewAchievements } from '@/lib/gamification';
+import { getXpForLevel, getLevelTitle, DAILY_GOAL_BONUS_XP, getStreakBonus, calculateXpDecay, checkNewAchievements } from '@/lib/gamification';
 
 export const runtime = 'nodejs';
 export const maxDuration = 90;
@@ -275,7 +275,7 @@ export async function POST(request: Request) {
           // Fetch current gamification state
           const { data: metrics, error: fetchErr } = await supabaseAdmin!
             .from('user_skill_metrics')
-            .select('total_xp, last_practice_date, current_streak, longest_streak, level_title')
+            .select('total_xp, last_practice_date, current_streak, longest_streak, level_title, total_xp_decayed')
             .eq('user_id', userId)
             .single() as unknown as { data: Record<string, any> | null; error: any };
 
@@ -287,7 +287,19 @@ export async function POST(request: Request) {
           const totalEvalCount = (metrics.total_evaluations ?? 0) + 1;
           const dailyGoalJustMet = metrics.last_practice_date !== todayStr;
           const dailyBonus = dailyGoalJustMet ? DAILY_GOAL_BONUS_XP : 0;
-          const currentXp = (metrics.total_xp ?? 0) + earnedXp + dailyBonus;
+
+          // ── Streak bonus ──
+          const streakBonus = getStreakBonus(metrics.current_streak ?? 0);
+
+          // ── XP Decay: only apply if this is a new practice day (not same day) ──
+          const baseXp = metrics.total_xp ?? 0;
+          const decayedXp = dailyGoalJustMet
+            ? Math.max(0, calculateXpDecay(metrics.last_practice_date, baseXp))
+            : 0;
+          const totalDecayedXp = (metrics.total_xp_decayed ?? 0) + decayedXp;
+
+          let currentXp = baseXp + earnedXp + dailyBonus + streakBonus.bonus - decayedXp;
+          if (currentXp < 0) currentXp = 0;
           const currentTitle = getLevelTitle(currentXp);
           const previousTitle = metrics.level_title ?? 'Novice';
           const leveledUp = previousTitle !== currentTitle;
@@ -334,6 +346,7 @@ export async function POST(request: Request) {
               longest_streak: longestStreak,
               achievements: allAchievements,
               total_evaluations: totalEvalCount,
+              total_xp_decayed: totalDecayedXp,
             } as never)
             .eq('user_id', userId);
 
@@ -348,6 +361,12 @@ export async function POST(request: Request) {
           }
           if (dailyBonus > 0 && response) {
             (response as any)._dailyGoalBonus = dailyBonus;
+          }
+          if (streakBonus.bonus > 0 && response) {
+            (response as any)._streakBonus = streakBonus;
+          }
+          if (decayedXp > 0 && response) {
+            (response as any)._xpDecayed = decayedXp;
           }
 
           if (gamErr) {
