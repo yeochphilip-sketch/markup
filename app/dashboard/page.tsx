@@ -71,6 +71,7 @@ const SYLLABUS_MAP: Record<string, { topics: string[]; skills: string[] }> = {
 export default function DashboardPage() {
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const historyScrollRef = useRef<HTMLDivElement>(null);
   
   const [activeSubject, setActiveSubject] = useState('Social Studies');
   const [selectedTopic, setSelectedTopic] = useState('Any Topic (Random Mix)');
@@ -99,6 +100,11 @@ export default function DashboardPage() {
 
   const [selectedType, setSelectedType] = useState('General');
   const [textInput, setTextInput] = useState('');
+  const [historyPage, setHistoryPage] = useState(0);
+  const [hasMoreHistory, setHasMoreHistory] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const isLoadingMoreRef = useRef(false);
+  const HISTORY_PAGE_SIZE = 50;
   const [masteryPoints, setMasteryPoints] = useState(0);
   const [levelTitle, setLevelTitle] = useState('Novice');
   const [xpProgress, setXpProgress] = useState({ current: 0, nextLevel: 500 });
@@ -174,6 +180,17 @@ export default function DashboardPage() {
 
   const dismissBanner = useCallback(() => setShowAchievementUnlocked(false), []);
 
+  // ── Close settings dropdown on outside click ──
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsSettingsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const fetchLeaderboard = async () => {
     if (!userId) return;
     setIsLeaderboardLoading(true);
@@ -204,19 +221,40 @@ export default function DashboardPage() {
     setEvaluation({ scoreEstimate: '', critique: [], segments: [], confidence: 0, a1Upgrade: '' });
   }, [activeSubject]);
 
-  const loadHistoryLogs = async (uid?: string) => {
+  const loadHistoryLogs = async (uid?: string | null, page = 0, append = false) => {
     try {
       const targetUid = uid || userId;
       if (!targetUid) return;
+      const from = page * HISTORY_PAGE_SIZE;
+      const to = from + HISTORY_PAGE_SIZE - 1;
       const { data: historyData, error } = await supabase
         .from('practice_history')
         .select('*')
         .eq('user_id', targetUid)
-        .order('created_at', { ascending: false });
-      if (historyData && !error) setHistory(historyData);
+        .order('created_at', { ascending: false })
+        .range(from, to);
+      if (historyData && !error) {
+        if (append) {
+          setHistory(prev => [...prev, ...historyData]);
+        } else {
+          setHistory(historyData);
+        }
+        setHasMoreHistory(historyData.length >= HISTORY_PAGE_SIZE);
+      }
     } catch (e) {
       console.warn(e);
     }
+  };
+
+  const loadMoreHistory = async () => {
+    if (isLoadingMoreRef.current || !hasMoreHistory || !userId) return;
+    isLoadingMoreRef.current = true;
+    setIsLoadingMore(true);
+    const nextPage = historyPage + 1;
+    setHistoryPage(nextPage);
+    await loadHistoryLogs(userId, nextPage, true);
+    isLoadingMoreRef.current = false;
+    setIsLoadingMore(false);
   };
 
   const loadUserMetrics = async (uid: string) => {
@@ -287,7 +325,7 @@ export default function DashboardPage() {
       setUserEmail(rawEmail.toLowerCase().trim());
       setUserAvatar(user.user_metadata?.avatar_url || '');
       loadUserMetrics(user.id);
-      loadHistoryLogs(user.id);
+      loadHistoryLogs(user.id, 0, false);
       setIsAuthLoading(false);
     }
 
@@ -353,7 +391,10 @@ export default function DashboardPage() {
           .single();
 
         if (savedRecord) setCurrentChallengeId(savedRecord.id);
-        loadHistoryLogs(userId);
+        // Reset history pagination and reload from start
+        setHistoryPage(0);
+        setHasMoreHistory(true);
+        loadHistoryLogs(userId, 0, false);
       }
     } catch (err) {
       console.error(err);
@@ -365,6 +406,8 @@ export default function DashboardPage() {
   const handleScanStructure = async () => {
     if (!sbcsAnswer.trim() && !seqAnswer.trim() && !srqAnswer.trim()) return;
     setIsGrading(true);
+    // Reset ephemeral gamification states
+    setStreakBonus(0);
     try {
       const activePrompt = isCustomMode ? customPrompt : challenge.questionPrompt;
       const res = await fetch('/api/grade', {
@@ -393,15 +436,8 @@ export default function DashboardPage() {
       });
 
       if (userId) {
-        await supabase
-          .from('essay_evaluations').insert([{
-            user_id: userId,
-            student_essay: `SBCS: ${sbcsAnswer}\nSEQ: ${seqAnswer}\nSRQ: ${srqAnswer}`,
-            score_estimate: data.scoreEstimate || 'L3/6 Bundle Matrix',
-            critique_bullets: data.critique || []
-          }]);
-
         // Gamification: apply XP earned from the grade response
+        // Note: essay_evaluations insert is handled server-side in /api/grade
         const xpEarned = data.gamification?.xpEarned ?? 0;
         let totalXpGained = xpEarned;
 
@@ -421,33 +457,33 @@ export default function DashboardPage() {
           setStreakBonus(streakBonusVal);
         }
 
-        // XP decay
+        // XP decay — server already deducted this from total XP
+        // We just display it and adjust totalXpGained to match server calculation
         const decayed = data._xpDecayed ?? 0;
         if (decayed > 0) {
           setXpDecayed(decayed);
-          setMasteryPoints(prev => Math.max(0, prev - decayed));
+          totalXpGained -= decayed;
         }
 
-        if (totalXpGained > 0) {
-          const prevXp = masteryPoints;
-          const newXp = prevXp + totalXpGained;
-          const prevTitle = levelTitle;
-          const newTitle = getLevelTitle(newXp);
+        // Always update XP (even when decay makes it negative — server already calculated the correct value)
+        const prevXp = masteryPoints;
+        const newXp = Math.max(0, prevXp + totalXpGained);
+        const prevTitle = levelTitle;
+        const newTitle = getLevelTitle(newXp);
 
-          setMasteryPoints(newXp);
-          setLevelTitle(newTitle);
+        setMasteryPoints(newXp);
+        setLevelTitle(newTitle);
 
-          // XP progress to next level
-          const nextLevelXp = getNextLevelXp(newXp);
-          const prevLevelXp = getPrevLevelXp(newXp);
-          setXpProgress({ current: newXp - prevLevelXp, nextLevel: nextLevelXp - prevLevelXp });
+        // XP progress to next level
+        const nextLevelXp = getNextLevelXp(newXp);
+        const prevLevelXp = getPrevLevelXp(newXp);
+        setXpProgress({ current: newXp - prevLevelXp, nextLevel: nextLevelXp - prevLevelXp });
 
-          // Level-up detection
-          if (prevTitle !== newTitle) {
-            setLevelUpInfo({ from: prevTitle, to: newTitle });
-            setShowLevelUp(true);
-            if (isSoundEnabled) playLevelUpSound();
-          }
+        // Level-up detection (only when XP actually increased)
+        if (totalXpGained > 0 && prevTitle !== newTitle) {
+          setLevelUpInfo({ from: prevTitle, to: newTitle });
+          setShowLevelUp(true);
+          if (isSoundEnabled) playLevelUpSound();
         }
 
         // Achievement unlocks
@@ -607,6 +643,9 @@ export default function DashboardPage() {
                   <p className="text-xs text-slate-200 font-semibold truncate mt-1 bg-slate-900 px-2.5 py-1.5 rounded-xl border border-slate-900">{userEmail || 'Active Student'}</p>
                 </div>
                 <div className="pt-2 border-t border-slate-900 flex flex-col space-y-1">
+                  <button onClick={() => { router.push('/dashboard/profile'); setIsSettingsOpen(false); }} className="w-full text-left text-slate-400 hover:text-indigo-400 text-xs font-bold py-2 px-1 transition">
+                    📊 My Stats & Profile
+                  </button>
                   <button onClick={() => { setIsFeedbackOpen(true); setIsSettingsOpen(false); }} className="w-full text-left text-slate-400 hover:text-indigo-400 text-xs font-bold py-2 px-1 transition">
                     🐛 Submit Bug / Feedback
                   </button>
@@ -787,18 +826,44 @@ export default function DashboardPage() {
 
           <div className="flex-1 flex flex-col min-h-[160px]">
             <span className="text-[10px] font-black tracking-widest text-slate-500 uppercase mb-2">Practice Logs</span>
-            <div className="flex-1 space-y-2 overflow-y-auto max-h-[220px] pr-1">
+            <div className="flex-1 space-y-2 overflow-y-auto max-h-[220px] pr-1" ref={historyScrollRef}>
               {history.length === 0 ? (
                 <div className="text-[10px] text-slate-600 font-mono italic p-2 border border-dashed border-slate-900 rounded-xl text-center">No logs recorded.</div>
               ) : (
-                history.map((item) => (
-                  <div key={item.id} onClick={() => loadHistoricalItem(item)} className="bg-slate-950/30 hover:bg-slate-900/60 border border-slate-900 p-3 rounded-xl cursor-pointer transition text-left space-y-1.5 group">
-                    <div className="flex justify-between items-center gap-2">
-                      <span className="text-[9px] bg-slate-900 px-2 py-0.5 rounded text-indigo-400 font-bold uppercase">{item.subject === 'Social Studies' ? 'SS' : 'HIST'}</span>
+                <>
+                  {history.map((item) => (
+                    <div key={item.id} onClick={() => loadHistoricalItem(item)} className="bg-slate-950/30 hover:bg-slate-900/60 border border-slate-900 p-3 rounded-xl cursor-pointer transition text-left space-y-1.5 group">
+                      <div className="flex justify-between items-center gap-2">
+                        <span className="text-[9px] bg-slate-900 px-2 py-0.5 rounded text-indigo-400 font-bold uppercase">{item.subject === 'Social Studies' ? 'SS' : 'HIST'}</span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 line-clamp-2 font-medium group-hover:text-slate-200 transition">{item.question_prompt}</p>
                     </div>
-                    <p className="text-[11px] text-slate-400 line-clamp-2 font-medium group-hover:text-slate-200 transition">{item.question_prompt}</p>
-                  </div>
-                ))
+                  ))}
+                  {/* Load More button */}
+                  {hasMoreHistory && (
+                    <button
+                      onClick={loadMoreHistory}
+                      disabled={isLoadingMore}
+                      className="w-full text-[9px] font-bold text-slate-500 hover:text-indigo-400 bg-slate-900/50 hover:bg-slate-900 border border-slate-800 py-2 rounded-lg transition disabled:opacity-40"
+                    >
+                      {isLoadingMore ? 'Loading...' : '⬇ Load More'}
+                    </button>
+                  )}
+                  {/* Jump to Most Recent — appears once user has loaded beyond the first page */}
+                  {historyPage > 0 && (
+                    <button
+                      onClick={() => {
+                        setHistoryPage(0);
+                        setHasMoreHistory(true);
+                        loadHistoryLogs(userId, 0, false);
+                        historyScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="w-full text-[9px] font-bold text-indigo-400 hover:text-indigo-300 bg-indigo-950/30 hover:bg-indigo-950/50 border border-indigo-800/40 py-2 rounded-lg transition flex items-center justify-center gap-1.5"
+                    >
+                      ↑ Most Recent
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </div>
