@@ -126,11 +126,9 @@ export default function PricingPage() {
   const router = useRouter();
 
   const handleChoosePlan = () => {
-    // Send the user to /dashboard so they can sign in (or sign up) before
-    // we attach the chosen tier to their account. We deliberately do NOT
-    // carry the tier across the auth boundary right now – funnel intent
-    // tracking is deferred until the Stripe checkout flow is re-enabled.
-    router.push('/dashboard');
+    // Send users to the landing page to join the waitlist.
+    // Beta signups go through the waitlist until Stripe checkout is wired up.
+    router.push('/');
   };
 
   return (

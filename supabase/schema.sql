@@ -56,18 +56,13 @@ CREATE POLICY "Allow users to update their own profile"
     ON public.user_profiles FOR UPDATE
     USING (auth.uid() = id);
 
--- Admins can read every profile (for the analytics dashboard).
--- The EXISTS subquery is safe: Postgres does NOT recursively apply RLS
--- to subqueries inside a policy expression (see PG docs on RLS recursion).
--- This mirrors the JWT-claim check performed in middleware.ts so server
--- and DB agree on what "admin" means.
+-- Reads admin flag from the JWT directly to avoid RLS recursion.
+-- Mirrors the same check in middleware.ts and app/admin/analytics/page.tsx.
 CREATE POLICY "Allow admins to read all profiles"
     ON public.user_profiles FOR SELECT
     USING (
-        EXISTS (
-            SELECT 1 FROM public.user_profiles AS p2
-            WHERE p2.id = auth.uid() AND p2.is_admin = TRUE
-        )
+        auth.jwt() -> 'app_metadata' ->> 'is_admin' = 'true'
+        OR auth.jwt() -> 'user_metadata' ->> 'is_admin' = 'true'
     );
 
 -- ============================================================
@@ -206,10 +201,8 @@ CREATE POLICY "Allow public insert user_feedback"
 CREATE POLICY "Allow admin read user_feedback"
     ON public.user_feedback FOR SELECT
     USING (
-        EXISTS (
-            SELECT 1 FROM public.user_profiles
-            WHERE id = auth.uid() AND is_admin = TRUE
-        )
+        auth.jwt() -> 'app_metadata' ->> 'is_admin' = 'true'
+        OR auth.jwt() -> 'user_metadata' ->> 'is_admin' = 'true'
     );
 
 -- ============================================================
