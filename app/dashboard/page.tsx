@@ -8,6 +8,12 @@ import { supabase } from '@/utils/supabase';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import FeedbackModal from '@/app/components/FeedbackModal';
+import NotificationBell from '@/app/components/NotificationBell';
+import StudyGroupPanel from '@/app/components/StudyGroupPanel';
+import ShareResultCard from '@/app/components/ShareResultCard';
+import ExamCountdown from '@/app/components/ExamCountdown';
+import ConfettiEffect from '@/app/components/ConfettiEffect';
+import OnboardingWizard from '@/app/components/OnboardingWizard';
 import { getLevelConfig, getLevelTitle, getNextLevelXp, getPrevLevelXp, LEVEL_THRESHOLDS, playGradeCompleteSound, playLevelUpSound, playAchievementSound, isDailyGoalMet, ACHIEVEMENT_DEFS, calculateXpDecay, getDecayWarning } from '@/lib/gamification';
 
 interface Segment {
@@ -125,6 +131,10 @@ export default function DashboardPage() {
   const [streakBonus, setStreakBonus] = useState(0);
   const [xpDecayed, setXpDecayed] = useState(0);
   const [decayWarning, setDecayWarning] = useState({ show: false, message: '', severity: 'warning' as 'warning' | 'danger' });
+  const [isStudyGroupOpen, setIsStudyGroupOpen] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [examDate, setExamDate] = useState<string | null>(null);
+  const [examGoalLevel, setExamGoalLevel] = useState<string | null>(null);
 
   const [timeLeft, setTimeLeft] = useState(1200); 
   const [isTimerActive, setIsTimerActive] = useState(false);
@@ -282,6 +292,8 @@ export default function DashboardPage() {
         setAchievements(metricsData.achievements ?? []);
         setDailyGoalMet(isDailyGoalMet(metricsData.last_practice_date));
         setDecayWarning(getDecayWarning(metricsData.last_practice_date, xp));
+        setExamDate(metricsData.exam_date ?? null);
+        setExamGoalLevel(metricsData.exam_goal_level ?? null);
         // Calculate XP progress to next level
         const nextLevelXp = getNextLevelXp(xp);
         const prevLevelXp = getPrevLevelXp(xp);
@@ -483,7 +495,9 @@ export default function DashboardPage() {
         if (totalXpGained > 0 && prevTitle !== newTitle) {
           setLevelUpInfo({ from: prevTitle, to: newTitle });
           setShowLevelUp(true);
+          setShowConfetti(true);
           if (isSoundEnabled) playLevelUpSound();
+          setTimeout(() => setShowConfetti(false), 4000);
         }
 
         // Achievement unlocks
@@ -573,6 +587,21 @@ export default function DashboardPage() {
     setEvaluation({ scoreEstimate: '', critique: [], segments: [], confidence: 0, a1Upgrade: '' });
   };
 
+  const handleSetExamGoal = async (date: string, level: string) => {
+    if (!userId) return;
+    try {
+      await fetch('/api/exam-goal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, examDate: date, examGoalLevel: level }),
+      });
+      setExamDate(date);
+      setExamGoalLevel(level);
+    } catch (err) {
+      console.warn('Failed to save exam goal:', err);
+    }
+  };
+
   const emailInitial = userEmail ? userEmail.charAt(0).toUpperCase() : 'S';
   const isQuestionPromptInactive = challenge.backgroundContext.includes('Click Generate Practice');
 
@@ -599,6 +628,18 @@ export default function DashboardPage() {
           </div>
         
         <div className="flex items-center gap-4">
+          {/* Notification Bell */}
+          {userId && <NotificationBell userId={userId} />}
+
+          {/* Study Groups */}
+          <button
+            onClick={() => setIsStudyGroupOpen(true)}
+            className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[9px] font-bold px-2 py-1.5 rounded-lg transition text-slate-400 hover:text-slate-200"
+            title="Study Groups"
+          >
+            👥
+          </button>
+
           {/* Sound toggle */}
           <button
             onClick={() => setIsSoundEnabled(!isSoundEnabled)}
@@ -749,6 +790,17 @@ export default function DashboardPage() {
               {decayWarning.message}
             </p>
           </div>
+        )}
+
+        {/* Exam Countdown + Goal Setting */}
+        {userId && (
+          <ExamCountdown
+            userId={userId}
+            examDate={examDate}
+            examGoalLevel={examGoalLevel}
+            currentLevel={levelTitle}
+            onSetGoal={handleSetExamGoal}
+          />
         )}
 
         <div className="md:col-span-4 bg-slate-950/80 border border-slate-900 p-4 rounded-2xl grid grid-cols-5 gap-2">
@@ -1049,6 +1101,23 @@ export default function DashboardPage() {
                     </ul>
                   </div>
                 )}
+                {/* Share Result Card */}
+                {userId && (
+                  <div className="pt-2 border-t border-slate-900 flex justify-end">
+                    <ShareResultCard
+                      scoreEstimate={evaluation.scoreEstimate}
+                      confidence={evaluation.confidence}
+                      subject={activeSubject}
+                      topic={selectedTopic}
+                      skill={selectedSkill}
+                      xpEarned={masteryPoints > 0 ? Math.min(masteryPoints, 200) : 0}
+                      levelTitle={levelTitle}
+                      masteryPoints={masteryPoints}
+                      streakDays={streakData.current}
+                      critiqueCount={evaluation.critique.length}
+                    />
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -1089,6 +1158,9 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Confetti Effect */}
+      <ConfettiEffect active={showConfetti} />
 
       {/* Level-Up Celebration Modal */}
       {showLevelUp && (
@@ -1359,6 +1431,21 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Study Group Panel */}
+      {userId && (
+        <StudyGroupPanel
+          userId={userId}
+          isOpen={isStudyGroupOpen}
+          onClose={() => setIsStudyGroupOpen(false)}
+        />
+      )}
+
+      {/* Onboarding Wizard — manages own visibility via localStorage */}
+      <OnboardingWizard
+        userId={userId}
+        onComplete={() => {}}
+      />
 
       <FeedbackModal 
         isOpen={isFeedbackOpen} 

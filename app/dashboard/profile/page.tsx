@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/utils/supabase';
 import { useRouter } from 'next/navigation';
 import { getLevelConfig, getLevelTitle, getNextLevelXp, getPrevLevelXp, LEVEL_THRESHOLDS, ACHIEVEMENT_DEFS, calculateXpDecay } from '@/lib/gamification';
@@ -31,17 +31,30 @@ export default function ProfilePage() {
 
   const [recentEvaluations, setRecentEvaluations] = useState<any[]>([]);
 
+  // Referral state
+  const [referralCode, setReferralCode] = useState('');
+  const [referralCount, setReferralCount] = useState(0);
+  const [referralLink, setReferralLink] = useState('');
+  const [referredBy, setReferredBy] = useState('');
+  const [claimCode, setClaimCode] = useState('');
+  const [claiming, setClaiming] = useState(false);
+  const [referralMessage, setReferralMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  // Ref to hold the load function so the claim button can trigger a refresh
+  const loadRef = useRef<((uid: string) => Promise<void>) | null>(null);
+  const loadReferralRef = useRef<((uid: string) => Promise<void>) | null>(null);
+
   useEffect(() => {
-    async function load() {
+    async function loadProfile(uid: string) {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const uid = session?.user?.id;
-        if (!uid) {
-          router.replace('/auth');
-          return;
-        }
         setUserId(uid);
-        setUserEmail(session.user.email || '');
+
+        // Fetch user email from session
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.email) {
+          setUserEmail(session.user.email);
+        }
 
         // Fetch metrics
         const { data: metrics } = await supabase
@@ -86,11 +99,46 @@ export default function ProfilePage() {
         if (evals) setRecentEvaluations(evals);
       } catch (err) {
         console.warn('Profile load error:', err);
+      }
+    }
+
+    async function loadReferralInfo(uid: string) {
+      if (!uid) return;
+      try {
+        const res = await fetch(`/api/referral?userId=${uid}`);
+        if (res.ok) {
+          const data = await res.json();
+          setReferralCode(data.referralCode ?? '');
+          setReferralCount(data.referralCount ?? 0);
+          setReferralLink(data.referralLink ?? '');
+          setReferredBy(data.referredBy ?? '');
+        }
+      } catch {}
+    }
+
+    // Store in refs for claim button (accept uid parameter to avoid stale closures)
+    loadRef.current = loadProfile;
+    loadReferralRef.current = (uid: string) => loadReferralInfo(uid);
+
+    async function init() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const uid = session?.user?.id;
+        if (!uid) {
+          router.replace('/auth');
+          return;
+        }
+        setUserId(uid);
+        if (session.user.email) setUserEmail(session.user.email);
+        await loadProfile(uid);
+        await loadReferralInfo(uid);
+      } catch (err) {
+        console.warn('Init error:', err);
       } finally {
         setLoading(false);
       }
     }
-    load();
+    init();
   }, [router]);
 
   const getSkillColorClass = (val: number) => {
@@ -254,6 +302,135 @@ export default function ProfilePage() {
                 </div>
               );
             })}
+          </div>
+        </div>
+
+        {/* ── Referral Programme ── */}
+        <div className="bg-gradient-to-br from-indigo-600/5 to-emerald-600/5 border border-indigo-500/20 rounded-2xl p-5">
+          <h3 className="text-[10px] font-black tracking-widest text-indigo-400 uppercase mb-4">
+            🎉 Referral Programme
+          </h3>
+          
+          <div className="space-y-4">
+            {/* Your referral code */}
+            <div>
+              <p className="text-[9px] text-slate-500 font-bold uppercase mb-1.5">Your Referral Code</p>
+              <div className="flex gap-2">
+                <input
+                  readOnly
+                  value={referralCode}
+                  className="flex-1 bg-slate-900 border border-slate-800 p-3 rounded-xl text-xs text-indigo-400 font-mono font-bold text-center tracking-widest focus:outline-none"
+                />
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(referralCode);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
+                  className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs px-4 rounded-xl transition"
+                >
+                  {copied ? '✅' : '📋'}
+                </button>
+              </div>
+              {referralLink && (
+                <p className="text-[9px] text-slate-600 mt-1 font-mono">
+                  Share link: {referralLink}
+                </p>
+              )}
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3 text-center">
+                <p className="text-[9px] text-slate-500 font-bold uppercase">Friends Referred</p>
+                <p className="text-xl font-black font-mono text-emerald-400">{referralCount}</p>
+              </div>
+              <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3 text-center">
+                <p className="text-[9px] text-slate-500 font-bold uppercase">XP Earned</p>
+                <p className="text-xl font-black font-mono text-amber-400">+{referralCount * 200}</p>
+              </div>
+            </div>
+
+            {/* Claim code */}
+            {!referredBy && (
+              <div className="border-t border-slate-800 pt-4">
+                <p className="text-[9px] text-slate-500 font-bold uppercase mb-2">
+                  Were you referred by a friend? Enter their code here.
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={claimCode}
+                    onChange={(e) => setClaimCode(e.target.value.toUpperCase())}
+                    placeholder="e.g. ABC12345"
+                    className="flex-1 bg-slate-900 border border-slate-800 p-2.5 rounded-xl text-xs text-slate-200 text-center font-mono font-bold tracking-widest focus:outline-none uppercase"
+                    maxLength={8}
+                  />
+                  <button
+                    onClick={async () => {
+                      if (!claimCode.trim() || !userId) return;
+                      setClaiming(true);
+                      setReferralMessage(null);
+                      try {
+                        const res = await fetch('/api/referral', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ action: 'claim', userId, referralCode: claimCode }),
+                        });
+                        const data = await res.json();
+                        if (res.ok) {
+                          setReferralMessage({ type: 'success', text: data.message });
+                          setClaimCode('');
+                          loadRef.current?.(userId);
+                          loadReferralRef.current?.(userId);
+                        } else {
+                          setReferralMessage({ type: 'error', text: data.error || 'Invalid code' });
+                        }
+                      } catch {
+                        setReferralMessage({ type: 'error', text: 'Network error' });
+                      } finally {
+                        setClaiming(false);
+                      }
+                    }}
+                    disabled={claiming || !claimCode.trim()}
+                    className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-4 rounded-xl transition disabled:opacity-50"
+                  >
+                    {claiming ? '...' : 'Claim'}
+                  </button>
+                </div>
+                {referralMessage && (
+                  <div className={`mt-2 px-3 py-2 rounded-xl text-[9px] font-medium ${
+                    referralMessage.type === 'success'
+                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                      : referralMessage.type === 'error'
+                      ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                      : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
+                  }`}>
+                    {referralMessage.text}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {referredBy && (
+              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 text-center">
+                <p className="text-[9px] text-emerald-400 font-bold">
+                  ✅ You were referred by code <span className="font-mono">{referredBy}</span>
+                </p>
+                <p className="text-[9px] text-slate-500 mt-1">
+                  Share your own code above to earn referral XP!
+                </p>
+              </div>
+            )}
+
+            <div className="bg-slate-900/30 rounded-xl p-3 border border-slate-800">
+              <p className="text-[9px] text-slate-500 leading-relaxed">
+                <strong className="text-indigo-400">How it works:</strong> Share your referral code with classmates.
+                When they sign up and enter your code, you both earn bonus XP!
+                <br />
+                <strong className="text-emerald-400">+200 XP</strong> for you · <strong className="text-amber-400">+100 XP</strong> for them
+              </p>
+            </div>
           </div>
         </div>
 

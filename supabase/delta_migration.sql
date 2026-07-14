@@ -383,9 +383,198 @@ CREATE POLICY "Allow admin read waitlist"
     );
 
 -- ============================================================
--- Done. All 7 tables exist with all columns.
--- Run SELECT table_name FROM information_schema.tables
--- WHERE table_schema='public' AND table_type='BASE TABLE'
--- ORDER BY table_name;
--- to verify.
+-- 9. user_notifications  (in-app notification system)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.user_notifications (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY
+);
+
+ALTER TABLE public.user_notifications ADD COLUMN IF NOT EXISTS created_at  TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now());
+ALTER TABLE public.user_notifications ADD COLUMN IF NOT EXISTS user_id     UUID;
+ALTER TABLE public.user_notifications ADD COLUMN IF NOT EXISTS type        TEXT NOT NULL DEFAULT 'info';
+ALTER TABLE public.user_notifications ADD COLUMN IF NOT EXISTS title       TEXT NOT NULL DEFAULT '';
+ALTER TABLE public.user_notifications ADD COLUMN IF NOT EXISTS message     TEXT NOT NULL DEFAULT '';
+ALTER TABLE public.user_notifications ADD COLUMN IF NOT EXISTS is_read     BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.user_notifications ADD COLUMN IF NOT EXISTS metadata    JSONB;
+
+ALTER TABLE public.user_notifications ALTER COLUMN title   SET NOT NULL;
+ALTER TABLE public.user_notifications ALTER COLUMN message SET NOT NULL;
+
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'user_notifications_user_id_fkey'
+    ) THEN
+        ALTER TABLE public.user_notifications ADD CONSTRAINT user_notifications_user_id_fkey
+            FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+    END IF;
+END $$;
+
+ALTER TABLE public.user_notifications ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow owner read user_notifications" ON public.user_notifications;
+DROP POLICY IF EXISTS "Allow owner insert user_notifications" ON public.user_notifications;
+DROP POLICY IF EXISTS "Allow owner update user_notifications" ON public.user_notifications;
+CREATE POLICY "Allow owner read user_notifications"
+    ON public.user_notifications FOR SELECT
+    USING (auth.uid() = user_id);
+CREATE POLICY "Allow owner insert user_notifications"
+    ON public.user_notifications FOR INSERT
+    WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Allow owner update user_notifications"
+    ON public.user_notifications FOR UPDATE
+    USING (auth.uid() = user_id);
+
+-- ============================================================
+-- 10. study_groups
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.study_groups (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY
+);
+
+ALTER TABLE public.study_groups ADD COLUMN IF NOT EXISTS created_at  TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now());
+ALTER TABLE public.study_groups ADD COLUMN IF NOT EXISTS name        TEXT NOT NULL DEFAULT '';
+ALTER TABLE public.study_groups ADD COLUMN IF NOT EXISTS join_code   TEXT NOT NULL DEFAULT '';
+ALTER TABLE public.study_groups ADD COLUMN IF NOT EXISTS owner_id    UUID;
+
+ALTER TABLE public.study_groups ALTER COLUMN name      SET NOT NULL;
+ALTER TABLE public.study_groups ALTER COLUMN join_code SET NOT NULL;
+
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_class WHERE relname = 'study_groups_join_code_key' AND relkind = 'i'
+    ) THEN
+        ALTER TABLE public.study_groups ADD CONSTRAINT study_groups_join_code_key UNIQUE (join_code);
+    END IF;
+END $$;
+
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'study_groups_owner_id_fkey'
+    ) THEN
+        ALTER TABLE public.study_groups ADD CONSTRAINT study_groups_owner_id_fkey
+            FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+    END IF;
+END $$;
+
+ALTER TABLE public.study_groups ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow owner select study_groups" ON public.study_groups;
+DROP POLICY IF EXISTS "Allow owner insert study_groups" ON public.study_groups;
+DROP POLICY IF EXISTS "Allow member select study_groups" ON public.study_groups;
+CREATE POLICY "Allow group_select"
+    ON public.study_groups FOR SELECT
+    USING (true);  -- Anyone can look up a group by join code
+CREATE POLICY "Allow owner insert study_groups"
+    ON public.study_groups FOR INSERT
+    WITH CHECK (auth.uid() = owner_id);
+
+-- ============================================================
+-- 11. study_group_members
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.study_group_members (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY
+);
+
+ALTER TABLE public.study_group_members ADD COLUMN IF NOT EXISTS created_at   TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now());
+ALTER TABLE public.study_group_members ADD COLUMN IF NOT EXISTS group_id     UUID;
+ALTER TABLE public.study_group_members ADD COLUMN IF NOT EXISTS user_id      UUID;
+ALTER TABLE public.study_group_members ADD COLUMN IF NOT EXISTS is_owner     BOOLEAN DEFAULT FALSE;
+
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_class WHERE relname = 'study_group_members_group_user_key' AND relkind = 'i'
+    ) THEN
+        ALTER TABLE public.study_group_members ADD CONSTRAINT study_group_members_group_user_key UNIQUE (group_id, user_id);
+    END IF;
+END $$;
+
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'study_group_members_group_id_fkey'
+    ) THEN
+        ALTER TABLE public.study_group_members ADD CONSTRAINT study_group_members_group_id_fkey
+            FOREIGN KEY (group_id) REFERENCES public.study_groups(id) ON DELETE CASCADE;
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'study_group_members_user_id_fkey'
+    ) THEN
+        ALTER TABLE public.study_group_members ADD CONSTRAINT study_group_members_user_id_fkey
+            FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+    END IF;
+END $$;
+
+ALTER TABLE public.study_group_members ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow member select study_group_members" ON public.study_group_members;
+DROP POLICY IF EXISTS "Allow member insert study_group_members" ON public.study_group_members;
+CREATE POLICY "Allow member select study_group_members"
+    ON public.study_group_members FOR SELECT
+    USING (auth.uid() = user_id OR auth.uid() IN (
+        SELECT gm2.user_id FROM public.study_group_members gm2 WHERE gm2.group_id = group_id
+    ));
+CREATE POLICY "Allow member insert study_group_members"
+    ON public.study_group_members FOR INSERT
+    WITH CHECK (auth.uid() = user_id);
+
+-- ============================================================
+-- Add referral columns to user_profiles
+-- ============================================================
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS referral_code  TEXT;
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS referred_by    TEXT;
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS referral_count INTEGER DEFAULT 0;
+
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_class WHERE relname = 'user_profiles_referral_code_key' AND relkind = 'i'
+    ) THEN
+        ALTER TABLE public.user_profiles ADD CONSTRAINT user_profiles_referral_code_key UNIQUE (referral_code);
+    END IF;
+END $$;
+
+-- ============================================================
+-- Add exam_goal column to user_skill_metrics
+-- ============================================================
+ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS exam_goal_level TEXT;
+ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS exam_date DATE;
+
+-- ============================================================
+-- Update handle_new_user to generate referral code
+-- ============================================================
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+DECLARE
+  ref_code TEXT;
+BEGIN
+  -- Generate a unique referral code
+  ref_code := upper(substr(md5(NEW.id::text || random()::text), 1, 8));
+
+  INSERT INTO public.user_profiles (
+      id,
+      full_name,
+      email_address,
+      avatar_url,
+      selected_plan,
+      subscription_tier,
+      account_status,
+      referral_code
+  )
+  VALUES (
+      NEW.id,
+      NEW.raw_user_meta_data->>'full_name',
+      NEW.email,
+      NEW.raw_user_meta_data->>'avatar_url',
+      'Free',
+      'free',
+      'Active',
+      ref_code
+  )
+  ON CONFLICT (id) DO NOTHING;
+
+  INSERT INTO public.user_skill_metrics (user_id)
+  VALUES (NEW.id)
+  ON CONFLICT (user_id) DO NOTHING;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ============================================================
+-- Done.
 -- ============================================================
