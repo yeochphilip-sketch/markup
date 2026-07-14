@@ -4,23 +4,88 @@ import { generateObject } from 'ai';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
 import { getGradeSystemPrompt, getGradeUserPrompt } from '@/lib/prompts';
+import { getXpForLevel, getLevelTitle } from '@/lib/gamification';
 
 export const runtime = 'nodejs';
 export const maxDuration = 90;
+
+// ── Response cache (in-memory, survives serverless warm starts) ──
+const responseCache = new Map<string, { result: unknown; expiresAt: number }>();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+function getCacheKey(essay: string): string {
+  let hash = 0;
+  for (let i = 0; i < essay.length; i++) {
+    const char = essay.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return `grade_${hash}_${essay.length}`;
+}
+
+// ── Skill track → user_skill_metrics column mapping ──
+const SKILL_COLUMN_MAP: Record<string, string> = {
+  'inference': 'sbq_inference_score',
+  'comparison': 'sbq_comparison_score',
+  'contrast': 'sbq_comparison_score',
+  'reliability': 'sbq_reliability_score',
+  'utility': 'sbq_reliability_score',
+  'purpose': 'sbq_inference_score',
+  'synthesis': 'sbq_comparison_score',
+  'seq': 'seq_essay_score',
+  'essay': 'seq_essay_score',
+  'srq': 'seq_conclusion_score',
+};
+
+function getSkillColumn(questionType: string): string | null {
+  const type = questionType.toLowerCase();
+  for (const [keyword, column] of Object.entries(SKILL_COLUMN_MAP)) {
+    if (type.includes(keyword)) return column;
+  }
+  return null;
+}
+
+function extractLevelNumber(level: string): number {
+  // Parse "L3" or "L4 / 5 marks" or "L2 / 2 marks" → 3, 4, 2
+  const match = level.match(/L(\d+)/i);
+  return match ? parseInt(match[1], 10) : 0;
+}
+
+// ── Shared schemas ──
 
 const highlightedSegmentSchema = z.object({
   text: z.string(),
   type: z.enum(['correct', 'weak', 'error']),
 });
 
+const sectionScoreSchema = z.object({
+  level: z.string().optional(),
+  marks: z.number().optional(),
+  maxMarks: z.number().optional(),
+  label: z.string().optional(),
+});
+
 const evaluationSchema = z.object({
-  scoreEstimate: z.string().min(4),
+  // Overall score — structured fields + human-readable label
+  scoreLevel: z.string(),
+  scoreMarks: z.number(),
+  scoreMaxMarks: z.number(),
+  scoreLabel: z.string().min(4),
+
+  // Optional per-section scores for "All Formats" mode
+  sbcsScore: sectionScoreSchema.optional(),
+  seqScore: sectionScoreSchema.optional(),
+  srqScore: sectionScoreSchema.optional(),
+
   pointStatus: z.enum(['Pass', 'Fail']),
   evidenceStatus: z.enum(['Pass', 'Fail']),
   critique: z.array(z.string().min(10)).min(1).max(8),
   highlightedSegments: z.array(highlightedSegmentSchema).min(1),
   a1Upgrade: z.string().min(40),
-  confidence: z.number().min(0).max(1),
+
+  // Separate confidence scores
+  gradingConfidence: z.number().min(0).max(1),
+  modelAnswerConfidence: z.number().min(0).max(1),
 });
 
 type SupabaseAdmin = ReturnType<typeof createClient>;
@@ -60,7 +125,7 @@ export async function POST(request: Request) {
       questionId?: string;
     };
 
-    // ── Fix: Only include non-empty sections ──
+    // ── Only include non-empty sections ──
     const activeSections: string[] = [];
     if (sbcsAnswer.trim()) activeSections.push('sbcs');
     if (seqAnswer.trim()) activeSections.push('seq');
@@ -80,11 +145,17 @@ export async function POST(request: Request) {
       );
     }
 
+    // ── Check response cache ──
+    const cacheKey = getCacheKey([sbcsAnswer, seqAnswer, srqAnswer].filter(Boolean).join('|||'));
+    const cached = responseCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return NextResponse.json(cached.result);
+    }
+
     const resolvedSubject = subject ?? 'Social Studies';
     const resolvedTopic = topic ?? 'General';
     const resolvedQuestionType = questionType ?? 'All Formats';
 
-    // ── Select the correct prompt for this skill track + subject ──
     const systemPrompt = getGradeSystemPrompt({
       questionType: resolvedQuestionType,
       subject: resolvedSubject,
@@ -101,7 +172,7 @@ export async function POST(request: Request) {
       srqAnswer,
     });
 
-    // ── Gemini 2.5 Pro for grading precision; fall back to Flash if unavailable ──
+    // ── Grade with Gemini 2.5 Pro; fall back to Flash ──
     let evaluation: z.infer<typeof evaluationSchema>;
     try {
       const result = await generateObject({
@@ -124,35 +195,144 @@ export async function POST(request: Request) {
       evaluation = result.object;
     }
 
-    // ── Persist the evaluation ──
+    // ── Cache the response ──
+    responseCache.set(cacheKey, {
+      result: evaluation,
+      expiresAt: Date.now() + CACHE_TTL_MS,
+    });
+
+    // ── Build response with backward-compatible fields + gamification ──
+    const newLevel = extractLevelNumber(evaluation.scoreLevel);
+    const earnedXp = getXpForLevel(newLevel);
+
+    const response = {
+      ...evaluation,
+      scoreEstimate: evaluation.scoreLabel,
+      confidence: evaluation.gradingConfidence,
+      gamification: {
+        xpEarned: earnedXp,
+        newLevel,
+      },
+    };
+
+    // ── Persist evaluation ──
     const supabaseAdmin = getSupabaseAdmin();
+
+    // We write the evaluation + optionally update skill metrics in parallel
+    const dbWrites: Promise<unknown>[] = [];
+
     if (userId && supabaseAdmin) {
-      try {
-        await supabaseAdmin.from('essay_evaluations').insert({
-          user_id: userId,
-          question_id: questionId ?? null,
-          subject: resolvedSubject,
-          topic: resolvedTopic,
-          question_type: resolvedQuestionType,
-          student_essay: [sbcsAnswer, seqAnswer, srqAnswer].filter(Boolean).join('\n\n'),
-          sbcs_answer: sbcsAnswer,
-          seq_answer: seqAnswer,
-          srq_answer: srqAnswer,
-          score_estimate: evaluation.scoreEstimate,
-          point_status: evaluation.pointStatus,
-          evidence_status: evaluation.evidenceStatus,
-          critique: evaluation.critique,
-          critique_bullets: evaluation.critique,
-          highlighted_segments: evaluation.highlightedSegments,
-          a1_upgrade: evaluation.a1Upgrade,
-          confidence_score: evaluation.confidence,
-        } as never);
-      } catch (dbErr) {
-        console.warn('Non-fatal: failed to persist essay_evaluations row', dbErr);
+      dbWrites.push(
+        (async () => {
+          const { error: insertErr } = await supabaseAdmin!
+            .from('essay_evaluations')
+            .insert({
+              user_id: userId,
+              question_id: questionId ?? null,
+              subject: resolvedSubject,
+              topic: resolvedTopic,
+              question_type: resolvedQuestionType,
+              student_essay: [sbcsAnswer, seqAnswer, srqAnswer].filter(Boolean).join('\n\n'),
+              sbcs_answer: sbcsAnswer,
+              seq_answer: seqAnswer,
+              srq_answer: srqAnswer,
+              score_estimate: evaluation.scoreLabel,
+              point_status: evaluation.pointStatus,
+              evidence_status: evaluation.evidenceStatus,
+              critique: evaluation.critique,
+              critique_bullets: evaluation.critique,
+              highlighted_segments: evaluation.highlightedSegments,
+              a1_upgrade: evaluation.a1Upgrade,
+              confidence_score: evaluation.gradingConfidence,
+            } as never);
+          if (insertErr) console.warn('Non-fatal: failed to persist essay_evaluations row', insertErr);
+        })(),
+      );
+
+      // ── Auto-update skill radar (tracks most recent assessed level) ──
+      // Row guaranteed to exist by handle_new_user trigger + backfill migration.
+      const skillColumn = getSkillColumn(resolvedQuestionType);
+      if (skillColumn && newLevel > 0) {
+        dbWrites.push(
+          (async () => {
+            const { error: updateErr } = await supabaseAdmin!
+              .from('user_skill_metrics')
+              .update({ [skillColumn]: newLevel } as never)
+              .eq('user_id', userId);
+            if (updateErr) {
+              console.warn('Non-fatal: failed to update skill metrics', updateErr);
+            }
+          })(),
+        );
       }
+
+      // ── Gamification: XP, streak, level-up ──
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
+
+      dbWrites.push(
+        (async () => {
+          // Fetch current gamification state
+          const { data: metrics, error: fetchErr } = await supabaseAdmin!
+            .from('user_skill_metrics')
+            .select('total_xp, last_practice_date, current_streak, longest_streak, level_title')
+            .eq('user_id', userId)
+            .single() as unknown as { data: Record<string, any> | null; error: any };
+
+          if (fetchErr || !metrics) {
+            console.warn('Non-fatal: failed to fetch gamification state', fetchErr);
+            return;
+          }
+
+          const currentXp = (metrics.total_xp ?? 0) + earnedXp;
+          const currentTitle = getLevelTitle(currentXp);
+          const previousTitle = metrics.level_title ?? 'Novice';
+          const leveledUp = previousTitle !== currentTitle;
+
+          // Streak logic
+          const lastDate = metrics.last_practice_date;
+          const yesterday = new Date(today);
+          yesterday.setDate(yesterday.getDate() - 1);
+          const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+          let newStreak = metrics.current_streak ?? 0;
+          if (lastDate === todayStr) {
+            // Already practiced today — don't increment
+          } else if (lastDate === yesterdayStr) {
+            newStreak += 1; // Consecutive day
+          } else if (lastDate && lastDate !== yesterdayStr) {
+            newStreak = 1; // Streak broken
+          } else {
+            newStreak = 1; // First practice ever
+          }
+
+          const longestStreak = Math.max(newStreak, metrics.longest_streak ?? 0);
+
+          const { error: gamErr } = await supabaseAdmin!
+            .from('user_skill_metrics')
+            .update({
+              total_xp: currentXp,
+              level_title: currentTitle,
+              last_practice_date: todayStr,
+              current_streak: newStreak,
+              longest_streak: longestStreak,
+            } as never)
+            .eq('user_id', userId);
+
+          if (gamErr) {
+            console.warn('Non-fatal: failed to update gamification state', gamErr);
+            return;
+          }
+
+          // Attach gamification info to the response (hack: we'll merge it into the response below)
+          // Actually we store it on the response directly in the outer scope
+        })(),
+      );
     }
 
-    return NextResponse.json(evaluation);
+    await Promise.allSettled(dbWrites);
+
+    return NextResponse.json(response);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown grading error';
     console.error('grade failed:', message);

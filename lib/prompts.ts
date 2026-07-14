@@ -351,6 +351,83 @@ const HIST_INFERENCE_EXAMPLES: FewShotExample[] = [
   },
 ];
 
+const SS_PURPOSE_EXAMPLES: FewShotExample[] = [
+  {
+    level: 'L1',
+    studentAnswer:
+      'Source A was written by the government to inform people about the new policy.',
+    scoreEstimate: 'L1 / 1 mark — Identifies purpose of ONE source at a surface level',
+    critique: [
+      'You correctly identified the author of Source A and its basic purpose — to inform.',
+      'This meets L1 criteria, but you need to go deeper.',
+      'To reach L2, identify the purpose of BOTH sources, not just one.',
+      'To reach L3, explain HOW or WHY the purpose changed or differed between sources.',
+      'Consider: was Source A meant to persuade or justify, rather than simply inform?',
+    ],
+    confidence: 0.82,
+    a1Upgrade:
+      'Source A: The government press release frames housing policy as a "comprehensive plan to benefit all Singaporeans" — its purpose is to project competence and secure public approval for the policy. Source B: The editorial criticises the policy as "widening inequality" — its purpose is to hold the government accountable and advocate for more inclusive policymaking. The shift in purpose from government self-promotion to independent critique reveals the tension between official narratives and civil society oversight in Singapore\'s governance model.',
+  },
+];
+
+const SS_UTILITY_EXAMPLES: FewShotExample[] = [
+  {
+    level: 'L3',
+    studentAnswer:
+      'Source A is useful for understanding the government\'s official position on housing policy, because it directly states their plans and justifications. However, its utility is limited by the fact that it is a government source with a natural bias towards presenting policies positively. Source B is useful for understanding the criticisms of the policy, as an independent editorial. Together, they give a balanced view, but neither alone is sufficient.',
+    scoreEstimate:
+      'L3 / 4 marks — Evaluates utility by considering BOTH content value AND provenance limitations',
+    critique: [
+      'You correctly identified what each source is useful for (content value).',
+      'You also identified limitations (provenance bias). This meets L3.',
+      'To reach L4, cross-reference the sources — what does Source A reveal that Source B conceals, and vice versa?',
+      'A final evaluative judgment on which source is more useful overall would strengthen your answer.',
+    ],
+    confidence: 0.85,
+    a1Upgrade:
+      'Source A, a government press release, is highly useful for understanding the official framing of housing policy — it reveals what the government wants the public to believe about its intentions. However, its utility for assessing actual policy outcomes is limited by its promotional purpose. Source B, an editorial, reveals the gap between policy promises and on-the-ground reality, but its utility is limited by potential editorial bias. Cross-referencing: Source A reveals the government\'s confident projections; Source B reveals the implementation failures those projections omit. Together, they are more useful than either alone — Source A tells us the intention, Source B tells us the reception. Final judgment: For a historian assessing policy effectiveness, Source B is more useful because it provides independent evidence of outcomes, though Source A is essential context.',
+  },
+];
+
+const SS_SYNTHESIS_EXAMPLES: FewShotExample[] = [
+  {
+    level: 'L3',
+    studentAnswer:
+      'I agree with the assertion that the government\'s business support policy was generally effective. Source A supports this by showing the government provided substantial grants for digitalisation. Source B also supports this, but critically — it shows the policy was effective for some businesses but not for traditional hawkers. So the policy was effective but unevenly distributed.',
+    scoreEstimate:
+      'L3 / 4 marks — Cross-references BOTH sources to support a nuanced position',
+    critique: [
+      'You clearly stated your position (agree, with nuance).',
+      'You cross-referenced both sources to support your argument — this meets L3.',
+      'To reach L4, add evaluation of the source strengths and limitations.',
+      'Also consider counter-arguments: what would someone who disagrees with you say?',
+    ],
+    confidence: 0.83,
+    a1Upgrade:
+      'Assertion: The government\'s business support policy was partially effective. Source A supports this view — the government committed substantial funding to digitalisation grants, demonstrating proactive support. However, as a government source, it naturally omits implementation challenges. Source B provides crucial counter-evidence: it reveals that traditional hawkers lacked the digital literacy to benefit, suggesting the policy was effective only for tech-ready firms. Cross-referencing both sources, the evidence suggests the policy achieved its goals for a subset of businesses but failed to reach those most in need. Therefore, while I agree the policy had merit, I argue it was incompletely effective — success was concentrated among those already equipped to benefit, widening rather than narrowing the digital divide.',
+  },
+];
+
+const HIST_SEQ_EXAMPLES: FewShotExample[] = [
+  {
+    level: 'L3',
+    studentAnswer:
+      'Two key factors led to the outbreak of World War II: the Treaty of Versailles and the policy of appeasement. The Treaty of Versailles imposed harsh penalties on Germany after WWI, including massive reparations and territorial losses. This created deep resentment in Germany, which Hitler exploited to gain support. The policy of appeasement allowed Hitler to remilitarise the Rhineland and annex Austria and Czechoslovakia without resistance, emboldening him to invade Poland. Both factors created conditions for war — Versailles created the motive, appeasement created the opportunity.',
+    scoreEstimate:
+      'L3 / 6 marks — Explains TWO or MORE factors with specific historical evidence for each',
+    critique: [
+      'You identified TWO factors (Treaty of Versailles and appeasement) — this meets L3.',
+      'Specific evidence provided for each: reparations, Rhineland, Austria, Czechoslovakia, Poland.',
+      'Clear PEEL structure with Point, Evidence, Explanation, Link.',
+      'To reach L4, evaluate which factor was MORE significant and justify your prioritisation.',
+      'A concluding judgment weighing the relative importance of each factor would elevate this to L4.',
+    ],
+    confidence: 0.87,
+    a1Upgrade:
+      'Point: The outbreak of World War II was caused by a combination of structural and diplomatic factors, of which the Treaty of Versailles was the most significant. Evidence: The Treaty imposed reparations of 132 billion gold marks, stripped Germany of its colonies, and limited its army to 100,000 men, creating widespread humiliation and economic hardship. Explanation: This resentment created fertile ground for Hitler\'s nationalist rhetoric and allowed the Nazi Party to gain popular support by promising to undo the Treaty\'s injustices — without Versailles, Hitler would have lacked his most powerful rallying cry. Factor 2 — Appeasement: Britain and France\'s policy of conceding to Hitler\'s demands (Rhineland 1936, Austria 1938, Czechoslovakia 1938–39) emboldened Germany to pursue further expansion. However, appeasement was itself a response to the perceived unfairness of Versailles. Link: Therefore, while both factors were necessary, the Treaty of Versailles was the deeper, structural cause — it created the conditions that made both Hitler\'s rise and appeasement possible. Without Versailles, the pathway to war would have been fundamentally different.',
+  },
+];
+
 const HIST_RELIABILITY_EXAMPLES: FewShotExample[] = [
   {
     level: 'L2',
@@ -386,6 +463,69 @@ const HIST_RELIABILITY_EXAMPLES: FewShotExample[] = [
       'Provenance: Source C is a Nazi propaganda poster (1936) produced by Goebbels\' Propaganda Ministry. Nature: Visual propaganda designed for public display. Cross-referencing: Source D, a private diary from the same year, describes food shortages and Gestapo intimidation — directly contradicting the poster\'s image of security and prosperity. Reliability evaluation: The poster\'s provenance makes it unreliable as evidence of actual living conditions in Nazi Germany, because its institutional purpose was to manufacture a favourable image of the regime, not to report facts. The diary, written privately with no intention of publication, is far more reliable for understanding lived experience. However, the poster IS highly reliable as evidence of the regime\'s propaganda techniques and the image it sought to project. Final judgment: Source C is reliable only if used to answer a question about Nazi propaganda methods, not if used to assess living conditions under Hitler.',
   },
 ];
+
+// ────────────────────────────────────────────────────────────────
+//  Generation Prompts (skill-track-aware question authoring)
+// ────────────────────────────────────────────────────────────────
+
+const GENERATION_SOURCE_RULES: Record<string, string> = {
+  comparison:
+    'Sources must have clear SIMILARITIES AND DIFFERENCES in content. Provenance should differ enough that a student can reach L4 by explaining WHY the perspectives differ.',
+  inference:
+    'Sources must carry an IMPLIED MESSAGE or attitude beyond the surface facts. The author\'s perspective should be detectable through word choice, tone, or selective emphasis rather than stated outright.',
+  reliability:
+    'Provenance is critical here. Sources should have SUSPICIOUS provenance that affects their reliability — biased authors, propagandistic purposes, conflicting dates, or institutional motivations. Make the provenance obviously relevant to reliability assessment.',
+  purpose:
+    'Sources should have clear, contrasting PURPOSES. Each source should serve a different authorial goal (persuade, justify, criticise, celebrate) that students can identify and explain.',
+  utility:
+    'Sources should be useful for SOME historical inquiries but limited for OTHERS. The content and provenance should create a clear utility trade-off that students can evaluate.',
+  seq:
+    'The question prompt should ask students to explain or evaluate MULTIPLE FACTORS. Sources are less important than a well-structured essay prompt that requires PEEL structure.',
+};
+
+function getGenerationSourceRules(questionType: string): string {
+  const type = questionType.toLowerCase();
+  if (type.includes('comparison') || type.includes('contrast')) return GENERATION_SOURCE_RULES.comparison;
+  if (type.includes('inference') || type.includes('message')) return GENERATION_SOURCE_RULES.inference;
+  if (type.includes('reliability') || type.includes('cross-ref')) return GENERATION_SOURCE_RULES.reliability;
+  if (type.includes('purpose') || type.includes('target') || type.includes('motive')) return GENERATION_SOURCE_RULES.purpose;
+  if (type.includes('utility')) return GENERATION_SOURCE_RULES.utility;
+  if (type.includes('seq') || type.includes('essay') || type.includes('factor')) return GENERATION_SOURCE_RULES.seq;
+  // All Formats — include rules for all skill types
+  return Object.values(GENERATION_SOURCE_RULES).join('\n');
+}
+
+export function getGenerateSystemPrompt(subject: string, topic: string, questionType: string): string {
+  const sourceRules = getGenerationSourceRules(questionType);
+  const aos = getAssessmentObjectives(subject);
+
+  return `
+You are a senior SEAB examiner authoring authentic Singapore GCE O-Level
+${subject} examination stimulus material.
+
+Assessment Objectives: ${aos}
+
+Topic: ${topic}
+Target Skill Track: ${questionType}
+
+Produce a complete exam stimulus package: background context, two distinct
+provenance-stamped sources with substantive content, and a unified question
+prompt with per-section sub-prompts (SBCS, SEQ, SRQ).
+
+## SKILL-SPECIFIC SOURCE REQUIREMENTS
+
+${sourceRules}
+
+## STRICT RULES
+- Use real-sounding provenance (date, author, publication). Be specific.
+- Sources must be substantively different — not just the same information rephrased.
+- Do not include markdown formatting — plain text only.
+- Match the register and tone of SEAB-produced materials (formal, neutral, precise).
+- The suggested answer should demonstrate A1 standard for the selected skill track.
+- If the skill track is SBQ-only (e.g., Comparison, Inference, Reliability), leave SEQ and SRQ
+  prompts as "Optional: Section deactivated for focused skill strategy simulation."
+`.trim();
+}
 
 function getSubjectLabel(subject: string): string {
   return subject === 'Elective History' ? 'Elective History' : 'Social Studies';
@@ -432,11 +572,15 @@ function getFewShotExamples(questionType: string, subject: string): FewShotExamp
     if (type.includes('inference') || type.includes('message')) return HIST_INFERENCE_EXAMPLES;
     if (type.includes('reliability') || type.includes('cross-ref')) return HIST_RELIABILITY_EXAMPLES;
     // Default for other History skills — use comparison examples
+    if (type.includes('seq') || type.includes('essay') || type.includes('factor')) return HIST_SEQ_EXAMPLES;
     return HIST_COMPARISON_EXAMPLES;
   }
 
   if (type.includes('comparison') || type.includes('contrast')) return SS_COMPARISON_EXAMPLES;
   if (type.includes('inference') || type.includes('message')) return SS_INFERENCE_EXAMPLES;
+  if (type.includes('purpose') || type.includes('motive')) return SS_PURPOSE_EXAMPLES;
+  if (type.includes('utility') || type.includes('reliability')) return SS_UTILITY_EXAMPLES;
+  if (type.includes('synthesis') || type.includes('assertion') || type.includes('matrix')) return SS_SYNTHESIS_EXAMPLES;
   if (type.includes('seq') || type.includes('essay') || type.includes('srq')) return SS_SEQ_EXAMPLES;
 
   // Default for other skills — use comparison examples since they have the richest structure
@@ -514,7 +658,7 @@ ${QUALITY_RULES}
 ## OUTPUT RULES
 
 1. Evaluate ONLY the rubric that applies to the selected skill track (${questionType}).
-2. If the skill track is "All Formats", evaluate each section against its own rubric and provide an overall combined score.
+2. If the skill track is "All Formats", evaluate each section against its own rubric AND provide an overall combined score. Output sbcsScore, seqScore, and srqScore with each section's level, marks, maxMarks, and a brief label.
 3. The \`critique\` array should contain 3–8 specific, actionable bullet points.
 4. The \`a1Upgrade\` should be a complete rewritten answer demonstrating A1 standard.
 5. Each \`highlightedSegment\` must include the exact text from the student's answer.

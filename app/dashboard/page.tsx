@@ -8,6 +8,7 @@ import { supabase } from '@/utils/supabase';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import FeedbackModal from '@/app/components/FeedbackModal';
+import { getLevelConfig, getLevelTitle, getNextLevelXp, getPrevLevelXp, LEVEL_THRESHOLDS } from '@/lib/gamification';
 
 interface Segment {
   text: string;
@@ -98,7 +99,15 @@ export default function DashboardPage() {
 
   const [selectedType, setSelectedType] = useState('General');
   const [textInput, setTextInput] = useState('');
-  const [masteryPoints, setMasteryPoints] = useState(0); 
+  const [masteryPoints, setMasteryPoints] = useState(0);
+  const [levelTitle, setLevelTitle] = useState('Novice');
+  const [xpProgress, setXpProgress] = useState({ current: 0, nextLevel: 500 });
+  const [streakData, setStreakData] = useState({ current: 0, longest: 0 });
+  const [showLevelUp, setShowLevelUp] = useState(false);
+  const [levelUpInfo, setLevelUpInfo] = useState({ from: '', to: '' });
+  const [leaderboardData, setLeaderboardData] = useState<any>(null);
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+  const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(false);
 
   const [timeLeft, setTimeLeft] = useState(1200); 
   const [isTimerActive, setIsTimerActive] = useState(false);
@@ -152,6 +161,27 @@ export default function DashboardPage() {
     return val >= 3 ? 'text-emerald-400' : 'text-rose-500';
   };
 
+  const fetchLeaderboard = async () => {
+    if (!userId) return;
+    setIsLeaderboardLoading(true);
+    setIsLeaderboardOpen(true);
+    try {
+      const res = await fetch('/api/leaderboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setLeaderboardData(data);
+      }
+    } catch (err) {
+      console.warn('Leaderboard fetch failed:', err);
+    } finally {
+      setIsLeaderboardLoading(false);
+    }
+  };
+
   useEffect(() => {
     const config = SYLLABUS_MAP[activeSubject];
     if (config) {
@@ -191,6 +221,18 @@ export default function DashboardPage() {
           essay: metricsData.seq_essay_score || 1,
           conclusion: metricsData.seq_conclusion_score !== undefined ? metricsData.seq_conclusion_score : 0
         });
+        // Gamification state
+        const xp = metricsData.total_xp ?? 0;
+        setMasteryPoints(xp);
+        setLevelTitle(metricsData.level_title ?? 'Novice');
+        setStreakData({
+          current: metricsData.current_streak ?? 0,
+          longest: metricsData.longest_streak ?? 0,
+        });
+        // Calculate XP progress to next level
+        const nextLevelXp = getNextLevelXp(xp);
+        const prevLevelXp = getPrevLevelXp(xp);
+        setXpProgress({ current: xp - prevLevelXp, nextLevel: nextLevelXp - prevLevelXp });
       }
     } catch (err) {
       console.warn("Metrics defaulted.");
@@ -343,7 +385,31 @@ export default function DashboardPage() {
             score_estimate: data.scoreEstimate || 'L3/6 Bundle Matrix',
             critique_bullets: data.critique || []
           }]);
-        setMasteryPoints(prev => prev + 150);
+
+        // Gamification: apply XP earned from the grade response
+        const xpEarned = data.gamification?.xpEarned ?? 0;
+        if (xpEarned > 0) {
+          const prevXp = masteryPoints;
+          const newXp = prevXp + xpEarned;
+          const prevTitle = levelTitle;
+          const newTitle = getLevelTitle(newXp);
+
+          setMasteryPoints(newXp);
+          setLevelTitle(newTitle);
+
+          // XP progress to next level
+          const nextLevelXp = getNextLevelXp(newXp);
+          const prevLevelXp = getPrevLevelXp(newXp);
+          setXpProgress({ current: newXp - prevLevelXp, nextLevel: nextLevelXp - prevLevelXp });
+
+          // Level-up detection
+          if (prevTitle !== newTitle) {
+            setLevelUpInfo({ from: prevTitle, to: newTitle });
+            setShowLevelUp(true);
+          }
+        }
+        // Update streak (approximate from response — real state lives on server)
+        setStreakData(prev => ({ ...prev, current: prev.current + 1 }));
       }
 
       setHasScanned(true);
@@ -476,7 +542,7 @@ export default function DashboardPage() {
       </header>
 
       {/* Analytics Matrix Panel */}
-      <div className="px-6 pt-4 grid grid-cols-1 md:grid-cols-6 gap-4">
+      <div className="px-6 pt-4 grid grid-cols-1 md:grid-cols-8 gap-4">
         <div className="md:col-span-1 bg-indigo-600/10 border border-indigo-500/20 p-4 rounded-2xl flex items-center gap-4 relative overflow-hidden group">
           <div className="w-10 h-10 bg-indigo-500/20 text-indigo-400 rounded-xl flex items-center justify-center text-xl">🎯</div>
           <div>
@@ -485,9 +551,54 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="md:col-span-1 bg-slate-950/80 border border-slate-900 p-4 rounded-2xl flex flex-col justify-center text-center">
-          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">XP Mastery</span>
-          <span className="text-lg font-black text-indigo-400 font-mono">{masteryPoints} <span className="text-[10px] text-slate-600 font-normal">pts</span></span>
+        {/* Level Title + XP Progress */}
+        <div className="md:col-span-2 bg-slate-950/80 border border-slate-900 p-4 rounded-2xl flex flex-col justify-center relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">{getLevelConfig(levelTitle).icon}</span>
+              <div>
+                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{levelTitle}</span>
+                <span className="text-lg font-black text-indigo-400 font-mono block">{masteryPoints} <span className="text-[10px] text-slate-600 font-normal">pts</span></span>
+              </div>
+            </div>
+            <button
+              onClick={fetchLeaderboard}
+              className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[9px] font-bold px-2 py-1.5 rounded-lg transition text-slate-400 hover:text-slate-200"
+            >
+              🏆 Rank
+            </button>
+          </div>
+          {/* XP progress bar to next level */}
+          {levelTitle !== 'Master' && (
+            <div className="mt-2">
+              <div className="flex justify-between text-[8px] text-slate-600 font-mono mb-0.5">
+                <span>{getPrevLevelXp(masteryPoints)}pts</span>
+                <span>{getNextLevelXp(masteryPoints)}pts</span>
+              </div>
+              <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-700 ease-out"
+                  style={{ width: `${Math.min((xpProgress.current / Math.max(xpProgress.nextLevel, 1)) * 100, 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Streak Counter */}
+        <div className="md:col-span-1 bg-slate-950/80 border border-slate-900 p-4 rounded-2xl flex flex-col justify-center items-center text-center">
+          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+            {streakData.current > 0 ? '🔥 Streak' : 'Streak'}
+          </span>
+          <div className="flex items-baseline gap-1">
+            <span className={`text-lg font-black font-mono ${streakData.current >= 3 ? 'text-amber-400' : 'text-slate-400'}`}>
+              {streakData.current}
+            </span>
+            <span className="text-[9px] text-slate-600 font-normal">days</span>
+          </div>
+          {streakData.longest > 1 && (
+            <span className="text-[8px] text-slate-600 font-mono">Best: {streakData.longest}</span>
+          )}
         </div>
 
         <div className="md:col-span-4 bg-slate-950/80 border border-slate-900 p-4 rounded-2xl grid grid-cols-5 gap-2">
@@ -799,6 +910,213 @@ export default function DashboardPage() {
                 {evaluation.a1Upgrade || challenge.suggestedAnswer}
               </p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Level-Up Celebration Modal */}
+      {showLevelUp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={() => setShowLevelUp(false)}>
+          <div 
+            className="bg-slate-950 border border-indigo-500/40 rounded-3xl p-8 max-w-sm w-full mx-4 shadow-2xl shadow-indigo-500/20 animate-in zoom-in-95 duration-300 text-center relative overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Background glow */}
+            <div className="absolute -top-20 -left-20 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl" />
+            <div className="absolute -bottom-20 -right-20 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl" />
+            
+            <div className="relative z-10">
+              <div className="text-5xl mb-3 animate-bounce">
+                {getLevelConfig(levelUpInfo.to).icon}
+              </div>
+              <h2 className="text-lg font-black text-white mb-1">🎉 Level Up!</h2>
+              <p className="text-sm text-slate-400 mb-4">
+                You advanced from{' '}
+                <span className="font-bold text-slate-300">{levelUpInfo.from}</span>
+                {' '}to{' '}
+                <span className={`font-bold ${getLevelConfig(levelUpInfo.to).color}`}>
+                  {levelUpInfo.to}
+                </span>
+                !
+              </p>
+              
+              {/* Achievement card */}
+              <div className="bg-slate-900/70 rounded-2xl p-4 border border-slate-800 mb-5">
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  {levelUpInfo.to === 'Apprentice' && 'You\'ve proven you can grade well. Keep the momentum going — Scholar awaits!'}
+                  {levelUpInfo.to === 'Scholar' && 'You\'re mastering the material. Your skill radar will thank you for the practice!'}
+                  {levelUpInfo.to === 'Expert' && 'Exceptional consistency. You\'re among the top-tier students now.'}
+                  {levelUpInfo.to === 'Master' && 'The highest rank! You\'ve shown elite-level skill across every format.'}
+                  {levelUpInfo.to === 'Novice' && 'Every expert starts somewhere. Keep scanning!'}
+                </p>
+              </div>
+
+              <button
+                onClick={() => setShowLevelUp(false)}
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs px-6 py-2.5 rounded-xl transition shadow-lg"
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Leaderboard Drawer */}
+      {isLeaderboardOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setIsLeaderboardOpen(false)}>
+          <div 
+            className="bg-slate-950 border border-slate-800 rounded-3xl p-6 max-w-lg w-full mx-4 max-h-[85vh] overflow-y-auto shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-5">
+              <h2 className="text-sm font-black tracking-widest text-slate-300 uppercase">🏆 Community</h2>
+              <button onClick={() => setIsLeaderboardOpen(false)} className="text-slate-500 hover:text-white text-sm">✕</button>
+            </div>
+
+            {isLeaderboardLoading ? (
+              <div className="text-center py-12">
+                <p className="text-xs text-slate-500 font-mono animate-pulse">Loading community data...</p>
+              </div>
+            ) : leaderboardData ? (
+              <div className="space-y-5">
+                {/* ── Your Personal Stats Card ── */}
+                <div className="bg-gradient-to-br from-indigo-600/10 to-purple-600/10 border border-indigo-500/20 rounded-2xl p-5">
+                  <h3 className="text-[10px] font-black tracking-widest text-indigo-400 uppercase mb-3">Your Profile</h3>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="bg-slate-900/60 rounded-xl p-3 text-center">
+                      <p className="text-[9px] font-bold text-slate-500 uppercase">Rank</p>
+                      <p className="text-lg font-black font-mono text-indigo-400">#{leaderboardData.myRank}</p>
+                      <p className="text-[8px] text-slate-600">of {leaderboardData.totalUsers}</p>
+                    </div>
+                    <div className="bg-slate-900/60 rounded-xl p-3 text-center">
+                      <p className="text-[9px] font-bold text-slate-500 uppercase">Percentile</p>
+                      <p className="text-lg font-black font-mono text-emerald-400">{leaderboardData.percentile}%</p>
+                      <p className="text-[8px] text-emerald-500/60">{leaderboardData.decileLabel}</p>
+                    </div>
+                    <div className="bg-slate-900/60 rounded-xl p-3 text-center">
+                      <p className="text-[9px] font-bold text-slate-500 uppercase">Level</p>
+                      <p className="text-lg font-black font-mono text-amber-400">{leaderboardData.myLevel}</p>
+                      <p className="text-[8px] text-slate-600">{leaderboardData.myXp} pts</p>
+                    </div>
+                  </div>
+
+                  {/* Streak + trend */}
+                  <div className="flex gap-3 mt-3">
+                    <div className="flex-1 bg-slate-900/60 rounded-xl p-3 flex items-center gap-3">
+                      <span className="text-lg">🔥</span>
+                      <div>
+                        <p className="text-[9px] font-bold text-slate-500">Streak</p>
+                        <p className="text-sm font-black font-mono text-amber-400">{leaderboardData.myStreak}d <span className="text-[9px] text-slate-600 font-normal">(best {leaderboardData.myLongestStreak})</span></p>
+                      </div>
+                    </div>
+                    <div className="flex-1 bg-slate-900/60 rounded-xl p-3 flex items-center gap-3">
+                      <span className="text-lg">{leaderboardData.trendDirection === 'up' ? '📈' : leaderboardData.trendDirection === 'steady' ? '➡️' : '💤'}</span>
+                      <div>
+                        <p className="text-[9px] font-bold text-slate-500">This Week</p>
+                        <p className="text-sm font-black font-mono text-slate-300">
+                          {leaderboardData.recentEvalCount >= 5 ? 'On Fire!' :
+                           leaderboardData.recentEvalCount >= 3 ? 'Consistent' :
+                           leaderboardData.recentEvalCount >= 1 ? 'Getting Started' : 'Inactive'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── Context for weaker students ── */}
+                {leaderboardData.percentile < 40 && (
+                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4">
+                    <p className="text-xs text-amber-300 font-bold mb-1">💪 You\'re building momentum!</p>
+                    <p className="text-[11px] text-amber-400/70 leading-relaxed">
+                      Every paper you submit moves you up. Most high-rankers started where you are now.
+                      Your next goal: practice 3 times this week to break into the top half.
+                    </p>
+                  </div>
+                )}
+
+                {/* ── Peers at Your Level ── */}
+                {leaderboardData.sameLevelPeers && leaderboardData.sameLevelPeers.length > 0 && (
+                  <div>
+                    <h3 className="text-[10px] font-black tracking-widest text-slate-500 uppercase mb-2">Peers at Your Level</h3>
+                    <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-3">
+                      <p className="text-[11px] text-slate-400">
+                        {leaderboardData.sameLevelPeersCount} other {leaderboardData.myLevel}(s) at similar XP — you\'re not alone!
+                      </p>
+                      <div className="flex gap-2 mt-2">
+                        {leaderboardData.sameLevelPeers.map((peer: any, i: number) => (
+                          <div key={i} className="flex-1 bg-slate-800/50 rounded-lg p-2 text-center">
+                            <p className="text-[10px] font-mono text-slate-400">{peer.xp}pts</p>
+                            <p className="text-[8px] text-slate-600">🔥{peer.streak}d</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Most Improved ── */}
+                {leaderboardData.mostImproved && leaderboardData.mostImproved.length > 0 && (
+                  <div>
+                    <h3 className="text-[10px] font-black tracking-widest text-emerald-500 uppercase mb-2">📈 Most Improved This Week</h3>
+                    <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-3">
+                      {leaderboardData.mostImproved.map((improver: any, i: number) => (
+                        <div key={i} className="flex items-center gap-2 py-1.5 border-b border-slate-800/50 last:border-0">
+                          <span className="text-[10px] font-mono text-emerald-400 font-bold w-8">+{improver.xpGained}</span>
+                          <span className="text-[10px] text-slate-500">pts this week</span>
+                        </div>
+                      ))}
+                      <p className="text-[9px] text-slate-600 mt-2">Others are climbing — so can you! Every submission counts.</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Leaderboard Top 10 ── */}
+                {leaderboardData.leaderboard && leaderboardData.leaderboard.length > 0 && (
+                  <div>
+                    <h3 className="text-[10px] font-black tracking-widest text-amber-500 uppercase mb-2">🏅 Top Students</h3>
+                    <div className="bg-slate-900/40 border border-slate-800 rounded-xl overflow-hidden">
+                      {leaderboardData.leaderboard.slice(0, 10).map((entry: any) => (
+                        <div
+                          key={entry.rank}
+                          className={`flex items-center justify-between px-4 py-2.5 border-b border-slate-800/50 last:border-0 ${
+                            entry.isMe ? 'bg-indigo-500/10 border-indigo-500/30' : ''
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className={`w-6 text-center text-xs font-mono font-bold ${
+                              entry.rank === 1 ? 'text-amber-400' :
+                              entry.rank === 2 ? 'text-slate-300' :
+                              entry.rank === 3 ? 'text-amber-700' : 'text-slate-600'
+                            }`}>
+                              {entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : `#${entry.rank}`}
+                            </span>
+                            <span className={`text-xs font-medium ${entry.isMe ? 'text-indigo-300 font-bold' : 'text-slate-400'}`}>
+                              {entry.isMe ? 'You' : `${entry.level}`}
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-mono text-slate-500">{entry.xp} pts</span>
+                        </div>
+                      ))}
+                    </div>
+                    {!leaderboardData.isInTopTwenty && (
+                      <p className="text-[9px] text-slate-600 text-center mt-2">You\'re climbing — keep submitting to reach the board!</p>
+                    )}
+                  </div>
+                )}
+
+                {/* ── Motivational Footer ── */}
+                <div className="text-center pt-2">
+                  <p className="text-[10px] text-slate-600 italic">
+                    "The only person you should try to be better than is the person you were yesterday."
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-xs text-slate-500">Could not load community data.</p>
+              </div>
+            )}
           </div>
         </div>
       )}
