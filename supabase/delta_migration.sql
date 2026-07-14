@@ -127,6 +127,7 @@ ALTER TABLE public.essay_evaluations ADD COLUMN IF NOT EXISTS a1_upgrade        
 ALTER TABLE public.essay_evaluations ADD COLUMN IF NOT EXISTS sbcs_answer           TEXT;
 ALTER TABLE public.essay_evaluations ADD COLUMN IF NOT EXISTS seq_answer            TEXT;
 ALTER TABLE public.essay_evaluations ADD COLUMN IF NOT EXISTS srq_answer            TEXT;
+ALTER TABLE public.essay_evaluations ADD COLUMN IF NOT EXISTS confidence_score      DOUBLE PRECISION;
 
 ALTER TABLE public.essay_evaluations ALTER COLUMN student_essay  SET NOT NULL;
 ALTER TABLE public.essay_evaluations ALTER COLUMN score_estimate SET NOT NULL;

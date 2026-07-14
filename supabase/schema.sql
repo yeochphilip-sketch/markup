@@ -113,7 +113,8 @@ CREATE TABLE public.essay_evaluations (
     a1_upgrade        TEXT,
     sbcs_answer       TEXT,
     seq_answer        TEXT,
-    srq_answer        TEXT
+    srq_answer        TEXT,
+    confidence_score   DOUBLE PRECISION
 );
 
 ALTER TABLE public.essay_evaluations ENABLE ROW LEVEL SECURITY;

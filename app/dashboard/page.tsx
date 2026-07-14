@@ -127,7 +127,9 @@ export default function DashboardPage() {
   const [evaluation, setEvaluation] = useState({
     scoreEstimate: '',
     critique: [] as string[],
-    segments: [] as Segment[]
+    segments: [] as Segment[],
+    confidence: 0 as number,
+    a1Upgrade: '' as string
   });
 
   useEffect(() => {
@@ -156,7 +158,7 @@ export default function DashboardPage() {
       setSelectedTopic(config.topics[0]);
       setSelectedSkill(config.skills[0]);
     }
-    setEvaluation({ scoreEstimate: '', critique: [], segments: [] });
+    setEvaluation({ scoreEstimate: '', critique: [], segments: [], confidence: 0, a1Upgrade: '' });
   }, [activeSubject]);
 
   const loadHistoryLogs = async (uid?: string) => {
@@ -249,7 +251,7 @@ export default function DashboardPage() {
     setIsGenerating(true);
     setHasScanned(false);
     setIsExemplarOpen(false);
-    setEvaluation({ scoreEstimate: '', critique: [], segments: [] });
+    setEvaluation({ scoreEstimate: '', critique: [], segments: [], confidence: 0, a1Upgrade: '' });
     
     try {
       const res = await fetch('/api/generate-question', {
@@ -328,7 +330,9 @@ export default function DashboardPage() {
       setEvaluation({
         scoreEstimate: data.scoreEstimate || 'L3/6 Bundle Matrix',
         critique: data.critique || [],
-        segments: data.highlightedSegments || [{ text: sbcsAnswer + '\n' + seqAnswer + '\n' + srqAnswer, type: 'correct' }]
+        segments: data.highlightedSegments || [{ text: [sbcsAnswer, seqAnswer, srqAnswer].filter(Boolean).join('\n'), type: 'correct' }],
+        confidence: data.confidence ?? 0,
+        a1Upgrade: data.a1Upgrade || ''
       });
 
       if (userId) {
@@ -410,7 +414,7 @@ export default function DashboardPage() {
       srqPrompt: 'Contextual recommendations query segment.',
       suggestedAnswer: item.suggested_answer || ''
     });
-    setEvaluation({ scoreEstimate: '', critique: [], segments: [] });
+    setEvaluation({ scoreEstimate: '', critique: [], segments: [], confidence: 0, a1Upgrade: '' });
   };
 
   const emailInitial = userEmail ? userEmail.charAt(0).toUpperCase() : 'S';
@@ -620,9 +624,9 @@ export default function DashboardPage() {
                 <button 
                   onClick={() => setIsExemplarOpen(true)}
                   className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold px-3 py-1 rounded-full transition"
-                >
-                  💡 View Model Essay
-                </button>
+          >
+            💡 View Model Essay {evaluation.confidence > 0 ? `(${(evaluation.confidence * 100).toFixed(0)}% confident)` : ''}
+          </button>
               )}
             </div>
 
@@ -721,6 +725,32 @@ export default function DashboardPage() {
                     <span className="text-[9px] text-indigo-400 font-bold bg-indigo-950/50 px-1.5 py-0.5 rounded border border-indigo-900/40" title="L1: Surface Details Only • L2: Source Content Used • L3: LORMS Target Objective Met">LORMS Criteria ⓘ</span>
                   </div>
                   <div className="text-xl font-black text-indigo-400 tracking-tight mt-1.5 font-mono select-text">{evaluation.scoreEstimate}</div>
+                  
+                  {/* Confidence indicator */}
+                  {evaluation.confidence > 0 && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${
+                            evaluation.confidence >= 0.8 ? 'bg-emerald-500' :
+                            evaluation.confidence >= 0.6 ? 'bg-amber-500' :
+                            evaluation.confidence >= 0.4 ? 'bg-orange-500' : 'bg-red-500'
+                          }`}
+                          style={{ width: `${evaluation.confidence * 100}%` }}
+                        />
+                      </div>
+                      <span className={`text-[10px] font-bold font-mono ${
+                        evaluation.confidence >= 0.8 ? 'text-emerald-400' :
+                        evaluation.confidence >= 0.6 ? 'text-amber-400' :
+                        'text-red-400'
+                      }`}>
+                        {(evaluation.confidence * 100).toFixed(0)}%
+                      </span>
+                    </div>
+                  )}
+                  {evaluation.confidence > 0 && evaluation.confidence < 0.5 && (
+                    <p className="text-[10px] text-red-400 font-bold mt-1">⚠ Low confidence — consider manual review</p>
+                  )}
                 </div>
                 {evaluation.critique.length > 0 && (
                   <div className="space-y-2 pt-2 border-t border-slate-900">
@@ -746,10 +776,29 @@ export default function DashboardPage() {
             <h3 className="text-sm font-black tracking-wider text-emerald-400 uppercase">Syllabus Model Answer</h3>
             <button onClick={() => setIsExemplarOpen(false)} className="text-slate-400 hover:text-white font-bold text-xs">✕ Close</button>
           </div>
-          <div className="flex-1 bg-slate-900/50 rounded-xl p-4 overflow-y-auto border border-slate-900">
-            <p className="text-xs text-slate-300 font-mono leading-relaxed whitespace-pre-wrap select-text">
-              {challenge.suggestedAnswer}
-            </p>
+          <div className="flex-1 space-y-3">
+            {evaluation.confidence > 0 && (
+              <div className="flex items-center gap-2 px-1">
+                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Model Confidence</span>
+                <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden max-w-[120px]">
+                  <div
+                    className={`h-full rounded-full ${
+                      evaluation.confidence >= 0.8 ? 'bg-emerald-500' :
+                      evaluation.confidence >= 0.6 ? 'bg-amber-500' : 'bg-orange-500'
+                    }`}
+                    style={{ width: `${Math.min(evaluation.confidence * 100, 100)}%` }}
+                  />
+                </div>
+                <span className="text-[10px] font-mono font-bold text-slate-400">
+                  {(evaluation.confidence * 100).toFixed(0)}%
+                </span>
+              </div>
+            )}
+            <div className="bg-slate-900/50 rounded-xl p-4 overflow-y-auto border border-slate-900 max-h-[55vh]">
+              <p className="text-xs text-slate-300 font-mono leading-relaxed whitespace-pre-wrap select-text">
+                {evaluation.a1Upgrade || challenge.suggestedAnswer}
+              </p>
+            </div>
           </div>
         </div>
       )}
