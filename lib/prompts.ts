@@ -274,8 +274,118 @@ const SS_SEQ_EXAMPLES: FewShotExample[] = [
 ];
 
 // ────────────────────────────────────────────────────────────────
-//  Prompt Builder
+//  Few-Shot Examples — Elective History (AO3)
 // ────────────────────────────────────────────────────────────────
+
+const HIST_COMPARISON_EXAMPLES: FewShotExample[] = [
+  {
+    level: 'L2',
+    studentAnswer:
+      'Source A talks about Hitler being appointed Chancellor in 1933. Source B describes the Enabling Act being passed. Both sources are about how Hitler consolidated power.',
+    scoreEstimate:
+      'L2 / 3 marks — Similarity identified (both about Hitler\'s consolidation of power) but based on content alone, no provenance comparison',
+    critique: [
+      'You identified a similarity — both sources relate to how Hitler gained control. This meets L2 for content-based comparison.',
+      'However, you treated the sources as independent summaries rather than comparing them directly.',
+      'To reach L3, you need to compare BOTH content AND provenance (author, date, type).',
+      'To reach L4, explain WHY the sources differ — one may be a Nazi account, the other a foreign journalist\'s perspective.',
+    ],
+    confidence: 0.88,
+    a1Upgrade:
+      'Point: Both Source A and Source B concern the mechanisms by which Hitler consolidated power in 1933–34, but they differ in focus. Evidence: Source A, a Nazi propaganda pamphlet from 1934, presents the Chancellorship appointment as "the will of the German people." Source B, a British historian\'s account written in 1960, describes the Enabling Act as a "constitutional coup d\'état." Explanation: Source A portrays the events as legitimate and popularly supported, reflecting its Nazi provenance and propagandistic purpose. Source B, written retrospectively with the benefit of hindsight and by a foreign observer, frames the same period as an illegal seizure of power. Link: Therefore, while both sources address Hitler\'s consolidation of power, they differ fundamentally in interpretation — a difference driven by the authors\' contrasting national contexts, audiences, and purposes.',
+  },
+  {
+    level: 'L4',
+    studentAnswer:
+      'Both sources address the origins of the Cold War but from opposing perspectives. Source A, a Soviet diplomat\'s memoir from 1965, blames the US for starting the Cold War through aggressive economic expansion — specifically the Truman Doctrine and Marshall Plan. Source B, a US State Department memo from 1947, justifies these same policies as defensive responses to Soviet expansionism in Eastern Europe. The difference is not just in content but in provenance: a Soviet memoir defending Soviet actions vs a US government document justifying American policy. This tells me that Cold War origins are contested precisely because each side had a vested interest in portraying itself as the victim and the other as the aggressor.',
+    scoreEstimate:
+      'L4 / 5 marks — Similarity AND Difference identified with content + provenance evaluation explaining WHY sources differ',
+    critique: [
+      'Clear similarity identified — both address Cold War origins.',
+      'Strong difference identified — US blame vs US defence.',
+      'Excellent provenance analysis — you connected the authors\' national contexts to their perspectives.',
+      'Precise evidence from both sources supports your points.',
+      'The final evaluative sentence explains WHY the difference matters for historical interpretation.',
+      'This is a textbook L4 response for History AO3.',
+    ],
+    confidence: 0.96,
+    a1Upgrade:
+      'Point: Both Source A and Source B address the origins of the Cold War, but they present diametrically opposed explanations rooted in their authors\' national and institutional perspectives. Evidence: Source A, a Soviet diplomat\'s memoir (1965), characterises the Truman Doctrine and Marshall Plan as "economic imperialism" designed to "encircle the USSR." Source B, a US State Department memo (1947), describes these same policies as "defensive measures" against "Soviet subjugation of Eastern Europe." Explanation: The contrast stems from provenance — Source A reflects the Soviet narrative of aggressive American capitalism, written for a domestic audience to justify Soviet foreign policy. Source B is an internal government document that naturally frames its own actions as reactive and justified, which was necessary to secure Congressional approval. Link: This difference is historically significant because it demonstrates that Cold War origins are inherently contested — each superpower constructed a self-serving narrative. A historian must therefore evaluate both sources critically rather than accepting either at face value.',
+  },
+];
+
+const HIST_INFERENCE_EXAMPLES: FewShotExample[] = [
+  {
+    level: 'L1',
+    studentAnswer:
+      'Source A says that Japan invaded Manchuria in 1931 and established a puppet state called Manchukuo.',
+    scoreEstimate:
+      'L1 / 1 mark — Surface information from one source — factual recall only',
+    critique: [
+      'You correctly identified a factual detail from Source A — the invasion and establishment of Manchukuo.',
+      'This is surface-level recall. L1 is appropriate for stating what the source literally says.',
+      'To reach L2, you need to INFER what this reveals about Japanese motives, attitudes, or the historical context.',
+      'For example: Japan\'s establishment of a "puppet state" implies a deliberate strategy of expansionism disguised as liberation.',
+      'Also attempt inference from BOTH sources, not just one.',
+    ],
+    confidence: 0.90,
+    a1Upgrade:
+      'Surface level: Source A states that "Japan invaded Manchuria in 1931 and established the puppet state of Manchukuo." Inferred message: The invasion implies that Japan was pursuing a deliberate policy of territorial expansion to secure natural resources (coal, iron) and strategic territory, driven by military nationalism. The creation of a "puppet state" rather than outright annexation suggests Japan sought to legitimise its conquest through a façade of local self-governance, revealing a calculated strategy to avoid international condemnation while still achieving imperial goals.',
+  },
+  {
+    level: 'L2',
+    studentAnswer:
+      'Source A is a Japanese government statement from 1932 claiming that the invasion of Manchuria was to "protect Japanese economic interests and bring stability to the region." Source B is a League of Nations report from 1933 that calls the invasion an "act of unprovoked aggression." The difference in language between these two sources implies a fundamental clash in how Japan and the international community viewed Japan\'s actions in Manchuria. Source A implies Japan saw itself as a stabilising force in Asia, while Source B implies the international community saw Japan as a rogue imperial power. This tells me that Japan was trying to legitimise expansionism through the language of protection and stability.',
+    scoreEstimate:
+      'L2 / 2 marks — Inferred message from BOTH sources revealing the underlying clash in perspectives',
+    critique: [
+      'Excellent — you went beyond what each source LITERALLY says to infer the underlying message and attitude.',
+      'You correctly identified Source A\'s implied message: Japan as a stabilising force.',
+      'You correctly identified Source B\'s implied message: Japan as a rogue imperial power.',
+      'By using BOTH sources, you demonstrated the skill of reaching an inference through comparison of perspectives.',
+      'The final sentence synthesises the inferences into a coherent conclusion about Japan\'s strategic intent.',
+    ],
+    confidence: 0.92,
+    a1Upgrade:
+      'Surface level: Source A, a Japanese government statement (1932), claims the invasion was to "protect Japanese economic interests and bring stability." Source B, a League of Nations report (1933), calls it "an act of unprovoked aggression." Inferred message: The sharp contrast in language reveals two competing narratives. Source A infers that Japan sought to portray itself as a responsible regional power intervening to restore order — a justification that masks expansionist ambition behind a veneer of benevolence. Source B infers that the international community regarded Japan\'s actions as illegitimate and threatening to global peace. Taken together, the sources reveal that Japan\'s imperial expansion was strategically framed as defensive and constructive, precisely because the alternative narrative — naked aggression — would have isolated Japan diplomatically. This tells us that Japan was acutely aware of international opinion but was willing to risk condemnation to pursue its imperial objectives in Manchuria.',
+  },
+];
+
+const HIST_RELIABILITY_EXAMPLES: FewShotExample[] = [
+  {
+    level: 'L2',
+    studentAnswer:
+      'Source B is a speech by Winston Churchill in 1946, so it is reliable because he was a famous leader who knew what he was talking about.',
+    scoreEstimate:
+      'L2 / 3 marks — Assesses reliability based on provenance but without critical nuance',
+    critique: [
+      'You correctly identified the author (Churchill) and date (1946) — this is provenance-based assessment, meeting L2.',
+      'However, you assumed that being a "famous leader" automatically makes a source reliable. Famous leaders often have strong biases.',
+      'To reach L3, cross-reference the content with another source — does what Churchill says align with or contradict other evidence?',
+      'To reach L4, consider specific limitations: Churchill was a Cold War critic of the USSR with a political agenda in 1946 (the "Iron Curtain" speech).',
+    ],
+    confidence: 0.85,
+    a1Upgrade:
+      'Provenance: Source B is an excerpt from Churchill\'s 1946 "Iron Curtain" speech in Fulton, Missouri — a public address delivered in the presence of US President Truman. Reliability assessment: Churchill was a well-informed former Prime Minister, which lends the source credibility in terms of access to information. However, the source\'s reliability is significantly limited by purpose — Churchill was actively advocating for a stronger Anglo-American alliance against the USSR, making it likely he exaggerated the Soviet threat. The speech was also public and intended for a Western audience, so Churchill would have framed his words to persuade rather than to inform neutrally. Therefore, while the source is useful for understanding Western perceptions of the USSR in 1946, it cannot be taken as a reliable account of Soviet intentions themselves.',
+  },
+  {
+    level: 'L4',
+    studentAnswer:
+      'Source C is a Nazi propaganda poster from 1936 depicting Hitler as a protector of German families. The provenance is immediately suspect — it was produced by the Nazi Propaganda Ministry under Goebbels, whose sole purpose was to cultivate the Hitler myth. When cross-referenced with Source D, a private diary from a German factory worker in 1936 describing food shortages and fear of the Gestapo, the contradiction is stark. The poster shows happy families protected by Hitler; the diary reveals a population living in fear and economic hardship. The poster cannot be considered a reliable source for understanding German living conditions — it was designed to manufacture consent, not to report reality. However, it IS reliable as evidence of how the Nazi regime wanted to be perceived.',
+    scoreEstimate:
+      'L4 / 5 marks — Comprehensive reliability evaluation with provenance + cross-referencing + nuanced final judgment',
+    critique: [
+      'Excellent provenance analysis — recognised Propaganda Ministry purpose.',
+      'Strong cross-referencing with Source D — the diary contradicts the poster\'s narrative.',
+      'Identified a TYPICAL limitation (propaganda manufacturing consent) rather than just stating bias.',
+      'Nuanced final judgment — poster is unreliable for conditions but reliable for regime perception.',
+      'This is a sophisticated L4 response showing the multi-layered thinking required for top marks.',
+    ],
+    confidence: 0.94,
+    a1Upgrade:
+      'Provenance: Source C is a Nazi propaganda poster (1936) produced by Goebbels\' Propaganda Ministry. Nature: Visual propaganda designed for public display. Cross-referencing: Source D, a private diary from the same year, describes food shortages and Gestapo intimidation — directly contradicting the poster\'s image of security and prosperity. Reliability evaluation: The poster\'s provenance makes it unreliable as evidence of actual living conditions in Nazi Germany, because its institutional purpose was to manufacture a favourable image of the regime, not to report facts. The diary, written privately with no intention of publication, is far more reliable for understanding lived experience. However, the poster IS highly reliable as evidence of the regime\'s propaganda techniques and the image it sought to project. Final judgment: Source C is reliable only if used to answer a question about Nazi propaganda methods, not if used to assess living conditions under Hitler.',
+  },
+];
 
 function getSubjectLabel(subject: string): string {
   return subject === 'Elective History' ? 'Elective History' : 'Social Studies';
@@ -315,9 +425,15 @@ function getLormsMatrix(questionType: string, subject: string): string {
 
 function getFewShotExamples(questionType: string, subject: string): FewShotExample[] {
   const type = questionType.toLowerCase();
-  // No few-shot examples for History yet — better to calibrate purely by rubric
-  // than to inject AO2 examples into an AO3-graded essay.
-  if (subject === 'Elective History') return [];
+
+  if (subject === 'Elective History') {
+    // Historical students using AO3 rubrics — examples are calibrated to History contexts
+    if (type.includes('comparison') || type.includes('contrast')) return HIST_COMPARISON_EXAMPLES;
+    if (type.includes('inference') || type.includes('message')) return HIST_INFERENCE_EXAMPLES;
+    if (type.includes('reliability') || type.includes('cross-ref')) return HIST_RELIABILITY_EXAMPLES;
+    // Default for other History skills — use comparison examples
+    return HIST_COMPARISON_EXAMPLES;
+  }
 
   if (type.includes('comparison') || type.includes('contrast')) return SS_COMPARISON_EXAMPLES;
   if (type.includes('inference') || type.includes('message')) return SS_INFERENCE_EXAMPLES;
