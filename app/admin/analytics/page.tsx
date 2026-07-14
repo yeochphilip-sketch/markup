@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense, useMemo } from 'react';
 import { supabase } from '@/utils/supabase';
 import { useRouter } from 'next/navigation';
 
@@ -23,12 +23,119 @@ interface WaitlistRow {
   created_at: string;
 }
 
+interface EssayRow {
+  id: string;
+  created_at: string;
+  subject: string | null;
+  score_estimate: string;
+}
+
+// ── Helpers ──────────────────────────────────────────────────
+
+function csvDownload(data: Record<string, string>[], filename: string) {
+  if (data.length === 0) return;
+  const headers = Object.keys(data[0]);
+  const csv = [
+    headers.join(','),
+    ...data.map((row) =>
+      headers
+        .map((h) => {
+          const val = row[h]?.toString() ?? '';
+          // Escape quotes and wrap in quotes if contains comma or quote
+          return val.includes(',') || val.includes('"')
+            ? `"${val.replace(/"/g, '""')}"`
+            : val;
+        })
+        .join(','),
+    ),
+  ].join('\n');
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${filename}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function getDateKey(iso: string) {
+  return iso.slice(0, 10); // "2026-07-14"
+}
+
+function lastNDays(n: number): string[] {
+  const days: string[] = [];
+  const now = new Date();
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(now);
+    d.setUTCDate(d.getUTCDate() - i);
+    days.push(d.toISOString().slice(0, 10));
+  }
+  return days;
+}
+
+// ── Bar chart mini component ─────────────────────────────────
+
+function DailyBarChart({
+  data,
+  days,
+  barColor,
+  title,
+}: {
+  data: Record<string, number>;
+  days: string[];
+  barColor: string;
+  title: string;
+}) {
+  const maxVal = Math.max(1, ...days.map((d) => data[d] || 0));
+
+  return (
+    <div>
+      <div className="flex items-end h-32 gap-1">
+        {days.map((day) => {
+          const count = data[day] || 0;
+          const h = Math.max(4, (count / maxVal) * 100);
+          return (
+            <div
+              key={day}
+              className="flex-1 flex flex-col items-center justify-end group relative"
+            >
+              <div
+                className={`w-full rounded-t ${barColor} transition-all duration-300 hover:opacity-80 cursor-pointer`}
+                style={{ height: `${h}%` }}
+              />
+              {/* Tooltip */}
+              <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] text-slate-300 font-bold opacity-0 group-hover:opacity-100 transition whitespace-nowrap">
+                {count}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="flex mt-1.5">
+        {days.filter((_, i) => i % 3 === 0 || i === days.length - 1).map((day) => (
+          <span key={day} className="flex-1 text-[8px] text-slate-600 font-mono text-center">
+            {day.slice(5)}
+          </span>
+        ))}
+      </div>
+      <p className="text-[10px] text-slate-600 font-mono text-center mt-1.5">{title}</p>
+    </div>
+  );
+}
+
+// ── Main dashboard component ─────────────────────────────────
+
 function AnalyticsDashboardContent() {
   const router = useRouter();
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
   const [waitlist, setWaitlist] = useState<WaitlistRow[]>([]);
+  const [essays, setEssays] = useState<EssayRow[]>([]);
+  const [profileSearch, setProfileSearch] = useState('');
+  const [waitlistSearch, setWaitlistSearch] = useState('');
   const [loading, setLoading] = useState(true);
-  const [waitlistLoading, setWaitlistLoading] = useState(true);
+  const [loadingWaitlist, setLoadingWaitlist] = useState(true);
+  const [loadingEssays, setLoadingEssays] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
@@ -48,22 +155,22 @@ function AnalyticsDashboardContent() {
 
       setIsAuthorized(true);
 
+      // Fetch profiles
       try {
         const { data, error } = await supabase
           .from('user_profiles')
-          .select(
-            'id, full_name, email_address, selected_plan, billing_rate, account_status, subscription_tier, is_admin',
-          )
+          .select('id, full_name, email_address, selected_plan, billing_rate, account_status, subscription_tier, is_admin')
           .order('updated_at', { ascending: false });
 
         if (error) throw error;
         if (data) setProfiles(data as ProfileRow[]);
       } catch (err) {
-        console.error('Error fetching analytics registry data:', err);
+        console.error('Error fetching profiles:', err);
       } finally {
         setLoading(false);
       }
 
+      // Fetch waitlist
       try {
         const { data, error } = await supabase
           .from('waitlist_signups')
@@ -73,14 +180,128 @@ function AnalyticsDashboardContent() {
         if (error) throw error;
         if (data) setWaitlist(data as WaitlistRow[]);
       } catch (err) {
-        console.error('Error fetching waitlist data:', err);
+        console.error('Error fetching waitlist:', err);
       } finally {
-        setWaitlistLoading(false);
+        setLoadingWaitlist(false);
+      }
+
+      // Fetch essays
+      try {
+        const { data, error } = await supabase
+          .from('essay_evaluations')
+          .select('id, created_at, subject, score_estimate')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        if (data) setEssays(data as EssayRow[]);
+      } catch (err) {
+        console.error('Error fetching essays:', err);
+      } finally {
+        setLoadingEssays(false);
       }
     }
 
     bootstrap();
   }, [router]);
+
+  // ── Derived stats ──────────────────────────────────────────
+
+  const totalRevenue = useMemo(
+    () => profiles.reduce((sum, p) => sum + Number(p.billing_rate || 0), 0),
+    [profiles],
+  );
+
+  const premiumCount = useMemo(
+    () =>
+      profiles.filter(
+        (p) =>
+          p.subscription_tier === 'student_monthly' ||
+          p.subscription_tier === 'student_academic' ||
+          p.subscription_tier === 'tuition_cohort',
+      ).length,
+    [profiles],
+  );
+
+  const conversionRate =
+    profiles.length > 0 ? ((premiumCount / profiles.length) * 100).toFixed(1) : '0.0';
+
+  // Essay stats
+  const essaysThisWeek = useMemo(
+    () =>
+      essays.filter((e) => {
+        const d = new Date(e.created_at);
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        return d >= weekAgo;
+      }).length,
+    [essays],
+  );
+
+  const subjectCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    essays.forEach((e) => {
+      const s = e.subject || 'Unknown';
+      counts[s] = (counts[s] || 0) + 1;
+    });
+    return counts;
+  }, [essays]);
+
+  // Waitlist subject breakdown
+  const waitlistSubjectCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    waitlist.forEach((w) => {
+      counts[w.subject] = (counts[w.subject] || 0) + 1;
+    });
+    return counts;
+  }, [waitlist]);
+
+  // Daily waitlist signups (last 14 days)
+  const waitlistDays = useMemo(() => {
+    const days = lastNDays(14);
+    const counts: Record<string, number> = {};
+    waitlist.forEach((w) => {
+      const key = getDateKey(w.created_at);
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    return { days, counts };
+  }, [waitlist]);
+
+  // Daily essay submissions (last 14 days)
+  const essayDays = useMemo(() => {
+    const days = lastNDays(14);
+    const counts: Record<string, number> = {};
+    essays.forEach((e) => {
+      const key = getDateKey(e.created_at);
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    return { days, counts };
+  }, [essays]);
+
+  // ── Filtered data ──────────────────────────────────────────
+
+  const filteredWaitlist = useMemo(
+    () =>
+      waitlist.filter(
+        (w) =>
+          w.email.toLowerCase().includes(waitlistSearch.toLowerCase()) ||
+          (w.name || '').toLowerCase().includes(waitlistSearch.toLowerCase()) ||
+          w.subject.toLowerCase().includes(waitlistSearch.toLowerCase()),
+      ),
+    [waitlist, waitlistSearch],
+  );
+
+  const filteredProfiles = useMemo(
+    () =>
+      profiles.filter(
+        (p) =>
+          (p.full_name || '').toLowerCase().includes(profileSearch.toLowerCase()) ||
+          (p.email_address || '').toLowerCase().includes(profileSearch.toLowerCase()) ||
+          p.subscription_tier.toLowerCase().includes(profileSearch.toLowerCase()),
+      ),
+    [profiles, profileSearch],
+  );
+
+  // ── Render ─────────────────────────────────────────────────
 
   if (!isAuthorized) {
     return (
@@ -90,29 +311,9 @@ function AnalyticsDashboardContent() {
     );
   }
 
-  const totalRevenue = profiles.reduce(
-    (sum, item) => sum + Number(item.billing_rate || 0),
-    0,
-  );
-  const premiumCount = profiles.filter(
-    (p) =>
-      p.subscription_tier === 'student_monthly' ||
-      p.subscription_tier === 'student_academic' ||
-      p.subscription_tier === 'tuition_cohort',
-  ).length;
-  const conversionRate =
-    profiles.length > 0
-      ? ((premiumCount / profiles.length) * 100).toFixed(1)
-      : '0.0';
-
-  const subjectBreakdown = waitlist.reduce<Record<string, number>>((acc, w) => {
-    acc[w.subject] = (acc[w.subject] || 0) + 1;
-    return acc;
-  }, {});
-
   return (
     <div className="min-h-screen bg-[#07090e] text-slate-100 p-8 font-sans">
-      <div className="max-w-6xl mx-auto space-y-8">
+      <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex justify-between items-center border-b border-slate-900 pb-5">
           <div>
@@ -120,8 +321,7 @@ function AnalyticsDashboardContent() {
               Platform Insights
             </h1>
             <p className="text-xs text-slate-400 mt-1">
-              Live data streams pulling users, tiers, and subscription
-              allocations from your SQL database
+              Live data streams from users, essays, waitlist, and subscriptions
             </p>
           </div>
           <button
@@ -135,72 +335,167 @@ function AnalyticsDashboardContent() {
           </button>
         </div>
 
-        {/* KPI tiles */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-slate-950 border border-slate-900 p-6 rounded-2xl">
-            <div className="text-xs text-slate-400 font-medium">
-              Total Registered Users
+        {/* ── Row 1: Core KPI tiles ────────────────────────── */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-slate-950 border border-slate-900 p-5 rounded-2xl">
+            <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
+              Registered Users
             </div>
-            <div className="text-3xl font-black text-white mt-2">
+            <div className="text-3xl font-black text-white mt-1">
               {loading ? '…' : profiles.length}
             </div>
-            <div className="text-[10px] text-emerald-400 font-mono mt-1">
-              Live DB Headcount
-            </div>
+            <div className="text-[9px] text-emerald-400 font-mono mt-1">Live headcount</div>
           </div>
-          <div className="bg-slate-950 border border-slate-900 p-6 rounded-2xl">
-            <div className="text-xs text-slate-400 font-medium">
-              Monthly Recurring Revenue
+          <div className="bg-slate-950 border border-slate-900 p-5 rounded-2xl">
+            <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
+              Monthly Revenue
             </div>
-            <div className="text-3xl font-black text-indigo-400 mt-2">
+            <div className="text-3xl font-black text-indigo-400 mt-1">
               S${loading ? '…' : totalRevenue.toFixed(2)}
             </div>
-            <div className="text-[10px] text-indigo-500 font-mono mt-1">
-              Active billing allocations
-            </div>
+            <div className="text-[9px] text-indigo-500 font-mono mt-1">Active billing</div>
           </div>
-          <div className="bg-slate-950 border border-slate-900 p-6 rounded-2xl">
-            <div className="text-xs text-slate-400 font-medium">
-              Paid Conversion Rate
+          <div className="bg-slate-950 border border-slate-900 p-5 rounded-2xl">
+            <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
+              Paid Conversion
             </div>
-            <div className="text-3xl font-black text-white mt-2">
+            <div className="text-3xl font-black text-white mt-1">
               {loading ? '…' : `${conversionRate}%`}
             </div>
-            <div className="text-[10px] text-slate-500 font-mono mt-1">
-              Across all 3 paid tiers
-            </div>
+            <div className="text-[9px] text-slate-500 font-mono mt-1">Across 3 paid tiers</div>
           </div>
-          <div className="bg-slate-950 border border-amber-500/30 p-6 rounded-2xl">
-            <div className="text-xs text-slate-400 font-medium">
+          <div className="bg-slate-950 border border-amber-500/30 p-5 rounded-2xl">
+            <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
               Waitlist Signups
             </div>
-            <div className="text-3xl font-black text-amber-400 mt-2">
-              {waitlistLoading ? '…' : waitlist.length}
+            <div className="text-3xl font-black text-amber-400 mt-1">
+              {loadingWaitlist ? '…' : waitlist.length}
             </div>
-            <div className="text-[10px] text-amber-500 font-mono mt-1">
-              {Object.entries(subjectBreakdown).map(([s, c]) => `${s}: ${c}`).join(' · ')}
+            <div className="text-[9px] text-amber-500 font-mono mt-1">
+              {Object.entries(waitlistSubjectCounts)
+                .map(([s, c]) => `${s}: ${c}`)
+                .join(' · ')}
             </div>
           </div>
         </div>
 
-        {/* Waitlist Table */}
+        {/* ── Row 2: Essay + usage KPI tiles ──────────────── */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-slate-950 border border-indigo-500/20 p-5 rounded-2xl">
+            <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
+              Total Essays Graded
+            </div>
+            <div className="text-3xl font-black text-indigo-300 mt-1">
+              {loadingEssays ? '…' : essays.length}
+            </div>
+            <div className="text-[9px] text-indigo-500 font-mono mt-1">All-time submissions</div>
+          </div>
+          <div className="bg-slate-950 border border-emerald-500/20 p-5 rounded-2xl">
+            <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
+              Essays This Week
+            </div>
+            <div className="text-3xl font-black text-emerald-400 mt-1">
+              {loadingEssays ? '…' : essaysThisWeek}
+            </div>
+            <div className="text-[9px] text-emerald-500 font-mono mt-1">Last 7 days</div>
+          </div>
+          <div className="bg-slate-950 border border-slate-900 p-5 rounded-2xl col-span-2">
+            <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
+              Subjects Practiced
+            </div>
+            <div className="flex items-baseline gap-4 mt-2">
+              {Object.entries(subjectCounts).length === 0 ? (
+                <span className="text-xs text-slate-600 italic">No data yet</span>
+              ) : (
+                Object.entries(subjectCounts).map(([s, c]) => (
+                  <div key={s} className="text-center">
+                    <div className="text-lg font-black text-white">{c}</div>
+                    <div className="text-[9px] text-slate-500 font-mono">{s}</div>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="text-[9px] text-slate-600 font-mono mt-1">Submissions per subject</div>
+          </div>
+        </div>
+
+        {/* ── Charts row ──────────────────────────────────── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-slate-950 border border-slate-900 p-5 rounded-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                📈 Daily Waitlist Signups
+              </h3>
+              <span className="text-[9px] text-slate-600 font-mono">Last 14 days</span>
+            </div>
+            <DailyBarChart
+              data={waitlistDays.counts}
+              days={waitlistDays.days}
+              barColor="bg-amber-500/70"
+              title="Signups per day"
+            />
+          </div>
+          <div className="bg-slate-950 border border-slate-900 p-5 rounded-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                📝 Daily Essay Submissions
+              </h3>
+              <span className="text-[9px] text-slate-600 font-mono">Last 14 days</span>
+            </div>
+            <DailyBarChart
+              data={essayDays.counts}
+              days={essayDays.days}
+              barColor="bg-indigo-500/70"
+              title="Submissions per day"
+            />
+          </div>
+        </div>
+
+        {/* ── Waitlist table ──────────────────────────────── */}
         <div className="bg-slate-950 border border-amber-500/20 rounded-2xl overflow-hidden">
-          <div className="p-6 border-b border-slate-900 flex items-center justify-between">
-            <h2 className="text-sm font-bold text-slate-200">
-              📋 Beta Waitlist
-            </h2>
-            <span className="text-[10px] text-slate-500 font-mono">
-              {waitlist.length} signups
-            </span>
+          <div className="p-5 border-b border-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <h2 className="text-sm font-bold text-slate-200">📋 Beta Waitlist</h2>
+              <span className="text-[10px] text-slate-500 font-mono bg-slate-900 px-2 py-0.5 rounded-full">
+                {waitlist.length} signups
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Search by email, name, or subject..."
+                value={waitlistSearch}
+                onChange={(e) => setWaitlistSearch(e.target.value)}
+                className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-[11px] text-slate-200 placeholder-slate-600 focus:outline-none focus:border-amber-500/50 w-48"
+              />
+              <button
+                onClick={() =>
+                  csvDownload(
+                    waitlist.map((w) => ({
+                      Email: w.email,
+                      Name: w.name || '',
+                      Subject: w.subject,
+                      'Signed Up': new Date(w.created_at).toLocaleDateString('en-SG'),
+                    })),
+                    'waitlist-signups',
+                  )
+                }
+                className="text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-lg hover:bg-amber-500/20 transition whitespace-nowrap"
+              >
+                ⬇ CSV
+              </button>
+            </div>
           </div>
           <div className="overflow-x-auto">
-            {waitlistLoading ? (
+            {loadingWaitlist ? (
               <div className="p-8 text-center text-xs text-slate-500 font-mono animate-pulse">
                 Loading waitlist data…
               </div>
-            ) : waitlist.length === 0 ? (
+            ) : filteredWaitlist.length === 0 ? (
               <div className="p-8 text-center text-xs text-slate-500 font-mono">
-                No waitlist signups yet. Share the landing page!
+                {waitlistSearch
+                  ? 'No results match your search.'
+                  : 'No waitlist signups yet. Share the landing page!'}
               </div>
             ) : (
               <table className="w-full text-left text-xs text-slate-300">
@@ -213,18 +508,20 @@ function AnalyticsDashboardContent() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-900">
-                  {waitlist.map((entry) => (
+                  {filteredWaitlist.map((entry) => (
                     <tr key={entry.id} className="hover:bg-slate-900/20 transition">
                       <td className="p-4 font-medium text-slate-200">{entry.email}</td>
                       <td className="p-4 text-slate-400">{entry.name || '—'}</td>
                       <td className="p-4">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          entry.subject === 'History'
-                            ? 'bg-amber-500/10 text-amber-400'
-                            : entry.subject === 'Social Studies'
-                              ? 'bg-indigo-500/10 text-indigo-400'
-                              : 'bg-emerald-500/10 text-emerald-400'
-                        }`}>
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            entry.subject === 'History'
+                              ? 'bg-amber-500/10 text-amber-400'
+                              : entry.subject === 'Social Studies'
+                                ? 'bg-indigo-500/10 text-indigo-400'
+                                : 'bg-emerald-500/10 text-emerald-400'
+                          }`}
+                        >
                           {entry.subject}
                         </span>
                       </td>
@@ -245,21 +542,53 @@ function AnalyticsDashboardContent() {
           </div>
         </div>
 
-        {/* Registry table */}
+        {/* ── User registry table ─────────────────────────── */}
         <div className="bg-slate-950 border border-slate-900 rounded-2xl overflow-hidden">
-          <div className="p-6 border-b border-slate-900">
-            <h2 className="text-sm font-bold text-slate-200">
-              Active Account Master Registry
-            </h2>
+          <div className="p-5 border-b border-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <h2 className="text-sm font-bold text-slate-200">👤 User Registry</h2>
+              <span className="text-[10px] text-slate-500 font-mono bg-slate-900 px-2 py-0.5 rounded-full">
+                {profiles.length} users
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Search by name, email, or tier..."
+                value={profileSearch}
+                onChange={(e) => setProfileSearch(e.target.value)}
+                className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-[11px] text-slate-200 placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 w-48"
+              />
+              <button
+                onClick={() =>
+                  csvDownload(
+                    profiles.map((p) => ({
+                      Name: p.full_name || 'Unnamed',
+                      Email: p.email_address || '',
+                      Plan: p.selected_plan,
+                      Tier: p.subscription_tier,
+                      'MRR (S$)': Number(p.billing_rate || 0).toFixed(2),
+                      Status: p.account_status,
+                    })),
+                    'user-registry',
+                  )
+                }
+                className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/30 px-3 py-1.5 rounded-lg hover:bg-indigo-500/20 transition whitespace-nowrap"
+              >
+                ⬇ CSV
+              </button>
+            </div>
           </div>
           <div className="overflow-x-auto">
             {loading ? (
               <div className="p-8 text-center text-xs text-slate-500 font-mono animate-pulse">
-                Syncing encrypted data rows…
+                Syncing data rows…
               </div>
-            ) : profiles.length === 0 ? (
+            ) : filteredProfiles.length === 0 ? (
               <div className="p-8 text-center text-xs text-slate-500 font-mono">
-                No registered profiles detected in table tracking logs.
+                {profileSearch
+                  ? 'No results match your search.'
+                  : 'No registered profiles detected.'}
               </div>
             ) : (
               <table className="w-full text-left text-xs text-slate-300">
@@ -273,11 +602,8 @@ function AnalyticsDashboardContent() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-900">
-                  {profiles.map((profile) => (
-                    <tr
-                      key={profile.id}
-                      className="hover:bg-slate-900/20 transition"
-                    >
+                  {filteredProfiles.map((profile) => (
+                    <tr key={profile.id} className="hover:bg-slate-900/20 transition">
                       <td className="p-4">
                         <div className="font-semibold text-slate-200 flex items-center gap-2">
                           {profile.full_name || 'Unnamed user'}
