@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createOpenAI } from '@ai-sdk/openai';
 import { google } from '@ai-sdk/google';
-import { generateObject } from 'ai';
+import { generateText } from 'ai';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
 import { getGenerateSystemPrompt } from '@/lib/prompts';
@@ -29,17 +29,19 @@ async function tryGenerateWithFallbacks(
     attempts.push({ model: google('gemini-2.5-flash'), label: 'Google Gemini 2.5 Flash', temp: 0.4 });
   }
 
+  const jsonInstruction = '\n\nIMPORTANT: Respond with ONLY a valid JSON object. No markdown, no code fences, no explanation.';
+
   const errors: string[] = [];
   for (const attempt of attempts) {
     try {
-      const result = await generateObject({
+      const result = await generateText({
         model: attempt.model,
-        schema: questionSchema,
-        system,
+        system: system + jsonInstruction,
         prompt,
         temperature: attempt.temp,
       });
-      return result.object;
+      const cleaned = result.text.replace(/```(?:json)?\s*|\s*```/g, '').trim();
+      return questionSchema.parse(JSON.parse(cleaned));
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.warn(`[generate] ${attempt.label} failed:`, msg);
