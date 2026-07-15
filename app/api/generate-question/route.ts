@@ -1,9 +1,56 @@
 import { NextResponse } from 'next/server';
+import { createOpenAI } from '@ai-sdk/openai';
 import { google } from '@ai-sdk/google';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
 import { getGenerateSystemPrompt } from '@/lib/prompts';
+
+const groq = createOpenAI({
+  baseURL: 'https://api.groq.com/openai/v1',
+  apiKey: process.env.GROQ_API_KEY,
+});
+
+/**
+ * Try each model provider in sequence until one succeeds.
+ * Falls back through: Groq 70B → Groq 8B → Google Gemini Flash (if key configured).
+ */
+async function tryGenerateWithFallbacks(
+  system: string,
+  prompt: string,
+): Promise<z.infer<typeof questionSchema>> {
+  const attempts = [
+    { model: groq('llama-3.3-70b-versatile'), label: 'Groq Llama 3.3 70B', temp: 0.4 },
+    { model: groq('llama-3.1-8b-instant'), label: 'Groq Llama 3.1 8B', temp: 0.4 },
+  ];
+
+  // Only add Google fallback if the user has configured a key
+  if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    attempts.push({ model: google('gemini-2.5-flash'), label: 'Google Gemini 2.5 Flash', temp: 0.4 });
+  }
+
+  const errors: string[] = [];
+  for (const attempt of attempts) {
+    try {
+      const result = await generateObject({
+        model: attempt.model,
+        schema: questionSchema,
+        system,
+        prompt,
+        temperature: attempt.temp,
+      });
+      return result.object;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[generate] ${attempt.label} failed:`, msg);
+      errors.push(`${attempt.label}: ${msg}`);
+    }
+  }
+
+  throw new Error(
+    `All AI providers failed to generate a question.\n${errors.join('\n')}`,
+  );
+}
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -31,9 +78,9 @@ export async function POST(request: Request) {
       userId?: string;
     };
 
-    if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    if (!process.env.GROQ_API_KEY && !process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
       return NextResponse.json(
-        { error: 'GOOGLE_GENERATIVE_AI_API_KEY not configured on server.' },
+        { error: 'AI generation unavailable — no API keys configured. Please contact the developer.' },
         { status: 500 },
       );
     }
@@ -45,36 +92,13 @@ export async function POST(request: Request) {
     // Skill-track-aware system prompt — sources are designed to test the selected skill
     const systemPrompt = getGenerateSystemPrompt(resolvedSubject, resolvedTopic, resolvedQuestionType);
 
-    let object: z.infer<typeof questionSchema>;
-    try {
-      const result = await generateObject({
-        // Generation uses Flash (creative/cheap) — Pro not needed for source creation
-        model: google('gemini-2.5-flash'),
-        schema: questionSchema,
-        system: systemPrompt,
-        prompt: `
-Generate one complete O-Level ${resolvedSubject} stimulus package on the topic "${resolvedTopic}".
+    const object = await tryGenerateWithFallbacks(
+      systemPrompt,
+      `Generate one complete O-Level ${resolvedSubject} stimulus package on the topic "${resolvedTopic}".
 Skill track: ${resolvedQuestionType}.
 
-The sources must be designed specifically to test the ${resolvedQuestionType} skill.
-        `.trim(),
-        temperature: 0.4, // Lower temp for more consistent exam-standard materials
-      });
-      object = result.object;
-    } catch (genErr) {
-      console.warn('Primary generation failed, retrying with fallback:', genErr);
-      const result = await generateObject({
-        model: google('gemini-2.5-flash'),
-        schema: questionSchema,
-        system: systemPrompt,
-        prompt: `
-Generate one complete O-Level ${resolvedSubject} stimulus package on the topic "${resolvedTopic}".
-Skill track: ${resolvedQuestionType}.
-        `.trim(),
-        temperature: 0.6,
-      });
-      object = result.object;
-    }
+The sources must be designed specifically to test the ${resolvedQuestionType} skill.`.trim(),
+    );
 
     // Persist for sidebar history
     if (userId && process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -103,6 +127,9 @@ Skill track: ${resolvedQuestionType}.
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown generation error';
     console.error('generate-question failed:', message);
-    return NextResponse.json({ error: message }, { status: 500 });
+    const userMessage = error instanceof Error
+      ? `Question generation failed: ${error.message}`
+      : 'Question generation ran into an issue. Please try again.';
+    return NextResponse.json({ error: userMessage }, { status: 500 });
   }
 }

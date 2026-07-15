@@ -1,10 +1,57 @@
 import { NextResponse } from 'next/server';
+import { createOpenAI } from '@ai-sdk/openai';
 import { google } from '@ai-sdk/google';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
 import { getGradeSystemPrompt, getGradeUserPrompt } from '@/lib/prompts';
 import { getXpForLevel, getLevelTitle, DAILY_GOAL_BONUS_XP, getStreakBonus, calculateXpDecay, checkNewAchievements } from '@/lib/gamification';
+
+const groq = createOpenAI({
+  baseURL: 'https://api.groq.com/openai/v1',
+  apiKey: process.env.GROQ_API_KEY,
+});
+
+/**
+ * Try each model provider in sequence until one succeeds.
+ * Falls back through: Groq 70B → Groq 8B → Google Gemini Flash (if key configured).
+ */
+async function tryGradeWithFallbacks(
+  system: string,
+  prompt: string,
+): Promise<z.infer<typeof evaluationSchema>> {
+  const attempts = [
+    { model: groq('llama-3.3-70b-versatile'), label: 'Groq Llama 3.3 70B', temp: 0.2 },
+    { model: groq('llama-3.1-8b-instant'), label: 'Groq Llama 3.1 8B', temp: 0.2 },
+  ];
+
+  // Only add Google fallback if the user has configured a key
+  if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    attempts.push({ model: google('gemini-2.5-flash'), label: 'Google Gemini 2.5 Flash', temp: 0.2 });
+  }
+
+  const errors: string[] = [];
+  for (const attempt of attempts) {
+    try {
+      const result = await generateObject({
+        model: attempt.model,
+        schema: evaluationSchema,
+        system,
+        prompt,
+        temperature: attempt.temp,
+      });
+      return result.object;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[grade] ${attempt.label} failed:`, msg);
+      errors.push(`${attempt.label}: ${msg}`);
+    }
+  }
+
+  throw new Error(
+    `All AI providers failed to grade.\n${errors.join('\n')}`,
+  );
+}
 
 export const runtime = 'nodejs';
 export const maxDuration = 90;
@@ -138,9 +185,9 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    if (!process.env.GROQ_API_KEY && !process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
       return NextResponse.json(
-        { error: 'GOOGLE_GENERATIVE_AI_API_KEY not configured on server.' },
+        { error: 'AI grading unavailable — no API keys configured. Please contact the developer.' },
         { status: 500 },
       );
     }
@@ -172,28 +219,8 @@ export async function POST(request: Request) {
       srqAnswer,
     });
 
-    // ── Grade with Gemini 2.5 Pro; fall back to Flash ──
-    let evaluation: z.infer<typeof evaluationSchema>;
-    try {
-      const result = await generateObject({
-        model: google('gemini-2.5-pro'),
-        schema: evaluationSchema,
-        system: systemPrompt,
-        prompt: userPrompt,
-        temperature: 0.2,
-      });
-      evaluation = result.object;
-    } catch (proErr) {
-      console.warn('Falling back to gemini-2.5-flash (pro unavailable):', proErr);
-      const result = await generateObject({
-        model: google('gemini-2.5-flash'),
-        schema: evaluationSchema,
-        system: systemPrompt,
-        prompt: userPrompt,
-        temperature: 0.2,
-      });
-      evaluation = result.object;
-    }
+    // ── Grade with fallback chain: Groq 70B → Groq 8B → Gemini Flash ──
+    const evaluation = await tryGradeWithFallbacks(systemPrompt, userPrompt);
 
     // ── Cache the response ──
     responseCache.set(cacheKey, {
@@ -386,6 +413,9 @@ export async function POST(request: Request) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown grading error';
     console.error('grade failed:', message);
-    return NextResponse.json({ error: message }, { status: 500 });
+    const userMessage = error instanceof Error
+      ? `Grading failed: ${error.message}`
+      : 'Grading ran into an issue. Please try again.';
+    return NextResponse.json({ error: userMessage }, { status: 500 });
   }
 }
