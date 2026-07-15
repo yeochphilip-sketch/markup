@@ -12,9 +12,37 @@
 const CHAIN_OF_THOUGHT = `
 ## RUBRIC RESOLUTION — Step-by-Step
 
-Before assigning a score, walk through each LORMS level explicitly:
+### MANDATORY STEP 0 — QUALITY GATE (MUST run FIRST, before any LORMS check)
 
-Step 1 — Determine L1 eligibility: Does the answer meet the minimum criteria for L1?
+Before even looking at the LORMS rubric, check if the student's answer is VALID CONTENT:
+
+**Reject as "Invalid" if ANY of these are true:**
+- The answer consists ONLY of numbers, symbols, or special characters (e.g., "123456789", "!!!!!!", "@@@")
+- The answer is a single character, word, or letter repeated (e.g., "aaaaaa", "asdfasdf", "testtesttest")
+- The answer is gibberish, keyboard mashing, or random characters (e.g., "fjdksla", "qwertyuiop", "xczxv")
+- The answer has fewer than 12 meaningful English words AND does not form a coherent sentence related to the question (numbers and symbols don't count as words)
+- The answer clearly does not address the question at all (completely off-topic)
+- The answer is a direct copy of the question with no original content
+- The answer contains no meaningful subject-specific vocabulary or concepts
+
+If the answer fails the quality gate, IMMEDIATELY set:
+- scoreLevel: "L0"
+- scoreMarks: 0
+- scoreMaxMarks: 0
+- scoreLabel: "L0 — Invalid / Nonsensical content"
+- pointStatus: "Fail"
+- evidenceStatus: "Fail"
+- critique: ["Your answer does not contain valid written content for assessment. Please submit a genuine attempt."]
+- highlightedSegments: [{"text": [first 50 chars of answer], "type": "error"}]
+- a1Upgrade: "[No model answer available — the submitted response was not valid written content.]"
+- gradingConfidence: 0.99
+- modelAnswerConfidence: 0.99
+
+DO NOT proceed to LORMS evaluation if the quality gate fails. Return the rejection immediately.
+
+### If the answer passes the quality gate, proceed to LORMS rubric resolution:
+
+Step 1 — Determine L1 eligibility: Does the answer make ANY relevant point that connects to the question?
 Step 2 — Determine L2 eligibility: Does the answer satisfy ALL requirements for L2?
 Step 3 — Determine L3 eligibility: Does the answer satisfy ALL requirements for L3?
 Step 4 — Determine L4 eligibility (if applicable): Does the answer satisfy ALL requirements for L4?
@@ -42,13 +70,28 @@ Be honest — low confidence is better than a false score.
 `;
 
 const QUALITY_RULES = `
-## QUALITY REJECTION RULES
+## QUALITY REJECTION RULES — STRICT ENFORCEMENT
 
-If the answer is:
-- Gibberish / nonsensical text: Set scoreEstimate to "Invalid — gibberish detected", confidence to 0.1
-- Off-topic (does not address the question): Set scoreEstimate to "L0 — Off-topic", confidence to 0.3
-- Too short to grade (< 20 words): Set scoreEstimate to "L0 — Insufficient content", confidence to 0.2
+You MUST apply these rules BEFORE any LORMS evaluation. The quality gate in Step 0 is MANDATORY.
+
+### Explicitly REJECT (score "L0 — Invalid" with 0 marks):
+- Numeric-only answers: Any answer consisting entirely of digits (e.g., "123", "987654321")
+- Repeated characters: Single letter/number repeated 3+ times (e.g., "aaaa", "!!!!", "......")
+- Keyboard patterns: "qwerty", "asdf", "zxcvb", "test" repeated
+- Single words submitted as full answer: e.g., "Yes", "No", "Maybe", "Idk", "Good"
+- Random letters: Non-word character sequences (e.g., "fjdksl", "xmncvg")
+- Internet/chat slang: "lol", "idk", "tbh" without elaboration
+- Copy-pasted question: Exactly repeating the question prompt as the answer
+- Blank/whitespace-only: Empty or whitespace-only submissions MUST be rejected
+
+### Apply L0 with lower confidence for:
+- Under 10 words: Unless those words form a valid analytical sentence, flag as "L0 — Insufficient content"
+- Off-topic: Answer that doesn't engage with the question's requirements
+- Vague generalities: Answers that could apply to any question (e.g., "It depends on the situation")
+
+### Other rules:
 - Only one section submitted while others are empty: Grade ONLY the submitted sections; do not penalize for missing sections.
+- If the student clearly attempted the question but wrote very little (< 20 words of actual analysis), assign L1 with a note.
 `;
 
 const EMPTY_SECTION_LABEL = '[This section was not submitted by the student — omit from grading.]';
@@ -62,7 +105,7 @@ const SS_COMPARISON_LORMS = `
 
 | Level | Descriptor | Marks |
 |-------|------------|-------|
-| L1 | False matching — describes sources separately without comparing them | 1 |
+| L1 | Describes surface content from sources without meaningful comparison — may state unrelated facts or make simplistic observations. Must contain actual source-relevant content to qualify. | 1 |
 | L2 | Similarity OR Difference identified based on surface/sub-feature details | 2–3 |
 | L3 | Similarity AND Difference identified based on sub-features OR valid matching of content/core message | 4 |
 | L4 | Similarity AND Difference identified based on matching of core message with clear evidence from BOTH sources | 5 |
@@ -76,7 +119,7 @@ const SS_INFERENCE_LORMS = `
 
 | Level | Descriptor | Marks |
 |-------|------------|-------|
-| L1 | Surface information identified from one source — what the source literally says | 1 |
+| L1 | Surface information identified from one source — must reference actual source content, not gibberish. | 1 |
 | L2 | Inferred message/purpose identified from BOTH sources — what the source implies or suggests beyond the surface | 2 |
 
 **Key distinction:** L1 repeats what the source says. L2 reads between the lines — the author's message, purpose, or attitude.
@@ -87,7 +130,7 @@ const SS_PURPOSE_LORMS = `
 
 | Level | Descriptor | Marks |
 |-------|------------|-------|
-| L1 | Identifies purpose of ONE source at a single point in time | 1 |
+| L1 | Identifies purpose of ONE source — must reference actual source content, not placeholder text. | 1 |
 | L2 | Identifies purpose of BOTH sources independently | 2–3 |
 | L3 | Explains HOW or WHY the purpose/motive changed or evolved between the two sources, with evidence from each | 4 |
 
@@ -99,7 +142,7 @@ const SS_UTILITY_LORMS = `
 
 | Level | Descriptor | Marks |
 |-------|------------|-------|
-| L1 | States source is useful / not useful without justification | 1 |
+| L1 | States source is useful / not useful without justification — must reference actual source content, not gibberish. | 1 |
 | L2 | Assesses reliability or usefulness based on provenance alone (author, date, type of source) | 2–3 |
 | L3 | Evaluates utility by considering BOTH content value AND provenance limitations | 4 |
 | L4 | Evaluates utility with cross-referencing — compares what each source reveals AND conceals, with a balanced judgment | 5 |
@@ -112,7 +155,7 @@ const SS_SYNTHESIS_LORMS = `
 
 | Level | Descriptor | Marks |
 |-------|------------|-------|
-| L1 | Simple agreement or disagreement with the assertion — no evidence | 1 |
+| L1 | Simple agreement or disagreement with the assertion — no evidence. Must contain actual argument, not gibberish. | 1 |
 | L2 | Supports position using evidence from ONE source | 2–3 |
 | L3 | Cross-references BOTH sources to support a nuanced position | 4 |
 | L4 | Synthesises with evaluation of source strengths/limitations, reaching a well-supported judgment | 5 |
@@ -123,7 +166,7 @@ const SS_SEQ_LORMS = `
 
 | Level | Descriptor | Marks |
 |-------|------------|-------|
-| L1 | Descriptive answer — states facts without explanation. No clear structure. | 1–2 |
+| L1 | Descriptive answer — states facts without explanation. No clear structure. Must contain actual subject content to qualify. | 1–2 |
 | L2 | One-sided explanation — identifies ONE factor/reason with some supporting evidence. Basic PEEL attempt. | 3–4 |
 | L3 | Multi-factor explanation — identifies TWO or more factors with good evidence for each. Clear PEEL structure. | 5–6 |
 | L4 | Sophisticated balanced analysis — evaluates multiple factors, weighs their relative importance, reaches a substantiated conclusion. Mature PEEL throughout. | 7–8 |
@@ -138,7 +181,7 @@ const HIST_COMPARISON_LORMS = `
 
 | Level | Descriptor | Marks |
 |-------|------------|-------|
-| L1 | Describes sources separately — no comparison attempted | 1 |
+| L1 | Describes sources separately — no comparison attempted. Must reference actual historical content. | 1 |
 | L2 | Similarity OR Difference identified based on content | 2–3 |
 | L3 | Similarity AND Difference identified based on content AND provenance | 4 |
 | L4 | Similarity AND Difference with evaluation — explains WHY sources differ (different perspectives, contexts, purposes) | 5 |
@@ -149,7 +192,7 @@ const HIST_INFERENCE_LORMS = `
 
 | Level | Descriptor | Marks |
 |-------|------------|-------|
-| L1 | Surface information from source — factual recall | 1 |
+| L1 | Surface information from source — factual recall. Must reference actual source content, not gibberish. | 1 |
 | L2 | Inferred meaning — what the source reveals about the historical context, author's perspective, or underlying message | 2 |
 `;
 
@@ -158,7 +201,7 @@ const HIST_RELIABILITY_LORMS = `
 
 | Level | Descriptor | Marks |
 |-------|------------|-------|
-| L1 | States source is reliable/unreliable without justification | 1 |
+| L1 | States source is reliable/unreliable without justification. Must reference actual source content. | 1 |
 | L2 | Assesses reliability based on provenance — author, date, type, motive | 2–3 |
 | L3 | Assesses reliability by cross-referencing content with another source — corroboration or contradiction | 4 |
 | L4 | Comprehensive reliability evaluation — provenance + cross-referencing + considers typical limitations (bias, exaggeration, omission) | 5 |
@@ -169,7 +212,7 @@ const HIST_UTILITY_LORMS = `
 
 | Level | Descriptor | Marks |
 |-------|------------|-------|
-| L1 | States source is useful/not useful — no reasoning | 1 |
+| L1 | States source is useful/not useful — no reasoning. Must reference actual source content. | 1 |
 | L2 | Assesses utility for a specific purpose based on content | 2–3 |
 | L3 | Evaluates utility considering BOTH content value AND provenance limitations | 4 |
 | L4 | Nuanced utility judgment — what the source reveals for ONE inquiry AND conceals for ANOTHER, with a final balanced assessment | 5 |
@@ -180,7 +223,7 @@ const HIST_PURPOSE_LORMS = `
 
 | Level | Descriptor | Marks |
 |-------|------------|-------|
-| L1 | Identifies author or audience of ONE source | 1 |
+| L1 | Identifies author or audience of ONE source. Must reference actual source content. | 1 |
 | L2 | Identifies purpose of ONE source with evidence | 2 |
 | L3 | Identifies purpose of BOTH sources with evidence | 3 |
 | L4 | Compares purposes — explains why each author had a different purpose based on their historical context | 4 |
@@ -191,7 +234,7 @@ const HIST_SEQ_LORMS = `
 
 | Level | Descriptor | Marks |
 |-------|------------|-------|
-| L1 | Mentions factors without explanation — narrative/descriptive | 1–2 |
+| L1 | Mentions factors without explanation — narrative/descriptive. Must contain actual historical content. | 1–2 |
 | L2 | Explains ONE factor with some historical evidence | 3–4 |
 | L3 | Explains TWO or MORE factors with specific historical evidence for each | 5–6 |
 | L4 | Evaluates and prioritises factors — weighs relative importance, reaches a substantiated judgment on which factor was MOST significant | 7–8 |
@@ -253,6 +296,45 @@ const SS_INFERENCE_EXAMPLES: FewShotExample[] = [
     ],
     confidence: 0.88,
     a1Upgrade: 'Surface level: Source A states that "new schools were constructed in rural districts." Inferred message: The government\'s decision to prioritise rural education implies it recognised a gap in rural infrastructure and was attempting to address regional inequality — or possibly to secure political loyalty from rural communities. This suggests the government was not merely building schools, but actively shaping its base of support through educational access.',
+  },
+];
+
+const INVALID_CONTENT_EXAMPLES: FewShotExample[] = [
+  {
+    level: 'L0',
+    studentAnswer: '123456789',
+    scoreEstimate: 'L0 — Invalid: numeric-only content (not a valid written response)',
+    critique: [
+      'Your submission consists entirely of numbers, which is not a valid written answer.',
+      'A genuine O-Level response should contain sentences with subject-specific analysis and evidence.',
+      'Please write a proper answer addressing the question prompt.',
+    ],
+    confidence: 0.99,
+    a1Upgrade: 'No model answer can be provided because the submitted content is not a valid written response.',
+  },
+  {
+    level: 'L0',
+    studentAnswer: 'asdfghjkl',
+    scoreEstimate: 'L0 — Invalid: keyboard gibberish (not a valid written response)',
+    critique: [
+      'Your submission is keyboard gibberish, not a valid written answer.',
+      'A genuine attempt must contain coherent sentences relevant to the question.',
+      'Please submit a proper analytical response.',
+    ],
+    confidence: 0.99,
+    a1Upgrade: 'No model answer available — the submitted response was not valid written content.',
+  },
+  {
+    level: 'L0',
+    studentAnswer: 'test test test test test',
+    scoreEstimate: 'L0 — Invalid: repeated placeholder content (not a genuine attempt)',
+    critique: [
+      'Your submission consists of a repeated placeholder word, not a genuine analytical response.',
+      'A proper answer should demonstrate understanding of the subject matter and address the question.',
+      'Please write a thoughtful response based on the sources and your knowledge.',
+    ],
+    confidence: 0.99,
+    a1Upgrade: 'No model answer available — the submitted response was not a genuine attempt.',
   },
 ];
 
@@ -566,25 +648,29 @@ function getLormsMatrix(questionType: string, subject: string): string {
 function getFewShotExamples(questionType: string, subject: string): FewShotExample[] {
   const type = questionType.toLowerCase();
 
+  // Always prepend invalid content examples so the model learns to reject gibberish first
+  const invalidExamples = INVALID_CONTENT_EXAMPLES;
+
+  let skillExamples: FewShotExample[];
+
   if (subject === 'Elective History') {
-    // Historical students using AO3 rubrics — examples are calibrated to History contexts
-    if (type.includes('comparison') || type.includes('contrast')) return HIST_COMPARISON_EXAMPLES;
-    if (type.includes('inference') || type.includes('message')) return HIST_INFERENCE_EXAMPLES;
-    if (type.includes('reliability') || type.includes('cross-ref')) return HIST_RELIABILITY_EXAMPLES;
-    // Default for other History skills — use comparison examples
-    if (type.includes('seq') || type.includes('essay') || type.includes('factor')) return HIST_SEQ_EXAMPLES;
-    return HIST_COMPARISON_EXAMPLES;
+    if (type.includes('comparison') || type.includes('contrast')) skillExamples = HIST_COMPARISON_EXAMPLES;
+    else if (type.includes('inference') || type.includes('message')) skillExamples = HIST_INFERENCE_EXAMPLES;
+    else if (type.includes('reliability') || type.includes('cross-ref')) skillExamples = HIST_RELIABILITY_EXAMPLES;
+    else if (type.includes('seq') || type.includes('essay') || type.includes('factor')) skillExamples = HIST_SEQ_EXAMPLES;
+    else skillExamples = HIST_COMPARISON_EXAMPLES;
+  } else {
+    if (type.includes('comparison') || type.includes('contrast')) skillExamples = SS_COMPARISON_EXAMPLES;
+    else if (type.includes('inference') || type.includes('message')) skillExamples = SS_INFERENCE_EXAMPLES;
+    else if (type.includes('purpose') || type.includes('motive')) skillExamples = SS_PURPOSE_EXAMPLES;
+    else if (type.includes('utility') || type.includes('reliability')) skillExamples = SS_UTILITY_EXAMPLES;
+    else if (type.includes('synthesis') || type.includes('assertion') || type.includes('matrix')) skillExamples = SS_SYNTHESIS_EXAMPLES;
+    else if (type.includes('seq') || type.includes('essay') || type.includes('srq')) skillExamples = SS_SEQ_EXAMPLES;
+    else skillExamples = SS_COMPARISON_EXAMPLES;
   }
 
-  if (type.includes('comparison') || type.includes('contrast')) return SS_COMPARISON_EXAMPLES;
-  if (type.includes('inference') || type.includes('message')) return SS_INFERENCE_EXAMPLES;
-  if (type.includes('purpose') || type.includes('motive')) return SS_PURPOSE_EXAMPLES;
-  if (type.includes('utility') || type.includes('reliability')) return SS_UTILITY_EXAMPLES;
-  if (type.includes('synthesis') || type.includes('assertion') || type.includes('matrix')) return SS_SYNTHESIS_EXAMPLES;
-  if (type.includes('seq') || type.includes('essay') || type.includes('srq')) return SS_SEQ_EXAMPLES;
-
-  // Default for other skills — use comparison examples since they have the richest structure
-  return SS_COMPARISON_EXAMPLES;
+  // Return invalid examples first, then skill-specific examples
+  return [...invalidExamples, ...skillExamples];
 }
 
 function formatFewShotSection(examples: FewShotExample[]): string {
@@ -657,13 +743,14 @@ ${QUALITY_RULES}
 
 ## OUTPUT RULES
 
+0. **YOU MUST RUN THE QUALITY GATE (Step 0 in RUBRIC RESOLUTION) FIRST.** If the answer is invalid, return the rejection immediately and skip all following rules.
 1. Evaluate ONLY the rubric that applies to the selected skill track (${questionType}).
 2. If the skill track is "All Formats", evaluate each section against its own rubric AND provide an overall combined score. Output sbcsScore, seqScore, and srqScore with each section's level, marks, maxMarks, and a brief label.
 3. The \`critique\` array should contain 3–8 specific, actionable bullet points.
 4. The \`a1Upgrade\` should be a complete rewritten answer demonstrating A1 standard.
 5. Each \`highlightedSegment\` must include the exact text from the student's answer.
 6. Be encouraging, professional, and diagnostic — no generic fluff.
-7. If the student wrote less than 20 words total across all submitted sections, flag as "L0 — Insufficient content".
+7. Under 12 words of actual content → flag as "L0 — Insufficient content" (quality gate applies). 12+ words but not a coherent analytical argument → L1 maximum with note.
 8. Output a \`confidence\` score between 0.0 and 1.0.
 `.trim();
 }
