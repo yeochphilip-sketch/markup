@@ -136,6 +136,14 @@ export default function DashboardPage() {
   const [ssGoalLevel, setSsGoalLevel] = useState<string | null>(null);
   const [historyGoalLevel, setHistoryGoalLevel] = useState<string | null>(null);
   const [takesHistory, setTakesHistory] = useState(false);
+  const [errorToast, setErrorToast] = useState<{ message: string; type: 'error' | 'warning' } | null>(null);
+  const errorToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showErrorToast = useCallback((message: string, type: 'error' | 'warning' = 'error') => {
+    if (errorToastTimerRef.current) clearTimeout(errorToastTimerRef.current);
+    setErrorToast({ message, type });
+    errorToastTimerRef.current = setTimeout(() => setErrorToast(null), 5000);
+  }, []);
 
   const [timeLeft, setTimeLeft] = useState(1200); 
   const [isTimerActive, setIsTimerActive] = useState(false);
@@ -372,6 +380,10 @@ export default function DashboardPage() {
           questionType: selectedSkill 
         }),
       });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ error: 'API returned ' + res.status }));
+        throw new Error(errData.error || 'Generation failed (API ' + res.status + ')');
+      }
       const data = await res.json();
       
       setChallenge({
@@ -414,6 +426,9 @@ export default function DashboardPage() {
       }
     } catch (err) {
       console.error(err);
+      showErrorToast(
+        err instanceof Error ? err.message : 'Generation failed. Check your API key and try again.'
+      );
     } finally {
       setIsGenerating(false);
     }
@@ -441,6 +456,10 @@ export default function DashboardPage() {
           questionId: currentChallengeId,
         }),
       });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ error: 'Grading API returned ' + res.status }));
+        throw new Error(errData.error || 'Grading failed (API ' + res.status + ')');
+      }
       const data = await res.json();
       
       setEvaluation({
@@ -520,12 +539,15 @@ export default function DashboardPage() {
         setStreakData(prev => ({ ...prev, current: prev.current + 1 }));
       }
 
-      setHasScanned(true);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsGrading(false);
-    }
+      setHasScanned(true);      } catch (err) {
+        console.error(err);
+        showErrorToast(
+          err instanceof Error ? err.message : 'Grading failed. Please try again.'
+        );
+        setHasScanned(false);
+      } finally {
+        setIsGrading(false);
+      }
   };
 
   const handlePasteFromClipboard = async (target: 'sbcs' | 'seq' | 'srq') => {
@@ -577,9 +599,9 @@ export default function DashboardPage() {
     setHasScanned(false);
     setIsExemplarOpen(false);
     setChallenge({
-      backgroundContext: item.background_context,
+      backgroundContext: item.background_context || '',
       sourceAProvenance: item.source_a_provenance || 'Source A Context:',
-      sourceA: item.source_a,
+      sourceA: item.source_a || '',
       sourceBProvenance: item.source_b_provenance || 'Source B Context:',
       sourceB: item.source_b,
       questionPrompt: item.question_prompt,
@@ -629,7 +651,7 @@ export default function DashboardPage() {
   };
 
   const emailInitial = userEmail ? userEmail.charAt(0).toUpperCase() : 'S';
-  const isQuestionPromptInactive = challenge.backgroundContext.includes('Click Generate Practice');
+  const isQuestionPromptInactive = (challenge.backgroundContext ?? '').includes('Click Generate Practice');
 
   if (isAuthLoading) {
     return (
@@ -1412,6 +1434,55 @@ export default function DashboardPage() {
         >
           <div className="bg-emerald-900/30 border border-emerald-500/30 rounded-xl p-3 shadow-lg">
             <p className="text-[10px] text-emerald-400 font-bold">✅ Daily Goal +{dailyGoalBonus} XP</p>
+          </div>
+        </div>
+      )}
+
+      {/* Error Toast — shows on generation or grading failure */}
+      {errorToast && (
+        <div
+          className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-right-5 fade-in duration-300 cursor-pointer max-w-sm"
+          onClick={() => {
+            if (errorToastTimerRef.current) clearTimeout(errorToastTimerRef.current);
+            setErrorToast(null);
+          }}
+        >
+          <div className={`rounded-2xl p-4 shadow-2xl border backdrop-blur-xl flex items-start gap-3 ${
+            errorToast.type === 'error'
+              ? 'bg-rose-950/80 border-rose-500/30'
+              : 'bg-amber-950/80 border-amber-500/30'
+          }`}>
+            <span className="text-lg mt-0.5 shrink-0">
+              {errorToast.type === 'error' ? '⚠️' : '💡'}
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className={`text-[11px] font-bold ${
+                errorToast.type === 'error' ? 'text-rose-300' : 'text-amber-300'
+              }`}>
+                {errorToast.type === 'error' ? 'Error' : 'Warning'}
+              </p>
+              <p className="text-xs text-slate-300 mt-0.5 leading-relaxed break-words">
+                {errorToast.message}
+              </p>
+            </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (errorToastTimerRef.current) clearTimeout(errorToastTimerRef.current);
+                setErrorToast(null);
+              }}
+              className="text-slate-500 hover:text-white transition shrink-0 text-sm font-bold"
+            >
+              ✕
+            </button>
+          </div>
+          {/* Progress bar countdown */}
+          <div className="h-0.5 bg-slate-800/50 rounded-full mt-1 overflow-hidden">
+            <div
+              className={`h-full rounded-full animate-shrink-width ${
+                errorToast.type === 'error' ? 'bg-rose-500' : 'bg-amber-500'
+              }`}
+            />
           </div>
         </div>
       )}
