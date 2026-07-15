@@ -181,6 +181,9 @@ CREATE TABLE public.user_skill_metrics (
     total_evaluations   INTEGER DEFAULT 0,
     total_xp_decayed    INTEGER DEFAULT 0,
     last_decay_check_date DATE,
+    -- Personalized reminder timing
+    last_active_at         TIMESTAMP WITH TIME ZONE,
+    last_reminder_sent_at  DATE,
     -- Exam goals (per-subject)
     exam_goal_level     TEXT,
     exam_date           DATE,

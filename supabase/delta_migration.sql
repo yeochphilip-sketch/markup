@@ -230,6 +230,12 @@ ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS total_evaluations
 ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS total_xp_decayed      INTEGER DEFAULT 0;
 ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS last_decay_check_date  DATE;
 
+-- ════════════════════════════════════════════════════════════
+--  Personalized reminder columns
+-- ════════════════════════════════════════════════════════════
+ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS last_active_at         TIMESTAMP WITH TIME ZONE;
+ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS last_reminder_sent_at   DATE;
+
 -- Ensure UNIQUE on user_id (for ON CONFLICT in seed query)
 DO $$ BEGIN
     IF NOT EXISTS (

@@ -492,6 +492,9 @@ export default function DashboardPage() {
       loadUserMetrics(user.id);
       loadHistoryLogs(user.id, 0, false);
       setIsAuthLoading(false);
+
+      // ── Send heartbeat to track last_active_at for personalized reminders ──
+      sendHeartbeat(user.id);
     }
 
     forceRetrieveSession();
@@ -504,8 +507,37 @@ export default function DashboardPage() {
 
     return () => {
       subscription.unsubscribe();
+      if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
     };
   }, []);
+
+  // ── Heartbeat: ping every 5 min while dashboard is open ──
+  const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const sendHeartbeat = useCallback((uid: string) => {
+    // Fire-and-forget — never blocks the dashboard
+    fetch('/api/user/heartbeat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: uid }),
+    }).catch(() => {});
+  }, []);
+
+  // Set up periodic heartbeat once userId is known
+  useEffect(() => {
+    if (userId) {
+      // Ping every 5 minutes
+      heartbeatIntervalRef.current = setInterval(() => {
+        sendHeartbeat(userId);
+      }, 5 * 60 * 1000);
+    }
+    return () => {
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+        heartbeatIntervalRef.current = null;
+      }
+    };
+  }, [userId, sendHeartbeat]);
 
   const handleGenerateChallenge = async () => {
     setIsGenerating(true);
@@ -878,14 +910,41 @@ export default function DashboardPage() {
 
   if (isAuthLoading) {
     return (
-      <div className="min-h-screen bg-[#07090e] text-slate-400 font-mono flex items-center justify-center text-xs">
-        Verifying Security Shell Handshake...
+      <div className="min-h-screen bg-[#07090e] flex flex-col items-center justify-center gap-6">
+        {/* Logo */}
+        <h1 className="text-2xl font-black text-indigo-500 tracking-wider">MARKUP</h1>
+        {/* Skeleton grid */}
+        <div className="w-full max-w-4xl px-6 space-y-4 animate-pulse">
+          <div className="grid grid-cols-8 gap-4">
+            <div className="h-20 bg-slate-900 rounded-2xl col-span-2" />
+            <div className="h-20 bg-slate-900 rounded-2xl col-span-1" />
+            <div className="h-20 bg-slate-900 rounded-2xl col-span-1" />
+            <div className="h-20 bg-slate-900 rounded-2xl col-span-1" />
+            <div className="h-20 bg-slate-900 rounded-2xl col-span-3" />
+          </div>
+          <div className="grid grid-cols-6 gap-6">
+            <div className="h-96 bg-slate-900/50 rounded-2xl col-span-1" />
+            <div className="h-96 bg-slate-900/50 rounded-2xl col-span-2" />
+            <div className="h-96 bg-slate-900/50 rounded-2xl col-span-2" />
+            <div className="h-96 bg-slate-900/50 rounded-2xl col-span-1" />
+          </div>
+        </div>
+        <p className="text-[10px] text-slate-600 font-mono animate-pulse">Loading your dashboard...</p>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col font-sans relative selection:bg-indigo-500/30">
+      <style>{`
+        /* Hover micro-interactions */
+        .hover-lift { transition: transform 0.15s ease, box-shadow 0.15s ease; }
+        .hover-lift:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,0.1); }
+        .hover-glow:hover { filter: brightness(0.9) saturate(0.85); }
+        .hover-dim:hover { filter: brightness(0.85); }
+        @keyframes pulse-soft { 0%,100% { opacity: 1; } 50% { opacity: 0.7; } }
+        .animate-pulse-soft { animation: pulse-soft 2s ease-in-out infinite; }
+      `}</style>
       
       {/* Navigation Header */}
       <header className="border-b border-slate-900 px-6 py-4 flex items-center justify-between bg-slate-950/60 backdrop-blur-md relative z-40">          <div className="flex items-center gap-4">
@@ -1105,7 +1164,7 @@ export default function DashboardPage() {
         
         {/* Configurator Sidebar */}
         <div className="xl:col-span-1 flex flex-col space-y-4 overflow-y-auto pr-1">
-          <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-4 space-y-4">
+          <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-4 space-y-4 hover-lift">
             <h2 className="text-[10px] font-black tracking-widest text-slate-400 uppercase">Configurator</h2>
             
             {/* Subject Toggle Container */}
@@ -1207,21 +1266,29 @@ export default function DashboardPage() {
 
         {/* SCROLLABLE Source Material Columns Display Layout */}
         <div className="xl:col-span-2 space-y-4 max-h-[75vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800 select-text">
-          <div className="bg-slate-950/40 border border-slate-900 rounded-xl p-4 text-xs space-y-1">
+          <div className="bg-slate-950/40 border border-slate-900 rounded-xl p-4 text-xs space-y-1 hover-lift">
             <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">Contextual Background</span>
             <p className="text-slate-400 leading-relaxed select-text">{isCustomMode ? 'Analyze school assignment files.' : challenge.backgroundContext}</p>
           </div>
           
-          <div className="space-y-1.5">
-            <span className="text-[11px] font-bold text-slate-200 block select-text">{isCustomMode ? 'Source A Provenance' : challenge.sourceAProvenance}</span>
-            <div className="bg-transparent border border-slate-800 rounded-xl p-4 text-xs">
+          {/* Source A */}
+          <div className="space-y-1.5 hover-lift">
+            <div className="flex items-center gap-2">
+              <span className="text-[8px] font-black bg-indigo-600/20 text-indigo-400 px-2 py-0.5 rounded-full border border-indigo-500/30">Source A</span>
+              <span className="text-[11px] font-bold text-slate-200 block select-text">{isCustomMode ? 'Source A Provenance' : challenge.sourceAProvenance}</span>
+            </div>
+            <div className="bg-transparent border border-slate-800 rounded-xl p-4 text-xs transition hover:border-indigo-900/50 hover:bg-indigo-950/5">
               <p className="text-slate-300 leading-relaxed select-text whitespace-pre-line font-serif">{isCustomMode ? 'Paste school source texts here...' : challenge.sourceA}</p>
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <span className="text-[11px] font-bold text-slate-200 block select-text">{isCustomMode ? 'Source B Provenance' : challenge.sourceBProvenance}</span>
-            <div className="bg-transparent border border-slate-800 rounded-xl p-4 text-xs">
+          {/* Source B */}
+          <div className="space-y-1.5 hover-lift">
+            <div className="flex items-center gap-2">
+              <span className="text-[8px] font-black bg-indigo-600/20 text-indigo-400 px-2 py-0.5 rounded-full border border-indigo-500/30">Source B</span>
+              <span className="text-[11px] font-bold text-slate-200 block select-text">{isCustomMode ? 'Source B Provenance' : challenge.sourceBProvenance}</span>
+            </div>
+            <div className="bg-transparent border border-slate-800 rounded-xl p-4 text-xs transition hover:border-indigo-900/50 hover:bg-indigo-950/5">
               <p className="text-slate-300 leading-relaxed select-text whitespace-pre-line font-serif">{isCustomMode ? 'Reference document texts...' : challenge.sourceB}</p>
             </div>
           </div>
@@ -1233,25 +1300,34 @@ export default function DashboardPage() {
             </div>
           )}
           {challenge.isAllFormats && challenge.sourceC && (
-            <div className="space-y-1.5">
-              <span className="text-[11px] font-bold text-slate-200 block select-text">{challenge.sourceCProvenance || 'Source 3'}</span>
-              <div className="bg-transparent border border-slate-800 rounded-xl p-4 text-xs">
+            <div className="space-y-1.5 hover-lift">
+              <div className="flex items-center gap-2">
+                <span className="text-[8px] font-black bg-amber-600/20 text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/30">Source C</span>
+                <span className="text-[11px] font-bold text-slate-200 block select-text">{challenge.sourceCProvenance || 'Source 3'}</span>
+              </div>
+              <div className="bg-transparent border border-slate-800 rounded-xl p-4 text-xs transition hover:border-amber-900/50 hover:bg-amber-950/5">
                 <p className="text-slate-300 leading-relaxed select-text whitespace-pre-line font-serif">{challenge.sourceC}</p>
               </div>
             </div>
           )}
           {challenge.isAllFormats && challenge.sourceD && (
-            <div className="space-y-1.5">
-              <span className="text-[11px] font-bold text-slate-200 block select-text">{challenge.sourceDProvenance || 'Source 4'}</span>
-              <div className="bg-transparent border border-slate-800 rounded-xl p-4 text-xs">
+            <div className="space-y-1.5 hover-lift">
+              <div className="flex items-center gap-2">
+                <span className="text-[8px] font-black bg-amber-600/20 text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/30">Source D</span>
+                <span className="text-[11px] font-bold text-slate-200 block select-text">{challenge.sourceDProvenance || 'Source 4'}</span>
+              </div>
+              <div className="bg-transparent border border-slate-800 rounded-xl p-4 text-xs transition hover:border-amber-900/50 hover:bg-amber-950/5">
                 <p className="text-slate-300 leading-relaxed select-text whitespace-pre-line font-serif">{challenge.sourceD}</p>
               </div>
             </div>
           )}
           {challenge.isAllFormats && challenge.sourceE && (
-            <div className="space-y-1.5">
-              <span className="text-[11px] font-bold text-slate-200 block select-text">{challenge.sourceEProvenance || 'Source 5'}</span>
-              <div className="bg-transparent border border-slate-800 rounded-xl p-4 text-xs">
+            <div className="space-y-1.5 hover-lift">
+              <div className="flex items-center gap-2">
+                <span className="text-[8px] font-black bg-amber-600/20 text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/30">Source E</span>
+                <span className="text-[11px] font-bold text-slate-200 block select-text">{challenge.sourceEProvenance || 'Source 5'}</span>
+              </div>
+              <div className="bg-transparent border border-slate-800 rounded-xl p-4 text-xs transition hover:border-amber-900/50 hover:bg-amber-950/5">
                 <p className="text-slate-300 leading-relaxed select-text whitespace-pre-line font-serif">{challenge.sourceE}</p>
               </div>
             </div>
@@ -1334,6 +1410,10 @@ export default function DashboardPage() {
                       <p className="text-xs font-medium text-slate-300 bg-slate-900/40 p-2.5 rounded-lg border border-slate-800">{challenge.sbcsPrompt}</p>
                     )}
                     <textarea value={sbcsAnswer} onChange={(e) => setSbcsAnswer(e.target.value)} placeholder="Type source inference or comparison analysis here..." className="w-full min-h-[140px] bg-transparent text-slate-300 border border-slate-800 p-2.5 font-mono text-xs focus:outline-none focus:border-indigo-600 bg-slate-950 rounded-xl resize-none" />
+                    <div className="flex justify-between text-[8px] text-slate-600 font-mono px-1">
+                      <span>{sbcsAnswer.trim() ? `~${sbcsAnswer.trim().split(/\s+/).length} words` : ''}</span>
+                      <span>{sbcsAnswer.length} chars</span>
+                    </div>
                   </div>
 
                   {/* All Formats: Subject-specific sections */}
@@ -1407,6 +1487,10 @@ export default function DashboardPage() {
                         </div>
                         <p className="text-xs font-medium text-slate-300 bg-slate-900/40 p-2.5 rounded-lg border border-slate-800">{challenge.seqPrompt}</p>
                         <textarea value={seqAnswer} onChange={(e) => setSeqAnswer(e.target.value)} placeholder="Draft factor prioritization essay structure here..." className="w-full min-h-[140px] bg-transparent text-slate-300 border border-slate-800 p-2.5 font-mono text-xs focus:outline-none focus:border-indigo-600 bg-slate-950 rounded-xl resize-none" />
+                        <div className="flex justify-between text-[8px] text-slate-600 font-mono px-1">
+                          <span>{seqAnswer.trim() ? `~${seqAnswer.trim().split(/\s+/).length} words` : ''}</span>
+                          <span>{seqAnswer.length} chars</span>
+                        </div>
                       </div>
 
                       {/* SRQ Segment Block */}
@@ -1420,6 +1504,10 @@ export default function DashboardPage() {
                         </div>
                         <p className="text-xs font-medium text-slate-300 bg-slate-900/40 p-2.5 rounded-lg border border-slate-800">{challenge.srqPrompt}</p>
                         <textarea value={srqAnswer} onChange={(e) => setSrqAnswer(e.target.value)} placeholder="State your assertions and balanced evaluation judgments here..." className="w-full min-h-[140px] bg-transparent text-slate-300 border border-slate-800 p-2.5 font-mono text-xs focus:outline-none focus:border-indigo-600 bg-slate-950 rounded-xl resize-none" />
+                        <div className="flex justify-between text-[8px] text-slate-600 font-mono px-1">
+                          <span>{srqAnswer.trim() ? `~${srqAnswer.trim().split(/\s+/).length} words` : ''}</span>
+                          <span>{srqAnswer.length} chars</span>
+                        </div>
                       </div>
                     </>
                   )}
@@ -1441,9 +1529,20 @@ export default function DashboardPage() {
             {(!isQuestionPromptInactive || isCustomMode) && (
               <button 
                 onClick={() => { setIsTimerActive(!isTimerActive); if(timeLeft === 0) setTimeLeft(1200); }}
-                className={`px-4 rounded-xl text-xs font-mono font-bold transition whitespace-nowrap border ${isTimerActive ? 'bg-amber-600 border-amber-500 text-white' : 'bg-slate-950 border-slate-900 text-slate-400 hover:text-slate-200'}`}
+                className={`px-4 rounded-xl text-xs font-mono font-bold transition whitespace-nowrap border hover-glow ${
+                  isTimerActive
+                    ? timeLeft <= 60
+                      ? 'bg-rose-600 border-rose-500 text-white animate-pulse'
+                      : timeLeft <= 300
+                        ? 'bg-amber-600 border-amber-500 text-white'
+                        : 'bg-emerald-700 border-emerald-500 text-white'
+                    : 'bg-slate-950 border-slate-900 text-slate-400 hover:text-slate-200'
+                }`}
               >
                 ⏱️ {isTimerActive ? formatTime(timeLeft) : 'Start Timer'}
+                {isTimerActive && timeLeft <= 300 && (
+                  <span className="ml-1 text-[9px]">{timeLeft <= 60 ? 'CRITICAL' : `${Math.ceil(timeLeft/60)}m left`}</span>
+                )}
               </button>
             )}
             
