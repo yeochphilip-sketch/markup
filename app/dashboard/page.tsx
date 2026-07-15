@@ -139,22 +139,22 @@ export default function DashboardPage() {
   const [errorToast, setErrorToast] = useState<{ message: string; type: 'error' | 'warning' } | null>(null);
   const errorToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const errorToastStartRef = useRef(0);
-  const errorToastRemainingRef = useRef(5000);
+  const errorToastRemainingRef = useRef(12000);
   const dailyGoalToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dailyGoalToastStartRef = useRef(0);
-  const dailyGoalToastRemainingRef = useRef(5000);
+  const dailyGoalToastRemainingRef = useRef(12000);
   const levelUpTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const levelUpStartRef = useRef(0);
-  const levelUpRemainingRef = useRef(8000);
+  const levelUpRemainingRef = useRef(12000);
   const exemplarTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const exemplarStartRef = useRef(0);
-  const exemplarRemainingRef = useRef(8000);
+  const exemplarRemainingRef = useRef(12000);
   const achievementsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const achievementsStartRef = useRef(0);
-  const achievementsRemainingRef = useRef(8000);
+  const achievementsRemainingRef = useRef(12000);
   const leaderboardTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const leaderboardStartRef = useRef(0);
-  const leaderboardRemainingRef = useRef(8000);
+  const leaderboardRemainingRef = useRef(12000);
   const [hoveredNotif, setHoveredNotif] = useState<string | null>(null);
 
   // ── Pause / resume helpers ──
@@ -181,10 +181,10 @@ export default function DashboardPage() {
 
   const showErrorToast = useCallback((message: string, type: 'error' | 'warning' = 'error') => {
     if (errorToastTimerRef.current) clearTimeout(errorToastTimerRef.current);
-    errorToastRemainingRef.current = 5000;
+    errorToastRemainingRef.current = 12000;
     errorToastStartRef.current = Date.now();
     setErrorToast({ message, type });
-    errorToastTimerRef.current = setTimeout(() => setErrorToast(null), 5000);
+    errorToastTimerRef.current = setTimeout(() => setErrorToast(null), 12000);
   }, []);
 
   const reportError = useCallback((message: string) => {
@@ -268,9 +268,9 @@ export default function DashboardPage() {
   useEffect(() => {
     if (showDailyGoalToast && hoveredNotif !== 'daily') {
       if (dailyGoalToastTimerRef.current) clearTimeout(dailyGoalToastTimerRef.current);
-      dailyGoalToastRemainingRef.current = 5000;
+      dailyGoalToastRemainingRef.current = 12000;
       dailyGoalToastStartRef.current = Date.now();
-      dailyGoalToastTimerRef.current = setTimeout(() => setShowDailyGoalToast(false), 5000);
+      dailyGoalToastTimerRef.current = setTimeout(() => setShowDailyGoalToast(false), 12000);
     }
     return () => {
       if (dailyGoalToastTimerRef.current) clearTimeout(dailyGoalToastTimerRef.current);
@@ -281,9 +281,9 @@ export default function DashboardPage() {
   useEffect(() => {
     if (showLevelUp && hoveredNotif !== 'levelup') {
       if (levelUpTimerRef.current) clearTimeout(levelUpTimerRef.current);
-      levelUpRemainingRef.current = 8000;
+      levelUpRemainingRef.current = 12000;
       levelUpStartRef.current = Date.now();
-      levelUpTimerRef.current = setTimeout(() => setShowLevelUp(false), 8000);
+      levelUpTimerRef.current = setTimeout(() => setShowLevelUp(false), 12000);
     }
     return () => {
       if (levelUpTimerRef.current) clearTimeout(levelUpTimerRef.current);
@@ -294,9 +294,9 @@ export default function DashboardPage() {
   useEffect(() => {
     if (isExemplarOpen && hoveredNotif !== 'exemplar') {
       if (exemplarTimerRef.current) clearTimeout(exemplarTimerRef.current);
-      exemplarRemainingRef.current = 8000;
+      exemplarRemainingRef.current = 12000;
       exemplarStartRef.current = Date.now();
-      exemplarTimerRef.current = setTimeout(() => setIsExemplarOpen(false), 8000);
+      exemplarTimerRef.current = setTimeout(() => setIsExemplarOpen(false), 12000);
     }
     return () => {
       if (exemplarTimerRef.current) clearTimeout(exemplarTimerRef.current);
@@ -307,9 +307,9 @@ export default function DashboardPage() {
   useEffect(() => {
     if (isAchievementsOpen && hoveredNotif !== 'achievements') {
       if (achievementsTimerRef.current) clearTimeout(achievementsTimerRef.current);
-      achievementsRemainingRef.current = 8000;
+      achievementsRemainingRef.current = 12000;
       achievementsStartRef.current = Date.now();
-      achievementsTimerRef.current = setTimeout(() => setIsAchievementsOpen(false), 8000);
+      achievementsTimerRef.current = setTimeout(() => setIsAchievementsOpen(false), 12000);
     }
     return () => {
       if (achievementsTimerRef.current) clearTimeout(achievementsTimerRef.current);
@@ -320,9 +320,9 @@ export default function DashboardPage() {
   useEffect(() => {
     if (isLeaderboardOpen && hoveredNotif !== 'leaderboard') {
       if (leaderboardTimerRef.current) clearTimeout(leaderboardTimerRef.current);
-      leaderboardRemainingRef.current = 8000;
+      leaderboardRemainingRef.current = 12000;
       leaderboardStartRef.current = Date.now();
-      leaderboardTimerRef.current = setTimeout(() => setIsLeaderboardOpen(false), 8000);
+      leaderboardTimerRef.current = setTimeout(() => setIsLeaderboardOpen(false), 12000);
     }
     return () => {
       if (leaderboardTimerRef.current) clearTimeout(leaderboardTimerRef.current);
@@ -1325,7 +1325,7 @@ export default function DashboardPage() {
         >
           {/* Progress bar at top */}
           <div className="h-0.5 bg-emerald-900/30 shrink-0">
-            <div className={`h-full bg-gradient-to-r from-emerald-400 to-emerald-600 animate-shrink-width-8s ${hoveredNotif === 'exemplar' ? 'animate-paused' : ''}`} />
+            <div className={`h-full bg-gradient-to-r from-emerald-400 to-emerald-600 animate-shrink-width-12s ${hoveredNotif === 'exemplar' ? 'animate-paused' : ''}`} />
           </div>
           {/* Close button top-right */}
           <button
@@ -1479,7 +1479,7 @@ export default function DashboardPage() {
           >
             {/* Progress bar at top */}
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-indigo-950/50">
-              <div className={`h-full bg-gradient-to-r from-indigo-400 to-purple-500 animate-shrink-width-8s ${hoveredNotif === 'leaderboard' ? 'animate-paused' : ''}`} />
+              <div className={`h-full bg-gradient-to-r from-indigo-400 to-purple-500 animate-shrink-width-12s ${hoveredNotif === 'leaderboard' ? 'animate-paused' : ''}`} />
             </div>
             {/* Scrollable content */}
             <div className="overflow-y-auto max-h-[85vh] p-6">
@@ -1785,7 +1785,7 @@ export default function DashboardPage() {
           >
             {/* Progress bar at top (clipped by parent overflow-hidden) */}
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-slate-800/30">
-              <div className={`h-full bg-gradient-to-r from-amber-400 to-orange-500 animate-shrink-width-8s ${hoveredNotif === 'achievements' ? 'animate-paused' : ''}`} />
+              <div className={`h-full bg-gradient-to-r from-amber-400 to-orange-500 animate-shrink-width-12s ${hoveredNotif === 'achievements' ? 'animate-paused' : ''}`} />
             </div>
             {/* Scrollable content wrapper */}
             <div className="overflow-y-auto max-h-[80vh] p-6">
@@ -1869,7 +1869,7 @@ export default function DashboardPage() {
 function AchievementBanner({ newlyUnlocked, onDismiss, isPaused }: { newlyUnlocked: any[]; onDismiss: () => void; isPaused?: boolean }) {
   useEffect(() => {
     if (isPaused) return;
-    const timer = setTimeout(onDismiss, 8000);
+    const timer = setTimeout(onDismiss, 12000);
     return () => clearTimeout(timer);
   }, [onDismiss, isPaused]);
 
@@ -1877,7 +1877,7 @@ function AchievementBanner({ newlyUnlocked, onDismiss, isPaused }: { newlyUnlock
     <div className="fixed top-0 left-0 right-0 z-[60] animate-in slide-in-from-top-3 fade-in duration-300">
       <div className="bg-gradient-to-r from-emerald-950/95 via-slate-950/95 to-indigo-950/95 border-b border-emerald-500/30 backdrop-blur-xl shadow-2xl shadow-emerald-500/10 relative overflow-hidden">
         {/* Countdown bar at bottom */}
-        <div className={`absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-emerald-400 to-emerald-600 animate-shrink-width-8s ${isPaused ? 'animate-paused' : ''}`} />
+        <div className={`absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-emerald-400 to-emerald-600 animate-shrink-width-12s ${isPaused ? 'animate-paused' : ''}`} />
 
         {/* Close button top right */}
         <button

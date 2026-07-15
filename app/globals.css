@@ -31,10 +31,10 @@ body {
   to { width: 0%; }
 }
 .animate-shrink-width {
-  animation: shrink-width 5s linear forwards;
+  animation: shrink-width 12s linear forwards;
 }
-.animate-shrink-width-8s {
-  animation: shrink-width 8s linear forwards;
+.animate-shrink-width-12s {
+  animation: shrink-width 12s linear forwards;
 }
 .animate-paused {
   animation-play-state: paused !important;
