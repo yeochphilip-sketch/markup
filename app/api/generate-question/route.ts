@@ -29,7 +29,7 @@ async function tryGenerateWithFallbacks(
     attempts.push({ model: google('gemini-2.5-flash'), label: 'Google Gemini 2.5 Flash', temp: 0.4 });
   }
 
-  const jsonInstruction = '\n\nIMPORTANT: Respond with ONLY a valid JSON object. No markdown, no code fences, no explanation.';
+  const jsonInstruction = `\n\nYou MUST respond with ONLY a valid JSON object using these exact keys:\n{\n  "backgroundContext": "string (the background context paragraph, at least 40 chars)",\n  "sourceAProvenance": "string (provenance of source A, at least 8 chars)",\n  "sourceA": "string (content of source A, at least 60 chars)",\n  "sourceBProvenance": "string (provenance of source B, at least 8 chars)",\n  "sourceB": "string (content of source B, at least 60 chars)",\n  "questionPrompt": "string (the unified question prompt, at least 20 chars)",\n  "sbcsPrompt": "string (SBCS sub-prompt, at least 10 chars)",\n  "seqPrompt": "string (SEQ sub-prompt, at least 10 chars)",\n  "srqPrompt": "string (SRQ sub-prompt, at least 10 chars)",\n  "suggestedAnswer": "string (A1-grade suggested answer, at least 30 chars)"\n}\nNo markdown, no code fences, no other text. Just the JSON object.`;
 
   const errors: string[] = [];
   for (const attempt of attempts) {
