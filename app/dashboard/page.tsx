@@ -138,12 +138,61 @@ export default function DashboardPage() {
   const [takesHistory, setTakesHistory] = useState(false);
   const [errorToast, setErrorToast] = useState<{ message: string; type: 'error' | 'warning' } | null>(null);
   const errorToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const errorToastStartRef = useRef(0);
+  const errorToastRemainingRef = useRef(5000);
+  const dailyGoalToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dailyGoalToastStartRef = useRef(0);
+  const dailyGoalToastRemainingRef = useRef(5000);
+  const levelUpTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const levelUpStartRef = useRef(0);
+  const levelUpRemainingRef = useRef(8000);
+  const exemplarTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const exemplarStartRef = useRef(0);
+  const exemplarRemainingRef = useRef(8000);
+  const achievementsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const achievementsStartRef = useRef(0);
+  const achievementsRemainingRef = useRef(8000);
+  const leaderboardTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const leaderboardStartRef = useRef(0);
+  const leaderboardRemainingRef = useRef(8000);
+  const [hoveredNotif, setHoveredNotif] = useState<string | null>(null);
+
+  // ── Pause / resume helpers ──
+  const pauseTimer = useCallback((timerRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>, startRef: React.MutableRefObject<number>, remainingRef: React.MutableRefObject<number>) => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+      const elapsed = Date.now() - startRef.current;
+      remainingRef.current = Math.max(0, remainingRef.current - elapsed);
+    }
+  }, []);
+
+  const resumeTimer = useCallback((timerRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>, startRef: React.MutableRefObject<number>, remainingRef: React.MutableRefObject<number>, cb: () => void) => {
+    if (!timerRef.current && remainingRef.current > 0) {
+      startRef.current = Date.now();
+      timerRef.current = setTimeout(cb, remainingRef.current);
+    }
+  }, []);
+
+  const dismissErrorToast = useCallback(() => {
+    if (errorToastTimerRef.current) clearTimeout(errorToastTimerRef.current);
+    setErrorToast(null);
+  }, []);
 
   const showErrorToast = useCallback((message: string, type: 'error' | 'warning' = 'error') => {
     if (errorToastTimerRef.current) clearTimeout(errorToastTimerRef.current);
+    errorToastRemainingRef.current = 5000;
+    errorToastStartRef.current = Date.now();
     setErrorToast({ message, type });
     errorToastTimerRef.current = setTimeout(() => setErrorToast(null), 5000);
   }, []);
+
+  const reportError = useCallback((message: string) => {
+    dismissErrorToast();
+    setSelectedType('Bug');
+    setTextInput(`Error encountered:\n${message}\n\n---\nPlease describe what you were doing when this happened:`);
+    setIsFeedbackOpen(true);
+  }, [dismissErrorToast]);
 
   const [timeLeft, setTimeLeft] = useState(1200); 
   const [isTimerActive, setIsTimerActive] = useState(false);
@@ -197,6 +246,11 @@ export default function DashboardPage() {
     return val >= 3 ? 'text-emerald-400' : 'text-rose-500';
   };
 
+  const dismissDailyGoalToast = useCallback(() => {
+    if (dailyGoalToastTimerRef.current) clearTimeout(dailyGoalToastTimerRef.current);
+    setShowDailyGoalToast(false);
+  }, []);
+
   const dismissBanner = useCallback(() => setShowAchievementUnlocked(false), []);
 
   // ── Close settings dropdown on outside click ──
@@ -208,7 +262,72 @@ export default function DashboardPage() {
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  });
+
+  // ── Auto-dismiss daily goal toast after 5s (with pause/resume) ──
+  useEffect(() => {
+    if (showDailyGoalToast && hoveredNotif !== 'daily') {
+      if (dailyGoalToastTimerRef.current) clearTimeout(dailyGoalToastTimerRef.current);
+      dailyGoalToastRemainingRef.current = 5000;
+      dailyGoalToastStartRef.current = Date.now();
+      dailyGoalToastTimerRef.current = setTimeout(() => setShowDailyGoalToast(false), 5000);
+    }
+    return () => {
+      if (dailyGoalToastTimerRef.current) clearTimeout(dailyGoalToastTimerRef.current);
+    };
+  }, [showDailyGoalToast, hoveredNotif]);
+
+  // ── Auto-dismiss level-up modal after 8s (with pause/resume) ──
+  useEffect(() => {
+    if (showLevelUp && hoveredNotif !== 'levelup') {
+      if (levelUpTimerRef.current) clearTimeout(levelUpTimerRef.current);
+      levelUpRemainingRef.current = 8000;
+      levelUpStartRef.current = Date.now();
+      levelUpTimerRef.current = setTimeout(() => setShowLevelUp(false), 8000);
+    }
+    return () => {
+      if (levelUpTimerRef.current) clearTimeout(levelUpTimerRef.current);
+    };
+  }, [showLevelUp, hoveredNotif]);
+
+  // ── Auto-dismiss model answer drawer after 8s (with pause/resume) ──
+  useEffect(() => {
+    if (isExemplarOpen && hoveredNotif !== 'exemplar') {
+      if (exemplarTimerRef.current) clearTimeout(exemplarTimerRef.current);
+      exemplarRemainingRef.current = 8000;
+      exemplarStartRef.current = Date.now();
+      exemplarTimerRef.current = setTimeout(() => setIsExemplarOpen(false), 8000);
+    }
+    return () => {
+      if (exemplarTimerRef.current) clearTimeout(exemplarTimerRef.current);
+    };
+  }, [isExemplarOpen, hoveredNotif]);
+
+  // ── Auto-dismiss achievements drawer after 8s (with pause/resume) ──
+  useEffect(() => {
+    if (isAchievementsOpen && hoveredNotif !== 'achievements') {
+      if (achievementsTimerRef.current) clearTimeout(achievementsTimerRef.current);
+      achievementsRemainingRef.current = 8000;
+      achievementsStartRef.current = Date.now();
+      achievementsTimerRef.current = setTimeout(() => setIsAchievementsOpen(false), 8000);
+    }
+    return () => {
+      if (achievementsTimerRef.current) clearTimeout(achievementsTimerRef.current);
+    };
+  }, [isAchievementsOpen, hoveredNotif]);
+
+  // ── Auto-dismiss leaderboard drawer after 8s (with pause/resume) ──
+  useEffect(() => {
+    if (isLeaderboardOpen && hoveredNotif !== 'leaderboard') {
+      if (leaderboardTimerRef.current) clearTimeout(leaderboardTimerRef.current);
+      leaderboardRemainingRef.current = 8000;
+      leaderboardStartRef.current = Date.now();
+      leaderboardTimerRef.current = setTimeout(() => setIsLeaderboardOpen(false), 8000);
+    }
+    return () => {
+      if (leaderboardTimerRef.current) clearTimeout(leaderboardTimerRef.current);
+    };
+  }, [isLeaderboardOpen, hoveredNotif]);
 
   const fetchLeaderboard = async () => {
     if (!userId) return;
@@ -223,9 +342,13 @@ export default function DashboardPage() {
       if (res.ok) {
         const data = await res.json();
         setLeaderboardData(data);
+      } else {
+        const errData = await res.json().catch(() => ({ error: 'Leaderboard API returned ' + res.status }));
+        showErrorToast(errData.error || 'Failed to load leaderboard');
       }
     } catch (err) {
       console.warn('Leaderboard fetch failed:', err);
+      showErrorToast('Could not connect to leaderboard. Check your connection.');
     } finally {
       setIsLeaderboardLoading(false);
     }
@@ -587,10 +710,14 @@ export default function DashboardPage() {
       if (res.ok) {
         setTextInput('');
         setIsFeedbackOpen(false);
-        alert("Feedback submitted directly.");
+        showErrorToast('Feedback submitted successfully!', 'warning');
+      } else {
+        const errData = await res.json().catch(() => ({ error: 'Feedback API returned ' + res.status }));
+        showErrorToast(errData.error || 'Failed to submit feedback');
       }
     } catch (err) {
       console.error(err);
+      showErrorToast('Could not send feedback. Check your connection.');
     }
   };
 
@@ -627,9 +754,13 @@ export default function DashboardPage() {
         } else {
           setHistoryGoalLevel(goalLevel);
         }
+      } else {
+        const errData = await res.json().catch(() => ({ error: 'Goal API returned ' + res.status }));
+        showErrorToast(errData.error || 'Failed to save exam goal');
       }
     } catch (err) {
       console.warn('Failed to save exam goal:', err);
+      showErrorToast('Could not save exam goal. Check your connection.');
     }
   };
 
@@ -644,9 +775,13 @@ export default function DashboardPage() {
       if (res.ok) {
         setTakesHistory(takes);
         if (!takes) setHistoryGoalLevel(null);
+      } else {
+        const errData = await res.json().catch(() => ({ error: 'History API returned ' + res.status }));
+        showErrorToast(errData.error || 'Failed to update History setting');
       }
     } catch (err) {
       console.warn('Failed to update History setting:', err);
+      showErrorToast('Could not update History setting. Check your connection.');
     }
   };
 
@@ -1177,33 +1312,59 @@ export default function DashboardPage() {
 
       {/* Model Answer Drawer */}
       {isExemplarOpen && (
-        <div className="fixed inset-y-0 right-0 w-full md:w-1/2 lg:w-1/3 bg-slate-950 border-l border-slate-900 z-50 shadow-2xl p-6 flex flex-col">
-          <div className="flex justify-between items-center border-b border-slate-900 pb-4 mb-4">
-            <h3 className="text-sm font-black tracking-wider text-emerald-400 uppercase">Syllabus Model Answer</h3>
-            <button onClick={() => setIsExemplarOpen(false)} className="text-slate-400 hover:text-white font-bold text-xs">✕ Close</button>
+        <div
+          className="fixed inset-y-0 right-0 w-full md:w-1/2 lg:w-1/3 bg-slate-950 border-l border-slate-900 z-50 shadow-2xl flex flex-col relative overflow-hidden"
+          onMouseEnter={() => {
+            setHoveredNotif('exemplar');
+            pauseTimer(exemplarTimerRef, exemplarStartRef, exemplarRemainingRef);
+          }}
+          onMouseLeave={() => {
+            setHoveredNotif(null);
+            resumeTimer(exemplarTimerRef, exemplarStartRef, exemplarRemainingRef, () => setIsExemplarOpen(false));
+          }}
+        >
+          {/* Progress bar at top */}
+          <div className="h-0.5 bg-emerald-900/30 shrink-0">
+            <div className={`h-full bg-gradient-to-r from-emerald-400 to-emerald-600 animate-shrink-width-8s ${hoveredNotif === 'exemplar' ? 'animate-paused' : ''}`} />
           </div>
-          <div className="flex-1 space-y-3">
-            {evaluation.confidence > 0 && (
-              <div className="flex items-center gap-2 px-1">
-                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Model Confidence</span>
-                <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden max-w-[120px]">
-                  <div
-                    className={`h-full rounded-full ${
-                      evaluation.confidence >= 0.8 ? 'bg-emerald-500' :
-                      evaluation.confidence >= 0.6 ? 'bg-amber-500' : 'bg-orange-500'
-                    }`}
-                    style={{ width: `${Math.min(evaluation.confidence * 100, 100)}%` }}
-                  />
+          {/* Close button top-right */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (exemplarTimerRef.current) clearTimeout(exemplarTimerRef.current);
+              setIsExemplarOpen(false);
+            }}
+            className="absolute top-4 right-4 text-slate-500 hover:text-white transition text-sm font-bold z-10"
+          >
+            ✕
+          </button>
+          <div className="p-6 pt-4 flex-1 flex flex-col">
+            <div className="flex justify-between items-center border-b border-slate-900 pb-4 mb-4">
+              <h3 className="text-sm font-black tracking-wider text-emerald-400 uppercase">Syllabus Model Answer</h3>
+            </div>
+            <div className="flex-1 space-y-3 overflow-y-auto">
+              {evaluation.confidence > 0 && (
+                <div className="flex items-center gap-2 px-1">
+                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Model Confidence</span>
+                  <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden max-w-[120px]">
+                    <div
+                      className={`h-full rounded-full ${
+                        evaluation.confidence >= 0.8 ? 'bg-emerald-500' :
+                        evaluation.confidence >= 0.6 ? 'bg-amber-500' : 'bg-orange-500'
+                      }`}
+                      style={{ width: `${Math.min(evaluation.confidence * 100, 100)}%` }}
+                    />
+                  </div>
+                  <span className="text-[10px] font-mono font-bold text-slate-400">
+                    {(evaluation.confidence * 100).toFixed(0)}%
+                  </span>
                 </div>
-                <span className="text-[10px] font-mono font-bold text-slate-400">
-                  {(evaluation.confidence * 100).toFixed(0)}%
-                </span>
+              )}
+              <div className="bg-slate-900/50 rounded-xl p-4 overflow-y-auto border border-slate-900 max-h-[55vh]">
+                <p className="text-xs text-slate-300 font-mono leading-relaxed whitespace-pre-wrap select-text">
+                  {evaluation.a1Upgrade || challenge.suggestedAnswer}
+                </p>
               </div>
-            )}
-            <div className="bg-slate-900/50 rounded-xl p-4 overflow-y-auto border border-slate-900 max-h-[55vh]">
-              <p className="text-xs text-slate-300 font-mono leading-relaxed whitespace-pre-wrap select-text">
-                {evaluation.a1Upgrade || challenge.suggestedAnswer}
-              </p>
             </div>
           </div>
         </div>
@@ -1214,7 +1375,21 @@ export default function DashboardPage() {
 
       {/* Level-Up Celebration Modal */}
       {showLevelUp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={() => setShowLevelUp(false)}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          onClick={() => {
+            if (levelUpTimerRef.current) clearTimeout(levelUpTimerRef.current);
+            setShowLevelUp(false);
+          }}
+          onMouseEnter={() => {
+            setHoveredNotif('levelup');
+            pauseTimer(levelUpTimerRef, levelUpStartRef, levelUpRemainingRef);
+          }}
+          onMouseLeave={() => {
+            setHoveredNotif(null);
+            resumeTimer(levelUpTimerRef, levelUpStartRef, levelUpRemainingRef, () => setShowLevelUp(false));
+          }}
+        >
           <div 
             className="bg-slate-950 border border-indigo-500/40 rounded-3xl p-8 max-w-sm w-full mx-4 shadow-2xl shadow-indigo-500/20 animate-in zoom-in-95 duration-300 text-center relative overflow-hidden"
             onClick={e => e.stopPropagation()}
@@ -1222,6 +1397,23 @@ export default function DashboardPage() {
             {/* Background glow */}
             <div className="absolute -top-20 -left-20 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl" />
             <div className="absolute -bottom-20 -right-20 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl" />
+
+            {/* Close button top-right */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (levelUpTimerRef.current) clearTimeout(levelUpTimerRef.current);
+                setShowLevelUp(false);
+              }}
+              className="absolute top-4 right-4 text-slate-500 hover:text-white transition text-sm font-bold z-20"
+            >
+              ✕
+            </button>
+
+            {/* Progress bar at top */}
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-indigo-950/50">
+              <div className={`h-full bg-gradient-to-r from-indigo-400 to-purple-500 animate-shrink-width ${hoveredNotif === 'levelup' ? 'animate-paused' : ''}`} />
+            </div>
             
             <div className="relative z-10">
               <div className="text-5xl mb-3 animate-bounce">
@@ -1250,7 +1442,11 @@ export default function DashboardPage() {
               </div>
 
               <button
-                onClick={() => setShowLevelUp(false)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (levelUpTimerRef.current) clearTimeout(levelUpTimerRef.current);
+                  setShowLevelUp(false);
+                }}
                 className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs px-6 py-2.5 rounded-xl transition shadow-lg"
               >
                 Continue
@@ -1262,15 +1458,44 @@ export default function DashboardPage() {
 
       {/* Leaderboard Drawer */}
       {isLeaderboardOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setIsLeaderboardOpen(false)}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => {
+            if (leaderboardTimerRef.current) clearTimeout(leaderboardTimerRef.current);
+            setIsLeaderboardOpen(false);
+          }}
+          onMouseEnter={() => {
+            setHoveredNotif('leaderboard');
+            pauseTimer(leaderboardTimerRef, leaderboardStartRef, leaderboardRemainingRef);
+          }}
+          onMouseLeave={() => {
+            setHoveredNotif(null);
+            resumeTimer(leaderboardTimerRef, leaderboardStartRef, leaderboardRemainingRef, () => setIsLeaderboardOpen(false));
+          }}
+        >
           <div 
-            className="bg-slate-950 border border-slate-800 rounded-3xl p-6 max-w-lg w-full mx-4 max-h-[85vh] overflow-y-auto shadow-2xl"
+            className="bg-slate-950 border border-slate-800 rounded-3xl max-w-lg w-full mx-4 shadow-2xl relative overflow-hidden"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex justify-between items-center mb-5">
-              <h2 className="text-sm font-black tracking-widest text-slate-300 uppercase">🏆 Community</h2>
-              <button onClick={() => setIsLeaderboardOpen(false)} className="text-slate-500 hover:text-white text-sm">✕</button>
+            {/* Progress bar at top */}
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-indigo-950/50">
+              <div className={`h-full bg-gradient-to-r from-indigo-400 to-purple-500 animate-shrink-width-8s ${hoveredNotif === 'leaderboard' ? 'animate-paused' : ''}`} />
             </div>
+            {/* Scrollable content */}
+            <div className="overflow-y-auto max-h-[85vh] p-6">
+              <div className="flex justify-between items-center mb-5">
+                <h2 className="text-sm font-black tracking-widest text-slate-300 uppercase">🏆 Community</h2>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (leaderboardTimerRef.current) clearTimeout(leaderboardTimerRef.current);
+                    setIsLeaderboardOpen(false);
+                  }}
+                  className="text-slate-500 hover:text-white text-sm"
+                >
+                  ✕
+                </button>
+              </div>
 
             {isLeaderboardLoading ? (
               <div className="text-center py-12">
@@ -1409,31 +1634,66 @@ export default function DashboardPage() {
                     "The only person you should try to be better than is the person you were yesterday."
                   </p>
                 </div>
-              </div>
-            ) : (
+              </div>              ) : (
               <div className="text-center py-12">
                 <p className="text-xs text-slate-500">Could not load community data.</p>
               </div>
             )}
+            </div>
           </div>
         </div>
       )}
 
       {/* Achievement Unlocked Banner — top of screen with countdown bar & close button */}
-      {showAchievementUnlocked && newlyUnlocked.length > 0 && (            <AchievementBanner
-              newlyUnlocked={newlyUnlocked}
-              onDismiss={dismissBanner}
-            />
+      {showAchievementUnlocked && newlyUnlocked.length > 0 && (
+        <div
+          className="cursor-pointer"
+          onMouseEnter={() => {
+            setHoveredNotif('achievement');
+          }}
+          onMouseLeave={() => {
+            setHoveredNotif(null);
+          }}
+        >
+          <AchievementBanner
+            newlyUnlocked={newlyUnlocked}
+            onDismiss={dismissBanner}
+            isPaused={hoveredNotif === 'achievement'}
+          />
+        </div>
       )}
 
-      {/* Daily Goal Bonus Toast — auto-dismisses after 4s */}
+      {/* Daily Goal Bonus Toast — auto-dismisses after 5s */}
       {showDailyGoalToast && (
         <div
-          className="fixed top-24 right-6 z-50 animate-in slide-in-from-right-5 fade-in duration-300 cursor-pointer"
-          onClick={() => setShowDailyGoalToast(false)}
+          className="fixed top-24 right-6 z-50 animate-in slide-in-from-right-5 fade-in duration-300 max-w-xs cursor-pointer"
+          onClick={dismissDailyGoalToast}
+          onMouseEnter={() => {
+            setHoveredNotif('daily');
+            pauseTimer(dailyGoalToastTimerRef, dailyGoalToastStartRef, dailyGoalToastRemainingRef);
+          }}
+          onMouseLeave={() => {
+            setHoveredNotif(null);
+            resumeTimer(dailyGoalToastTimerRef, dailyGoalToastStartRef, dailyGoalToastRemainingRef, dismissDailyGoalToast);
+          }}
         >
-          <div className="bg-emerald-900/30 border border-emerald-500/30 rounded-xl p-3 shadow-lg">
-            <p className="text-[10px] text-emerald-400 font-bold">✅ Daily Goal +{dailyGoalBonus} XP</p>
+          <div className="bg-gradient-to-r from-emerald-950/95 to-slate-950/95 border border-emerald-500/30 rounded-xl shadow-2xl shadow-emerald-500/5 backdrop-blur-xl relative overflow-hidden">
+            {/* Close button top-right */}
+            <button
+              onClick={(e) => { e.stopPropagation(); dismissDailyGoalToast(); }}
+              className="absolute top-2 right-2.5 text-slate-500 hover:text-white transition text-sm font-bold z-10"
+            >
+              ✕
+            </button>
+            {/* Content */}
+            <div className="p-4 pr-8">
+              <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">✅ Daily Goal Complete!</p>
+              <p className="text-xs text-slate-300 mt-1 font-semibold">+{dailyGoalBonus} XP Bonus Earned</p>
+            </div>
+            {/* Progress bar at bottom */}
+            <div className="h-0.5 bg-emerald-900/30">
+              <div className={`h-full bg-gradient-to-r from-emerald-400 to-emerald-600 animate-shrink-width ${hoveredNotif === 'daily' ? 'animate-paused' : ''}`} />
+            </div>
           </div>
         </div>
       )}
@@ -1442,9 +1702,14 @@ export default function DashboardPage() {
       {errorToast && (
         <div
           className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-right-5 fade-in duration-300 cursor-pointer max-w-sm"
-          onClick={() => {
-            if (errorToastTimerRef.current) clearTimeout(errorToastTimerRef.current);
-            setErrorToast(null);
+          onClick={dismissErrorToast}
+          onMouseEnter={() => {
+            setHoveredNotif('error');
+            pauseTimer(errorToastTimerRef, errorToastStartRef, errorToastRemainingRef);
+          }}
+          onMouseLeave={() => {
+            setHoveredNotif(null);
+            resumeTimer(errorToastTimerRef, errorToastStartRef, errorToastRemainingRef, dismissErrorToast);
           }}
         >
           <div className={`rounded-2xl p-4 shadow-2xl border backdrop-blur-xl flex items-start gap-3 ${
@@ -1465,23 +1730,33 @@ export default function DashboardPage() {
                 {errorToast.message}
               </p>
             </div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (errorToastTimerRef.current) clearTimeout(errorToastTimerRef.current);
-                setErrorToast(null);
-              }}
-              className="text-slate-500 hover:text-white transition shrink-0 text-sm font-bold"
-            >
-              ✕
-            </button>
+            <div className="flex items-center gap-2 mt-2">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (errorToast.message) reportError(errorToast.message);
+                }}
+                className="text-[9px] font-bold bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 px-2.5 py-1 rounded-lg transition"
+              >
+                📮 Report to Developer
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  dismissErrorToast();
+                }}
+                className="text-slate-500 hover:text-white transition ml-auto shrink-0 text-sm font-bold"
+              >
+                ✕
+              </button>
+            </div>
           </div>
           {/* Progress bar countdown */}
           <div className="h-0.5 bg-slate-800/50 rounded-full mt-1 overflow-hidden">
             <div
               className={`h-full rounded-full animate-shrink-width ${
-                errorToast.type === 'error' ? 'bg-rose-500' : 'bg-amber-500'
-              }`}
+                hoveredNotif === 'error' ? 'animate-paused' : ''
+              } ${errorToast.type === 'error' ? 'bg-rose-500' : 'bg-amber-500'}`}
             />
           </div>
         </div>
@@ -1489,43 +1764,73 @@ export default function DashboardPage() {
 
       {/* Achievements Drawer */}
       {isAchievementsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setIsAchievementsOpen(false)}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => {
+            if (achievementsTimerRef.current) clearTimeout(achievementsTimerRef.current);
+            setIsAchievementsOpen(false);
+          }}
+          onMouseEnter={() => {
+            setHoveredNotif('achievements');
+            pauseTimer(achievementsTimerRef, achievementsStartRef, achievementsRemainingRef);
+          }}
+          onMouseLeave={() => {
+            setHoveredNotif(null);
+            resumeTimer(achievementsTimerRef, achievementsStartRef, achievementsRemainingRef, () => setIsAchievementsOpen(false));
+          }}
+        >
           <div
-            className="bg-slate-950 border border-slate-800 rounded-3xl p-6 max-w-sm w-full mx-4 max-h-[80vh] overflow-y-auto shadow-2xl"
+            className="bg-slate-950 border border-slate-800 rounded-3xl max-w-sm w-full mx-4 shadow-2xl relative overflow-hidden"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex justify-between items-center mb-5">
-              <h2 className="text-sm font-black tracking-widest text-slate-300 uppercase">🏅 Achievements</h2>
-              <button onClick={() => setIsAchievementsOpen(false)} className="text-slate-500 hover:text-white text-sm">✕</button>
+            {/* Progress bar at top (clipped by parent overflow-hidden) */}
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-slate-800/30">
+              <div className={`h-full bg-gradient-to-r from-amber-400 to-orange-500 animate-shrink-width-8s ${hoveredNotif === 'achievements' ? 'animate-paused' : ''}`} />
             </div>
+            {/* Scrollable content wrapper */}
+            <div className="overflow-y-auto max-h-[80vh] p-6">
+              <div className="flex justify-between items-center mb-5">
+                <h2 className="text-sm font-black tracking-widest text-slate-300 uppercase">🏅 Achievements</h2>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (achievementsTimerRef.current) clearTimeout(achievementsTimerRef.current);
+                    setIsAchievementsOpen(false);
+                  }}
+                  className="text-slate-500 hover:text-white transition text-sm font-bold"
+                >
+                  ✕
+                </button>
+              </div>
 
-            <div className="text-[10px] text-slate-500 font-mono mb-4 text-center">
-              {achievements.length} / {ACHIEVEMENT_DEFS.length} unlocked
-            </div>
+              <div className="text-[10px] text-slate-500 font-mono mb-4 text-center">
+                {achievements.length} / {ACHIEVEMENT_DEFS.length} unlocked
+              </div>
 
-            <div className="space-y-2">
-              {ACHIEVEMENT_DEFS.map((ach) => {
-                const unlocked = achievements.includes(ach.id);
-                return (
-                  <div
-                    key={ach.id}
-                    className={`rounded-xl p-3 border flex items-center gap-3 transition ${
-                      unlocked
-                        ? 'bg-emerald-500/5 border-emerald-500/20'
-                        : 'bg-slate-900/30 border-slate-800/50 opacity-50'
-                    }`}
-                  >
-                    <span className={`text-xl ${unlocked ? '' : 'grayscale'}`}>{ach.icon}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-xs font-bold ${unlocked ? 'text-white' : 'text-slate-500'}`}>
-                        {ach.title}
-                      </p>
-                      <p className="text-[10px] text-slate-500 truncate">{ach.description}</p>
+              <div className="space-y-2">
+                {ACHIEVEMENT_DEFS.map((ach) => {
+                  const unlocked = achievements.includes(ach.id);
+                  return (
+                    <div
+                      key={ach.id}
+                      className={`rounded-xl p-3 border flex items-center gap-3 transition ${
+                        unlocked
+                          ? 'bg-emerald-500/5 border-emerald-500/20'
+                          : 'bg-slate-900/30 border-slate-800/50 opacity-50'
+                      }`}
+                    >
+                      <span className={`text-xl ${unlocked ? '' : 'grayscale'}`}>{ach.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-xs font-bold ${unlocked ? 'text-white' : 'text-slate-500'}`}>
+                          {ach.title}
+                        </p>
+                        <p className="text-[10px] text-slate-500 truncate">{ach.description}</p>
+                      </div>
+                      {unlocked && <span className="text-[9px] text-emerald-400">✅</span>}
                     </div>
-                    {unlocked && <span className="text-[9px] text-emerald-400">✅</span>}
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
@@ -1561,17 +1866,18 @@ export default function DashboardPage() {
 }
 
 /** Achievement banner component with countdown bar and close button */
-function AchievementBanner({ newlyUnlocked, onDismiss }: { newlyUnlocked: any[]; onDismiss: () => void }) {
+function AchievementBanner({ newlyUnlocked, onDismiss, isPaused }: { newlyUnlocked: any[]; onDismiss: () => void; isPaused?: boolean }) {
   useEffect(() => {
-    const timer = setTimeout(onDismiss, 5200);
+    if (isPaused) return;
+    const timer = setTimeout(onDismiss, 8000);
     return () => clearTimeout(timer);
-  }, [onDismiss]);
+  }, [onDismiss, isPaused]);
 
   return (
     <div className="fixed top-0 left-0 right-0 z-[60] animate-in slide-in-from-top-3 fade-in duration-300">
       <div className="bg-gradient-to-r from-emerald-950/95 via-slate-950/95 to-indigo-950/95 border-b border-emerald-500/30 backdrop-blur-xl shadow-2xl shadow-emerald-500/10 relative overflow-hidden">
         {/* Countdown bar at bottom */}
-        <div className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-emerald-400 to-emerald-600 animate-shrink-width" />
+        <div className={`absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-emerald-400 to-emerald-600 animate-shrink-width-8s ${isPaused ? 'animate-paused' : ''}`} />
 
         {/* Close button top right */}
         <button

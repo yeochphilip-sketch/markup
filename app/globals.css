@@ -33,6 +33,12 @@ body {
 .animate-shrink-width {
   animation: shrink-width 5s linear forwards;
 }
+.animate-shrink-width-8s {
+  animation: shrink-width 8s linear forwards;
+}
+.animate-paused {
+  animation-play-state: paused !important;
+}
 
 /* ── Confetti fall animation ── */
 @keyframes fall {
