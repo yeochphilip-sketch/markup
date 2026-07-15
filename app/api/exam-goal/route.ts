@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+/**
+ * @deprecated Use PATCH /api/user/settings instead.
+ * This route is kept for backward compatibility.
+ * Dashboard now calls /api/user/settings directly.
+ */
 export async function POST(request: Request) {
   try {
     const body = await request.json();

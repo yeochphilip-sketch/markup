@@ -11,9 +11,16 @@ import FeedbackModal from '@/app/components/FeedbackModal';
 import NotificationBell from '@/app/components/NotificationBell';
 import StudyGroupPanel from '@/app/components/StudyGroupPanel';
 import ShareResultCard from '@/app/components/ShareResultCard';
-import ExamCountdown from '@/app/components/ExamCountdown';
 import ConfettiEffect from '@/app/components/ConfettiEffect';
 import OnboardingWizard from '@/app/components/OnboardingWizard';
+import AnalyticsPanel from '@/app/components/AnalyticsPanel';
+import ConfiguratorSidebar from '@/app/components/ConfiguratorSidebar';
+import ModelAnswerDrawer from '@/app/components/ModelAnswerDrawer';
+import LevelUpModal from '@/app/components/LevelUpModal';
+import LeaderboardDrawer from '@/app/components/LeaderboardDrawer';
+import AchievementsDrawer from '@/app/components/AchievementsDrawer';
+import AchievementBanner from '@/app/components/AchievementBanner';
+import LoadingSpinner from '@/app/components/LoadingSpinner';
 import { getLevelConfig, getLevelTitle, getNextLevelXp, getPrevLevelXp, LEVEL_THRESHOLDS, playGradeCompleteSound, playLevelUpSound, playAchievementSound, isDailyGoalMet, ACHIEVEMENT_DEFS, calculateXpDecay, getDecayWarning } from '@/lib/gamification';
 
 interface Segment {
@@ -137,6 +144,7 @@ export default function DashboardPage() {
   const [ssGoalLevel, setSsGoalLevel] = useState<string | null>(null);
   const [historyGoalLevel, setHistoryGoalLevel] = useState<string | null>(null);
   const [takesHistory, setTakesHistory] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [errorToast, setErrorToast] = useState<{ message: string; type: 'error' | 'warning' } | null>(null);
   const errorToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const errorToastStartRef = useRef(0);
@@ -144,21 +152,10 @@ export default function DashboardPage() {
   const dailyGoalToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dailyGoalToastStartRef = useRef(0);
   const dailyGoalToastRemainingRef = useRef(12000);
-  const levelUpTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const levelUpStartRef = useRef(0);
-  const levelUpRemainingRef = useRef(12000);
-  const exemplarTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const exemplarStartRef = useRef(0);
-  const exemplarRemainingRef = useRef(12000);
-  const achievementsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const achievementsStartRef = useRef(0);
-  const achievementsRemainingRef = useRef(12000);
-  const leaderboardTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const leaderboardStartRef = useRef(0);
-  const leaderboardRemainingRef = useRef(12000);
+  // (Timer refs for modals are now managed inside their respective components)
   const [hoveredNotif, setHoveredNotif] = useState<string | null>(null);
 
-  // ── Pause / resume helpers ──
+  // ── Pause / resume helpers (for toast/daily-goal only) ──
   const pauseTimer = useCallback((timerRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>, startRef: React.MutableRefObject<number>, remainingRef: React.MutableRefObject<number>) => {
     if (timerRef.current) {
       clearTimeout(timerRef.current);
@@ -271,8 +268,6 @@ export default function DashboardPage() {
     setShowDailyGoalToast(false);
   }, []);
 
-  const dismissBanner = useCallback(() => setShowAchievementUnlocked(false), []);
-
   // ── Close settings dropdown on outside click ──
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -297,57 +292,7 @@ export default function DashboardPage() {
     };
   }, [showDailyGoalToast, hoveredNotif]);
 
-  // ── Auto-dismiss level-up modal after 8s (with pause/resume) ──
-  useEffect(() => {
-    if (showLevelUp && hoveredNotif !== 'levelup') {
-      if (levelUpTimerRef.current) clearTimeout(levelUpTimerRef.current);
-      levelUpRemainingRef.current = 12000;
-      levelUpStartRef.current = Date.now();
-      levelUpTimerRef.current = setTimeout(() => setShowLevelUp(false), 12000);
-    }
-    return () => {
-      if (levelUpTimerRef.current) clearTimeout(levelUpTimerRef.current);
-    };
-  }, [showLevelUp, hoveredNotif]);
-
-  // ── Auto-dismiss model answer drawer after 8s (with pause/resume) ──
-  useEffect(() => {
-    if (isExemplarOpen && hoveredNotif !== 'exemplar') {
-      if (exemplarTimerRef.current) clearTimeout(exemplarTimerRef.current);
-      exemplarRemainingRef.current = 12000;
-      exemplarStartRef.current = Date.now();
-      exemplarTimerRef.current = setTimeout(() => setIsExemplarOpen(false), 12000);
-    }
-    return () => {
-      if (exemplarTimerRef.current) clearTimeout(exemplarTimerRef.current);
-    };
-  }, [isExemplarOpen, hoveredNotif]);
-
-  // ── Auto-dismiss achievements drawer after 8s (with pause/resume) ──
-  useEffect(() => {
-    if (isAchievementsOpen && hoveredNotif !== 'achievements') {
-      if (achievementsTimerRef.current) clearTimeout(achievementsTimerRef.current);
-      achievementsRemainingRef.current = 12000;
-      achievementsStartRef.current = Date.now();
-      achievementsTimerRef.current = setTimeout(() => setIsAchievementsOpen(false), 12000);
-    }
-    return () => {
-      if (achievementsTimerRef.current) clearTimeout(achievementsTimerRef.current);
-    };
-  }, [isAchievementsOpen, hoveredNotif]);
-
-  // ── Auto-dismiss leaderboard drawer after 8s (with pause/resume) ──
-  useEffect(() => {
-    if (isLeaderboardOpen && hoveredNotif !== 'leaderboard') {
-      if (leaderboardTimerRef.current) clearTimeout(leaderboardTimerRef.current);
-      leaderboardRemainingRef.current = 12000;
-      leaderboardStartRef.current = Date.now();
-      leaderboardTimerRef.current = setTimeout(() => setIsLeaderboardOpen(false), 12000);
-    }
-    return () => {
-      if (leaderboardTimerRef.current) clearTimeout(leaderboardTimerRef.current);
-    };
-  }, [isLeaderboardOpen, hoveredNotif]);
+  // (Auto-dismiss effects for modals — now managed inside their own components)
 
   const fetchLeaderboard = async () => {
     if (!userId) return;
@@ -391,7 +336,7 @@ export default function DashboardPage() {
       const to = from + HISTORY_PAGE_SIZE - 1;
       const { data: historyData, error } = await supabase
         .from('practice_history')
-        .select('*')
+        .select('id, subject, topic, question_type, question_prompt, background_context, source_a, source_a_provenance, source_b, source_b_provenance, suggested_answer, created_at, metadata')
         .eq('user_id', targetUid)
         .order('created_at', { ascending: false })
         .range(from, to);
@@ -423,9 +368,10 @@ export default function DashboardPage() {
     try {
       const { data: metricsData } = await supabase
         .from('user_skill_metrics')
-        .select('*')
+        .select('sbq_inference_score, sbq_comparison_score, sbq_reliability_score, seq_essay_score, seq_conclusion_score, total_xp, level_title, current_streak, longest_streak, achievements, last_practice_date, ss_goal_level, history_goal_level, takes_history')
         .eq('user_id', uid)
-        .single();        if (metricsData) {
+        .single();
+      if (metricsData) {
         setSkillRatings({
           inference: metricsData.sbq_inference_score || 1,
           comparison: metricsData.sbq_comparison_score || 1,
@@ -491,10 +437,26 @@ export default function DashboardPage() {
       setUserAvatar(user.user_metadata?.avatar_url || '');
       loadUserMetrics(user.id);
       loadHistoryLogs(user.id, 0, false);
+      // Check if user is admin
+      const isUserAdmin = 
+        user.app_metadata?.is_admin === true || 
+        user.user_metadata?.is_admin === true;
+      setIsAdmin(isUserAdmin);
+
       setIsAuthLoading(false);
 
       // ── Send heartbeat to track last_active_at for personalized reminders ──
       sendHeartbeat(user.id);
+    }
+
+    // ── Initialize sound from localStorage after mount (prevents hydration mismatch) ──
+    if (typeof window !== 'undefined') {
+      const storedSound = localStorage.getItem('sound_enabled');
+      if (storedSound === 'false') {
+        setIsSoundEnabled(false);
+      } else if (!storedSound) {
+        localStorage.setItem('sound_enabled', 'true');
+      }
     }
 
     forceRetrieveSession();
@@ -863,10 +825,11 @@ export default function DashboardPage() {
   const handleSetExamGoal = async (subject: 'ss' | 'history', goalLevel: string) => {
     if (!userId) return;
     try {
-      const res = await fetch('/api/exam-goal', {
-        method: 'POST',
+      const field = subject === 'ss' ? 'ss_goal_level' : 'history_goal_level';
+      const res = await fetch('/api/user/settings', {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, subject, goalLevel }),
+        body: JSON.stringify({ userId, [field]: goalLevel }),
       });
       if (res.ok) {
         if (subject === 'ss') {
@@ -875,8 +838,7 @@ export default function DashboardPage() {
           setHistoryGoalLevel(goalLevel);
         }
       } else {
-        const errData = await res.json().catch(() => ({ error: 'Goal API returned ' + res.status }));
-        showErrorToast(errData.error || 'Failed to save exam goal');
+        showErrorToast('Failed to save exam goal');
       }
     } catch (err) {
       console.warn('Failed to save exam goal:', err);
@@ -887,17 +849,16 @@ export default function DashboardPage() {
   const handleSetTakesHistory = async (takes: boolean) => {
     if (!userId) return;
     try {
-      const res = await fetch('/api/exam-goal', {
-        method: 'POST',
+      const res = await fetch('/api/user/settings', {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, subject: 'history', goalLevel: takes ? 'Novice' : null }),
+        body: JSON.stringify({ userId, takes_history: takes }),
       });
       if (res.ok) {
         setTakesHistory(takes);
         if (!takes) setHistoryGoalLevel(null);
       } else {
-        const errData = await res.json().catch(() => ({ error: 'History API returned ' + res.status }));
-        showErrorToast(errData.error || 'Failed to update History setting');
+        showErrorToast('Failed to update History setting');
       }
     } catch (err) {
       console.warn('Failed to update History setting:', err);
@@ -910,26 +871,10 @@ export default function DashboardPage() {
 
   if (isAuthLoading) {
     return (
-      <div className="min-h-screen bg-[#07090e] flex flex-col items-center justify-center gap-6">
+      <div className="min-h-screen bg-[#07090e] flex flex-col items-center justify-center gap-8">
         {/* Logo */}
         <h1 className="text-2xl font-black text-indigo-500 tracking-wider">MARKUP</h1>
-        {/* Skeleton grid */}
-        <div className="w-full max-w-4xl px-6 space-y-4 animate-pulse">
-          <div className="grid grid-cols-8 gap-4">
-            <div className="h-20 bg-slate-900 rounded-2xl col-span-2" />
-            <div className="h-20 bg-slate-900 rounded-2xl col-span-1" />
-            <div className="h-20 bg-slate-900 rounded-2xl col-span-1" />
-            <div className="h-20 bg-slate-900 rounded-2xl col-span-1" />
-            <div className="h-20 bg-slate-900 rounded-2xl col-span-3" />
-          </div>
-          <div className="grid grid-cols-6 gap-6">
-            <div className="h-96 bg-slate-900/50 rounded-2xl col-span-1" />
-            <div className="h-96 bg-slate-900/50 rounded-2xl col-span-2" />
-            <div className="h-96 bg-slate-900/50 rounded-2xl col-span-2" />
-            <div className="h-96 bg-slate-900/50 rounded-2xl col-span-1" />
-          </div>
-        </div>
-        <p className="text-[10px] text-slate-600 font-mono animate-pulse">Loading your dashboard...</p>
+        <LoadingSpinner size="lg" label="Loading your dashboard..." color="indigo" />
       </div>
     );
   }
@@ -950,10 +895,10 @@ export default function DashboardPage() {
       <header className="border-b border-slate-900 px-6 py-4 flex items-center justify-between bg-slate-950/60 backdrop-blur-md relative z-40">          <div className="flex items-center gap-4">
             <h1 className="text-xl font-black text-indigo-500 tracking-wider">MARKUP</h1>
             <button
-              onClick={() => router.push('/dashboard/profile')}
+              onClick={() => router.push('/dashboard/settings')}
               className="hidden sm:inline-flex bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[9px] font-bold px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-slate-200 items-center gap-1.5"
             >
-              📊 Stats
+              ⚙️ Settings
             </button>
           </div>
         
@@ -986,7 +931,8 @@ export default function DashboardPage() {
           >
             🏅 {achievements.length}/{ACHIEVEMENT_DEFS.length}
           </button>
-          {(typeof window !== 'undefined' && localStorage.getItem('admin_override') === 'true') && (
+          {/* Admin link - checked via session metadata */}
+          {(isAdmin) && (
             <a 
               href="/admin/analytics" 
               className="hidden sm:inline-flex bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 text-[11px] font-bold px-3 py-1.5 rounded-xl transition items-center gap-1.5"
@@ -1014,8 +960,8 @@ export default function DashboardPage() {
                   <p className="text-xs text-slate-200 font-semibold truncate mt-1 bg-slate-900 px-2.5 py-1.5 rounded-xl border border-slate-900">{userEmail || 'Active Student'}</p>
                 </div>
                 <div className="pt-2 border-t border-slate-900 flex flex-col space-y-1">
-                  <button onClick={() => { router.push('/dashboard/profile'); setIsSettingsOpen(false); }} className="w-full text-left text-slate-400 hover:text-indigo-400 text-xs font-bold py-2 px-1 transition">
-                    📊 My Stats & Profile
+                  <button onClick={() => { router.push('/dashboard/settings'); setIsSettingsOpen(false); }} className="w-full text-left text-slate-400 hover:text-indigo-400 text-xs font-bold py-2 px-1 transition">
+                    ⚙️ Settings
                   </button>
                   <button onClick={() => { setIsFeedbackOpen(true); setIsSettingsOpen(false); }} className="w-full text-left text-slate-400 hover:text-indigo-400 text-xs font-bold py-2 px-1 transition">
                     🐛 Submit Bug / Feedback
@@ -1028,241 +974,56 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {/* Analytics Matrix Panel */}
-      <div className="px-6 pt-4 grid grid-cols-1 md:grid-cols-8 gap-4">
-        <div className="md:col-span-1 bg-indigo-600/10 border border-indigo-500/20 p-4 rounded-2xl flex items-center gap-4 relative overflow-hidden group">
-          <div className="w-10 h-10 bg-indigo-500/20 text-indigo-400 rounded-xl flex items-center justify-center text-xl">🎯</div>
-          <div>
-            <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Focus Target</h4>
-            <p className="text-[11px] font-bold text-slate-300 leading-tight">Cross-reference carefully to build band ranks.</p>
-          </div>
-        </div>
-
-        {/* Level Title + XP Progress */}
-        <div className="md:col-span-2 bg-slate-950/80 border border-slate-900 p-4 rounded-2xl flex flex-col justify-center relative overflow-hidden">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">{getLevelConfig(levelTitle).icon}</span>
-              <div>
-                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{levelTitle}</span>
-                <span className="text-lg font-black text-indigo-400 font-mono block">{masteryPoints} <span className="text-[10px] text-slate-600 font-normal">pts</span></span>
-              </div>
-            </div>
-            <button
-              onClick={fetchLeaderboard}
-              className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[9px] font-bold px-2 py-1.5 rounded-lg transition text-slate-400 hover:text-slate-200"
-            >
-              🏆 Rank
-            </button>
-          </div>
-          {/* XP progress bar to next level */}
-          {levelTitle !== 'Master' && (
-            <div className="mt-2">
-              <div className="flex justify-between text-[8px] text-slate-600 font-mono mb-0.5">
-                <span>{getPrevLevelXp(masteryPoints)}pts</span>
-                <span>{getNextLevelXp(masteryPoints)}pts</span>
-              </div>
-              <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-700 ease-out"
-                  style={{ width: `${Math.min((xpProgress.current / Math.max(xpProgress.nextLevel, 1)) * 100, 100)}%` }}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Daily Goal */}
-        <div className={`md:col-span-1 bg-slate-950/80 border p-4 rounded-2xl flex flex-col justify-center items-center text-center transition ${
-          dailyGoalMet ? 'border-emerald-500/30' : 'border-slate-900'
-        }`}>
-          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">
-            {dailyGoalMet ? '✅ Done' : '📋 Goal'}
-          </span>
-          <div className="flex items-baseline gap-1 mt-1">
-            <span className={`text-lg font-black font-mono ${dailyGoalMet ? 'text-emerald-400' : 'text-slate-500'}`}>
-              {dailyGoalMet ? 'Complete!' : '1 paper'}
-            </span>
-          </div>
-          <span className="text-[8px] text-slate-600 font-mono">
-            {dailyGoalMet ? `+25 pts earned` : 'Scan 1 paper today'}
-          </span>
-        </div>
-
-        {/* Streak Counter with bonus indicator */}
-        <div className="md:col-span-1 bg-slate-950/80 border border-slate-900 p-4 rounded-2xl flex flex-col justify-center items-center text-center relative">
-          {streakBonus > 0 && (
-            <div className="absolute -top-2 -right-2 bg-emerald-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full animate-in zoom-in-95">
-              +{streakBonus}
-            </div>
-          )}
-          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">
-            {streakData.current > 0 ? '🔥 Streak' : 'Streak'}
-          </span>
-          <div className="flex items-baseline gap-1">
-            <span className={`text-lg font-black font-mono ${streakData.current >= 3 ? 'text-amber-400' : 'text-slate-400'}`}>
-              {streakData.current}
-            </span>
-            <span className="text-[9px] text-slate-600 font-normal">days</span>
-          </div>
-          {streakData.longest > 1 && (
-            <span className="text-[8px] text-slate-600 font-mono">Best: {streakData.longest}</span>
-          )}
-        </div>
-
-        {/* XP Decay Warning */}
-        {decayWarning.show && (
-          <div className={`md:col-span-2 flex items-center gap-3 p-3 rounded-2xl border ${
-            decayWarning.severity === 'danger' ? 'bg-rose-500/10 border-rose-500/20' : 'bg-amber-500/10 border-amber-500/20'
-          }`}>
-            <span className={`text-lg ${decayWarning.severity === 'danger' ? 'animate-pulse' : ''}`}>⚠️</span>
-            <p className={`text-[10px] font-medium ${decayWarning.severity === 'danger' ? 'text-rose-300' : 'text-amber-300'}`}>
-              {decayWarning.message}
-            </p>
-          </div>
-        )}
-
-        {/* Exam Countdowns — SS (mandatory) + History (optional) */}
-        {userId && (
-          <ExamCountdown
-            userId={userId}
-            ssGoalLevel={ssGoalLevel}
-            historyGoalLevel={historyGoalLevel}
-            takesHistory={takesHistory}
-            currentLevel={levelTitle}
-            onSetGoal={handleSetExamGoal}
-            onSetTakesHistory={handleSetTakesHistory}
-          />
-        )}
-
-        <div className="md:col-span-4 bg-slate-950/80 border border-slate-900 p-4 rounded-2xl grid grid-cols-5 gap-2">
-          <div className="text-center">
-            <p className="text-[8px] font-bold text-slate-500 uppercase">Inference</p>
-            <p className={`text-xs font-black font-mono ${getSkillColorClass(skillRatings.inference)}`}>L{skillRatings.inference}/5</p>
-          </div>
-          <div className="text-center">
-            <p className="text-[8px] font-bold text-slate-500 uppercase">Compare</p>
-            <p className={`text-xs font-black font-mono ${getSkillColorClass(skillRatings.comparison)}`}>L{skillRatings.comparison}/6</p>
-          </div>
-          <div className="text-center">
-            <p className="text-[8px] font-bold text-slate-500 uppercase">Reliability</p>
-            <p className={`text-xs font-black font-mono ${getSkillColorClass(skillRatings.reliability)}`}>L{skillRatings.reliability}/6</p>
-          </div>
-          <div className="text-center">
-            <p className="text-[8px] font-bold text-slate-500 uppercase">SEQ Essay</p>
-            <p className={`text-xs font-black font-mono ${getSkillColorClass(skillRatings.essay)}`}>L{skillRatings.essay}/8</p>
-          </div>
-          <div className="text-center border-l border-slate-900 pl-1">
-            <p className="text-[8px] font-bold text-slate-400 uppercase">SEQ Conclusion</p>
-            <p className={`text-xs font-black font-mono ${getSkillColorClass(skillRatings.conclusion)}`}>L{skillRatings.conclusion}/2</p>
-          </div>
-        </div>
-      </div>
+      {/* Analytics Matrix Panel — extracted component */}
+      <AnalyticsPanel
+        userId={userId}
+        levelTitle={levelTitle}
+        masteryPoints={masteryPoints}
+        xpProgress={xpProgress}
+        streakData={streakData}
+        streakBonus={streakBonus}
+        dailyGoalMet={dailyGoalMet}
+        decayWarning={decayWarning}
+        skillRatings={skillRatings}
+        achievements={achievements}
+        ssGoalLevel={ssGoalLevel}
+        historyGoalLevel={historyGoalLevel}
+        takesHistory={takesHistory}
+        onFetchLeaderboard={fetchLeaderboard}
+        onSetExamGoal={handleSetExamGoal}
+        onSetTakesHistory={handleSetTakesHistory}
+      />
 
       {/* Main Grid Framework Layout */}
       <div className="flex-1 grid grid-cols-1 xl:grid-cols-6 p-6 gap-6 overflow-hidden max-h-[78vh]">
         
-        {/* Configurator Sidebar */}
-        <div className="xl:col-span-1 flex flex-col space-y-4 overflow-y-auto pr-1">
-          <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-4 space-y-4 hover-lift">
-            <h2 className="text-[10px] font-black tracking-widest text-slate-400 uppercase">Configurator</h2>
-            
-            {/* Subject Toggle Container */}
-            <div className="flex flex-col space-y-1">
-              <label className="text-[9px] font-bold uppercase text-slate-500">Syllabus Subject</label>
-              <div className="grid grid-cols-2 bg-slate-900 p-1 rounded-xl border border-slate-800">
-                <button onClick={() => setActiveSubject('Social Studies')} className={`text-[10px] font-bold py-1.5 rounded-lg transition ${activeSubject === 'Social Studies' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}>SS</button>
-                <button onClick={() => setActiveSubject('Elective History')} className={`text-[10px] font-bold py-1.5 rounded-lg transition ${activeSubject === 'Elective History' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}>History</button>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 bg-slate-900 p-1 rounded-xl border border-slate-800">
-              <button onClick={() => { setIsCustomMode(false); setHasScanned(false); }} className={`text-[10px] font-bold py-2 rounded-lg transition ${!isCustomMode ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}>AI Paper</button>
-              <button onClick={() => { setIsCustomMode(true); setHasScanned(false); }} className={`text-[10px] font-bold py-2 rounded-lg transition ${isCustomMode ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}>Vet Homework</button>
-            </div>
-
-            <div className="space-y-3 pt-1">
-              <div className="space-y-1">
-                <label className="text-[9px] font-bold uppercase text-slate-500">Syllabus Topic Focus</label>
-                <select value={selectedTopic} onChange={(e) => setSelectedTopic(e.target.value)} className="w-full bg-slate-900 border border-slate-800 p-2.5 rounded-xl text-xs font-medium text-slate-200 focus:outline-none">
-                  {SYLLABUS_MAP[activeSubject]?.topics.map(topic => (
-                    <option key={topic} value={topic}>{topic.replace('Issue ', 'Is. ').replace('Case Study: ', '')}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[9px] font-bold uppercase text-slate-500">Target Skill Objectives</label>
-                <select value={selectedSkill} onChange={(e) => setSelectedSkill(e.target.value)} className="w-full bg-slate-900 border border-slate-800 p-2.5 rounded-xl text-xs font-medium text-slate-200 focus:outline-none">
-                  {SYLLABUS_MAP[activeSubject]?.skills.map(skill => (
-                    <option key={skill} value={skill}>{skill}</option>
-                  ))}
-                </select>
-              </div>
-
-              {!isCustomMode && (
-                <button onClick={handleGenerateChallenge} disabled={isGenerating} className="w-full bg-indigo-600 text-white text-xs font-bold py-2.5 rounded-xl transition disabled:opacity-50 mt-1">
-                  {isGenerating ? 'Drafting Sheet...' : '⚡ Generate Practice'}
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="flex-1 flex flex-col min-h-[160px]">
-            <span className="text-[10px] font-black tracking-widest text-slate-500 uppercase mb-2">Practice Logs</span>
-            <div className="flex-1 space-y-2 overflow-y-auto max-h-[220px] pr-1" ref={historyScrollRef}>
-              {history.length === 0 ? (
-                <div className="text-[10px] text-slate-600 font-mono italic p-2 border border-dashed border-slate-900 rounded-xl text-center">No logs recorded.</div>
-              ) : (
-                <>
-                  {history.map((item) => {
-                    const meta = item.metadata || {};
-                    const isAllFormats = meta.isAllFormats === true;
-                    // Count actual sources from metadata
-                    const sourceCount = [
-                      meta.sourceC, meta.sourceD, meta.sourceE
-                    ].filter(Boolean).length + 2; // +2 for sourceA + sourceB
-                    return (
-                      <div key={item.id} onClick={() => loadHistoricalItem(item)} className="bg-slate-950/30 hover:bg-slate-900/60 border border-slate-900 p-3 rounded-xl cursor-pointer transition text-left space-y-1.5 group">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-[9px] bg-slate-900 px-2 py-0.5 rounded text-indigo-400 font-bold uppercase">{item.subject === 'Social Studies' ? 'SS' : 'HIST'}</span>
-                          {isAllFormats && (
-                            <span className="text-[8px] bg-amber-900/40 text-amber-400 px-1.5 py-0.5 rounded font-bold">{sourceCount}-SRC</span>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-slate-400 line-clamp-2 font-medium group-hover:text-slate-200 transition">{item.question_prompt}</p>
-                      </div>
-                    );
-                  })}
-                  {/* Load More button */}
-                  {hasMoreHistory && (
-                    <button
-                      onClick={loadMoreHistory}
-                      disabled={isLoadingMore}
-                      className="w-full text-[9px] font-bold text-slate-500 hover:text-indigo-400 bg-slate-900/50 hover:bg-slate-900 border border-slate-800 py-2 rounded-lg transition disabled:opacity-40"
-                    >
-                      {isLoadingMore ? 'Loading...' : '⬇ Load More'}
-                    </button>
-                  )}
-                  {/* Jump to Most Recent — appears once user has loaded beyond the first page */}
-                  {historyPage > 0 && (
-                    <button
-                      onClick={() => {
-                        setHistoryPage(0);
-                        setHasMoreHistory(true);
-                        loadHistoryLogs(userId, 0, false);
-                        historyScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-                      }}
-                      className="w-full text-[9px] font-bold text-indigo-400 hover:text-indigo-300 bg-indigo-950/30 hover:bg-indigo-950/50 border border-indigo-800/40 py-2 rounded-lg transition flex items-center justify-center gap-1.5"
-                    >
-                      ↑ Most Recent
-                    </button>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        </div>
+        {/* Configurator Sidebar — extracted component */}
+        <ConfiguratorSidebar
+          activeSubject={activeSubject}
+          selectedTopic={selectedTopic}
+          selectedSkill={selectedSkill}
+          isCustomMode={isCustomMode}
+          isGenerating={isGenerating}
+          history={history}
+          hasMoreHistory={hasMoreHistory}
+          isLoadingMore={isLoadingMore}
+          historyPage={historyPage}
+          syllabusMap={SYLLABUS_MAP}
+          onSetActiveSubject={setActiveSubject}
+          onSetSelectedTopic={setSelectedTopic}
+          onSetSelectedSkill={setSelectedSkill}
+          onSetCustomMode={setIsCustomMode}
+          onSetHasScanned={setHasScanned}
+          onGenerate={handleGenerateChallenge}
+          onLoadHistoricalItem={loadHistoricalItem}
+          onLoadMoreHistory={loadMoreHistory}
+          onJumpToRecent={() => {
+            setHistoryPage(0);
+            setHasMoreHistory(true);
+            loadHistoryLogs(userId, 0, false);
+            historyScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        />
 
         {/* SCROLLABLE Source Material Columns Display Layout */}
         <div className="xl:col-span-2 space-y-4 max-h-[75vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800 select-text">
@@ -1632,363 +1393,43 @@ export default function DashboardPage() {
 
       </div>
 
-      {/* Model Answer Drawer */}
-      {isExemplarOpen && (
-        <div
-          className="fixed inset-0 z-50 flex justify-center pt-16 bg-black/60 backdrop-blur-sm"
-          onClick={() => {
-            if (exemplarTimerRef.current) clearTimeout(exemplarTimerRef.current);
-            setIsExemplarOpen(false);
-          }}
-          onMouseEnter={() => {
-            setHoveredNotif('exemplar');
-            pauseTimer(exemplarTimerRef, exemplarStartRef, exemplarRemainingRef);
-          }}
-          onMouseLeave={() => {
-            setHoveredNotif(null);
-            resumeTimer(exemplarTimerRef, exemplarStartRef, exemplarRemainingRef, () => setIsExemplarOpen(false));
-          }}
-        >
-          <div
-            className="bg-slate-950 border border-emerald-500/30 rounded-3xl w-full max-w-lg mx-4 shadow-2xl relative overflow-hidden max-h-[80vh]"
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Progress bar at top */}
-            <div className="h-0.5 bg-emerald-900/30 shrink-0">
-              <div className={`h-full bg-gradient-to-r from-emerald-400 to-emerald-600 animate-shrink-width-12s ${hoveredNotif === 'exemplar' ? 'animate-paused' : ''}`} />
-            </div>
-            {/* Close button top-right */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (exemplarTimerRef.current) clearTimeout(exemplarTimerRef.current);
-                setIsExemplarOpen(false);
-              }}
-              className="absolute top-4 right-4 text-slate-500 hover:text-white transition text-sm font-bold z-10"
-            >
-              ✕
-            </button>
-            <div className="overflow-y-auto p-6">
-              <div className="flex justify-between items-center border-b border-slate-900 pb-4 mb-4">
-                <h3 className="text-sm font-black tracking-wider text-emerald-400 uppercase">Syllabus Model Answer</h3>
-              </div>
-              <div className="space-y-3">
-                {evaluation.confidence > 0 && (
-                  <div className="flex items-center gap-2 px-1">
-                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Model Confidence</span>
-                    <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden max-w-[120px]">
-                      <div
-                        className={`h-full rounded-full ${
-                          evaluation.confidence >= 0.8 ? 'bg-emerald-500' :
-                          evaluation.confidence >= 0.6 ? 'bg-amber-500' : 'bg-orange-500'
-                        }`}
-                        style={{ width: `${Math.min(evaluation.confidence * 100, 100)}%` }}
-                      />
-                    </div>
-                    <span className="text-[10px] font-mono font-bold text-slate-400">
-                      {(evaluation.confidence * 100).toFixed(0)}%
-                    </span>
-                  </div>
-                )}
-                <div className="bg-slate-900/50 rounded-xl p-4 overflow-y-auto border border-slate-900 max-h-[60vh]">
-                  <p className="text-xs text-slate-300 font-mono leading-relaxed whitespace-pre-wrap select-text">
-                    {evaluation.a1Upgrade || challenge.suggestedAnswer}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Model Answer Drawer — extracted component */}
+      <ModelAnswerDrawer
+        isOpen={isExemplarOpen}
+        onClose={() => setIsExemplarOpen(false)}
+        confidence={evaluation.confidence}
+        a1Upgrade={evaluation.a1Upgrade}
+        suggestedAnswer={challenge.suggestedAnswer}
+      />
 
       {/* Confetti Effect */}
       <ConfettiEffect active={showConfetti} />
 
-      {/* Level-Up Celebration Modal */}
-      {showLevelUp && (
-        <div
-          className="fixed inset-0 z-50 flex justify-center pt-16 bg-black/70 backdrop-blur-sm"
-          onClick={() => {
-            if (levelUpTimerRef.current) clearTimeout(levelUpTimerRef.current);
-            setShowLevelUp(false);
-          }}
-          onMouseEnter={() => {
-            setHoveredNotif('levelup');
-            pauseTimer(levelUpTimerRef, levelUpStartRef, levelUpRemainingRef);
-          }}
-          onMouseLeave={() => {
-            setHoveredNotif(null);
-            resumeTimer(levelUpTimerRef, levelUpStartRef, levelUpRemainingRef, () => setShowLevelUp(false));
-          }}
-        >
-          <div 
-            className="bg-slate-950 border border-indigo-500/40 rounded-3xl p-8 max-w-sm w-full mx-4 shadow-2xl shadow-indigo-500/20 animate-in zoom-in-95 duration-300 text-center relative overflow-hidden"
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Background glow */}
-            <div className="absolute -top-20 -left-20 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl" />
-            <div className="absolute -bottom-20 -right-20 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl" />
+      {/* Level-Up Celebration Modal — extracted component */}
+      <LevelUpModal
+        isOpen={showLevelUp}
+        onClose={() => setShowLevelUp(false)}
+        levelUpInfo={levelUpInfo}
+      />
 
-            {/* Close button top-right */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (levelUpTimerRef.current) clearTimeout(levelUpTimerRef.current);
-                setShowLevelUp(false);
-              }}
-              className="absolute top-4 right-4 text-slate-500 hover:text-white transition text-sm font-bold z-20"
-            >
-              ✕
-            </button>
+      {/* Leaderboard Drawer — extracted component */}
+      <LeaderboardDrawer
+        isOpen={isLeaderboardOpen}
+        onClose={() => setIsLeaderboardOpen(false)}
+        isLoading={isLeaderboardLoading}
+        data={leaderboardData}
+      />
 
-            {/* Progress bar at top */}
-            <div className="absolute top-0 left-0 right-0 h-0.5 bg-indigo-950/50">
-              <div className={`h-full bg-gradient-to-r from-indigo-400 to-purple-500 animate-shrink-width ${hoveredNotif === 'levelup' ? 'animate-paused' : ''}`} />
-            </div>
-            
-            <div className="relative z-10">
-              <div className="text-5xl mb-3 animate-bounce">
-                {getLevelConfig(levelUpInfo.to).icon}
-              </div>
-              <h2 className="text-lg font-black text-white mb-1">🎉 Level Up!</h2>
-              <p className="text-sm text-slate-400 mb-4">
-                You advanced from{' '}
-                <span className="font-bold text-slate-300">{levelUpInfo.from}</span>
-                {' '}to{' '}
-                <span className={`font-bold ${getLevelConfig(levelUpInfo.to).color}`}>
-                  {levelUpInfo.to}
-                </span>
-                !
-              </p>
-              
-              {/* Achievement card */}
-              <div className="bg-slate-900/70 rounded-2xl p-4 border border-slate-800 mb-5">
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  {levelUpInfo.to === 'Apprentice' && 'You\'ve proven you can grade well. Keep the momentum going — Scholar awaits!'}
-                  {levelUpInfo.to === 'Scholar' && 'You\'re mastering the material. Your skill radar will thank you for the practice!'}
-                  {levelUpInfo.to === 'Expert' && 'Exceptional consistency. You\'re among the top-tier students now.'}
-                  {levelUpInfo.to === 'Master' && 'The highest rank! You\'ve shown elite-level skill across every format.'}
-                  {levelUpInfo.to === 'Novice' && 'Every expert starts somewhere. Keep scanning!'}
-                </p>
-              </div>
-
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (levelUpTimerRef.current) clearTimeout(levelUpTimerRef.current);
-                  setShowLevelUp(false);
-                }}
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs px-6 py-2.5 rounded-xl transition shadow-lg"
-              >
-                Continue
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Leaderboard Drawer */}
-      {isLeaderboardOpen && (
-        <div
-          className="fixed inset-0 z-50 flex justify-center pt-16 bg-black/60 backdrop-blur-sm"
-          onClick={() => {
-            if (leaderboardTimerRef.current) clearTimeout(leaderboardTimerRef.current);
-            setIsLeaderboardOpen(false);
-          }}
-          onMouseEnter={() => {
-            setHoveredNotif('leaderboard');
-            pauseTimer(leaderboardTimerRef, leaderboardStartRef, leaderboardRemainingRef);
-          }}
-          onMouseLeave={() => {
-            setHoveredNotif(null);
-            resumeTimer(leaderboardTimerRef, leaderboardStartRef, leaderboardRemainingRef, () => setIsLeaderboardOpen(false));
-          }}
-        >
-          <div 
-            className="bg-slate-950 border border-slate-800 rounded-3xl max-w-lg w-full mx-4 shadow-2xl relative overflow-hidden"
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Progress bar at top */}
-            <div className="absolute top-0 left-0 right-0 h-0.5 bg-indigo-950/50">
-              <div className={`h-full bg-gradient-to-r from-indigo-400 to-purple-500 animate-shrink-width-12s ${hoveredNotif === 'leaderboard' ? 'animate-paused' : ''}`} />
-            </div>
-            {/* Scrollable content */}
-            <div className="overflow-y-auto max-h-[85vh] p-6">
-              <div className="flex justify-between items-center mb-5">
-                <h2 className="text-sm font-black tracking-widest text-slate-300 uppercase">🏆 Community</h2>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (leaderboardTimerRef.current) clearTimeout(leaderboardTimerRef.current);
-                    setIsLeaderboardOpen(false);
-                  }}
-                  className="text-slate-500 hover:text-white text-sm"
-                >
-                  ✕
-                </button>
-              </div>
-
-            {isLeaderboardLoading ? (
-              <div className="text-center py-12">
-                <p className="text-xs text-slate-500 font-mono animate-pulse">Loading community data...</p>
-              </div>
-            ) : leaderboardData ? (
-              <div className="space-y-5">
-                {/* ── Your Personal Stats Card ── */}
-                <div className="bg-gradient-to-br from-indigo-600/10 to-purple-600/10 border border-indigo-500/20 rounded-2xl p-5">
-                  <h3 className="text-[10px] font-black tracking-widest text-indigo-400 uppercase mb-3">Your Profile</h3>
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="bg-slate-900/60 rounded-xl p-3 text-center">
-                      <p className="text-[9px] font-bold text-slate-500 uppercase">Rank</p>
-                      <p className="text-lg font-black font-mono text-indigo-400">#{leaderboardData.myRank}</p>
-                      <p className="text-[8px] text-slate-600">of {leaderboardData.totalUsers}</p>
-                    </div>
-                    <div className="bg-slate-900/60 rounded-xl p-3 text-center">
-                      <p className="text-[9px] font-bold text-slate-500 uppercase">Percentile</p>
-                      <p className="text-lg font-black font-mono text-emerald-400">{leaderboardData.percentile}%</p>
-                      <p className="text-[8px] text-emerald-500/60">{leaderboardData.decileLabel}</p>
-                    </div>
-                    <div className="bg-slate-900/60 rounded-xl p-3 text-center">
-                      <p className="text-[9px] font-bold text-slate-500 uppercase">Level</p>
-                      <p className="text-lg font-black font-mono text-amber-400">{leaderboardData.myLevel}</p>
-                      <p className="text-[8px] text-slate-600">{leaderboardData.myXp} pts</p>
-                    </div>
-                  </div>
-
-                  {/* Streak + trend */}
-                  <div className="flex gap-3 mt-3">
-                    <div className="flex-1 bg-slate-900/60 rounded-xl p-3 flex items-center gap-3">
-                      <span className="text-lg">🔥</span>
-                      <div>
-                        <p className="text-[9px] font-bold text-slate-500">Streak</p>
-                        <p className="text-sm font-black font-mono text-amber-400">{leaderboardData.myStreak}d <span className="text-[9px] text-slate-600 font-normal">(best {leaderboardData.myLongestStreak})</span></p>
-                      </div>
-                    </div>
-                    <div className="flex-1 bg-slate-900/60 rounded-xl p-3 flex items-center gap-3">
-                      <span className="text-lg">{leaderboardData.trendDirection === 'up' ? '📈' : leaderboardData.trendDirection === 'steady' ? '➡️' : '💤'}</span>
-                      <div>
-                        <p className="text-[9px] font-bold text-slate-500">This Week</p>
-                        <p className="text-sm font-black font-mono text-slate-300">
-                          {leaderboardData.recentEvalCount >= 5 ? 'On Fire!' :
-                           leaderboardData.recentEvalCount >= 3 ? 'Consistent' :
-                           leaderboardData.recentEvalCount >= 1 ? 'Getting Started' : 'Inactive'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* ── Context for weaker students ── */}
-                {leaderboardData.percentile < 40 && (
-                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4">
-                    <p className="text-xs text-amber-300 font-bold mb-1">💪 You\'re building momentum!</p>
-                    <p className="text-[11px] text-amber-400/70 leading-relaxed">
-                      Every paper you submit moves you up. Most high-rankers started where you are now.
-                      Your next goal: practice 3 times this week to break into the top half.
-                    </p>
-                  </div>
-                )}
-
-                {/* ── Peers at Your Level ── */}
-                {leaderboardData.sameLevelPeers && leaderboardData.sameLevelPeers.length > 0 && (
-                  <div>
-                    <h3 className="text-[10px] font-black tracking-widest text-slate-500 uppercase mb-2">Peers at Your Level</h3>
-                    <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-3">
-                      <p className="text-[11px] text-slate-400">
-                        {leaderboardData.sameLevelPeersCount} other {leaderboardData.myLevel}(s) at similar XP — you\'re not alone!
-                      </p>
-                      <div className="flex gap-2 mt-2">
-                        {leaderboardData.sameLevelPeers.map((peer: any, i: number) => (
-                          <div key={i} className="flex-1 bg-slate-800/50 rounded-lg p-2 text-center">
-                            <p className="text-[10px] font-mono text-slate-400">{peer.xp}pts</p>
-                            <p className="text-[8px] text-slate-600">🔥{peer.streak}d</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* ── Most Improved ── */}
-                {leaderboardData.mostImproved && leaderboardData.mostImproved.length > 0 && (
-                  <div>
-                    <h3 className="text-[10px] font-black tracking-widest text-emerald-500 uppercase mb-2">📈 Most Improved This Week</h3>
-                    <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-3">
-                      {leaderboardData.mostImproved.map((improver: any, i: number) => (
-                        <div key={i} className="flex items-center gap-2 py-1.5 border-b border-slate-800/50 last:border-0">
-                          <span className="text-[10px] font-mono text-emerald-400 font-bold w-8">+{improver.xpGained}</span>
-                          <span className="text-[10px] text-slate-500">pts this week</span>
-                        </div>
-                      ))}
-                      <p className="text-[9px] text-slate-600 mt-2">Others are climbing — so can you! Every submission counts.</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* ── Leaderboard Top 10 ── */}
-                {leaderboardData.leaderboard && leaderboardData.leaderboard.length > 0 && (
-                  <div>
-                    <h3 className="text-[10px] font-black tracking-widest text-amber-500 uppercase mb-2">🏅 Top Students</h3>
-                    <div className="bg-slate-900/40 border border-slate-800 rounded-xl overflow-hidden">
-                      {leaderboardData.leaderboard.slice(0, 10).map((entry: any) => (
-                        <div
-                          key={entry.rank}
-                          className={`flex items-center justify-between px-4 py-2.5 border-b border-slate-800/50 last:border-0 ${
-                            entry.isMe ? 'bg-indigo-500/10 border-indigo-500/30' : ''
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <span className={`w-6 text-center text-xs font-mono font-bold ${
-                              entry.rank === 1 ? 'text-amber-400' :
-                              entry.rank === 2 ? 'text-slate-300' :
-                              entry.rank === 3 ? 'text-amber-700' : 'text-slate-600'
-                            }`}>
-                              {entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : `#${entry.rank}`}
-                            </span>
-                            <span className={`text-xs font-medium ${entry.isMe ? 'text-indigo-300 font-bold' : 'text-slate-400'}`}>
-                              {entry.isMe ? 'You' : `${entry.level}`}
-                            </span>
-                          </div>
-                          <span className="text-[10px] font-mono text-slate-500">{entry.xp} pts</span>
-                        </div>
-                      ))}
-                    </div>
-                    {!leaderboardData.isInTopTwenty && (
-                      <p className="text-[9px] text-slate-600 text-center mt-2">You\'re climbing — keep submitting to reach the board!</p>
-                    )}
-                  </div>
-                )}
-
-                {/* ── Motivational Footer ── */}
-                <div className="text-center pt-2">
-                  <p className="text-[10px] text-slate-600 italic">
-                    "The only person you should try to be better than is the person you were yesterday."
-                  </p>
-                </div>
-              </div>              ) : (
-              <div className="text-center py-12">
-                <p className="text-xs text-slate-500">Could not load community data.</p>
-              </div>
-            )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Achievement Unlocked Banner — top of screen with countdown bar & close button */}
+      {/* Achievement Unlocked Banner — extracted component */}
       {showAchievementUnlocked && newlyUnlocked.length > 0 && (
         <div
           className="cursor-pointer"
-          onMouseEnter={() => {
-            setHoveredNotif('achievement');
-          }}
-          onMouseLeave={() => {
-            setHoveredNotif(null);
-          }}
+          onMouseEnter={() => setHoveredNotif('achievement')}
+          onMouseLeave={() => setHoveredNotif(null)}
         >
           <AchievementBanner
             newlyUnlocked={newlyUnlocked}
-            onDismiss={dismissBanner}
+            onDismiss={() => setShowAchievementUnlocked(false)}
             isPaused={hoveredNotif === 'achievement'}
           />
         </div>
@@ -2061,79 +1502,12 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Achievements Drawer */}
-      {isAchievementsOpen && (
-        <div
-          className="fixed inset-0 z-50 flex justify-center pt-16 bg-black/60 backdrop-blur-sm"
-          onClick={() => {
-            if (achievementsTimerRef.current) clearTimeout(achievementsTimerRef.current);
-            setIsAchievementsOpen(false);
-          }}
-          onMouseEnter={() => {
-            setHoveredNotif('achievements');
-            pauseTimer(achievementsTimerRef, achievementsStartRef, achievementsRemainingRef);
-          }}
-          onMouseLeave={() => {
-            setHoveredNotif(null);
-            resumeTimer(achievementsTimerRef, achievementsStartRef, achievementsRemainingRef, () => setIsAchievementsOpen(false));
-          }}
-        >
-          <div
-            className="bg-slate-950 border border-slate-800 rounded-3xl max-w-sm w-full mx-4 shadow-2xl relative overflow-hidden"
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Progress bar at top (clipped by parent overflow-hidden) */}
-            <div className="absolute top-0 left-0 right-0 h-0.5 bg-slate-800/30">
-              <div className={`h-full bg-gradient-to-r from-amber-400 to-orange-500 animate-shrink-width-12s ${hoveredNotif === 'achievements' ? 'animate-paused' : ''}`} />
-            </div>
-            {/* Scrollable content wrapper */}
-            <div className="overflow-y-auto max-h-[80vh] p-6">
-              <div className="flex justify-between items-center mb-5">
-                <h2 className="text-sm font-black tracking-widest text-slate-300 uppercase">🏅 Achievements</h2>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (achievementsTimerRef.current) clearTimeout(achievementsTimerRef.current);
-                    setIsAchievementsOpen(false);
-                  }}
-                  className="text-slate-500 hover:text-white transition text-sm font-bold"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="text-[10px] text-slate-500 font-mono mb-4 text-center">
-                {achievements.length} / {ACHIEVEMENT_DEFS.length} unlocked
-              </div>
-
-              <div className="space-y-2">
-                {ACHIEVEMENT_DEFS.map((ach) => {
-                  const unlocked = achievements.includes(ach.id);
-                  return (
-                    <div
-                      key={ach.id}
-                      className={`rounded-xl p-3 border flex items-center gap-3 transition ${
-                        unlocked
-                          ? 'bg-emerald-500/5 border-emerald-500/20'
-                          : 'bg-slate-900/30 border-slate-800/50 opacity-50'
-                      }`}
-                    >
-                      <span className={`text-xl ${unlocked ? '' : 'grayscale'}`}>{ach.icon}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-xs font-bold ${unlocked ? 'text-white' : 'text-slate-500'}`}>
-                          {ach.title}
-                        </p>
-                        <p className="text-[10px] text-slate-500 truncate">{ach.description}</p>
-                      </div>
-                      {unlocked && <span className="text-[9px] text-emerald-400">✅</span>}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Achievements Drawer — extracted component */}
+      <AchievementsDrawer
+        isOpen={isAchievementsOpen}
+        onClose={() => setIsAchievementsOpen(false)}
+        achievements={achievements}
+      />
 
       {/* Study Group Panel */}
       {userId && (
@@ -2160,47 +1534,6 @@ export default function DashboardPage() {
         onSubmit={handleSubmitFeedback}
       />
 
-    </div>
-  );
-}
-
-/** Achievement banner component with countdown bar and close button */
-function AchievementBanner({ newlyUnlocked, onDismiss, isPaused }: { newlyUnlocked: any[]; onDismiss: () => void; isPaused?: boolean }) {
-  useEffect(() => {
-    if (isPaused) return;
-    const timer = setTimeout(onDismiss, 12000);
-    return () => clearTimeout(timer);
-  }, [onDismiss, isPaused]);
-
-  return (
-    <div className="fixed top-0 left-1/2 -translate-x-1/2 z-[60] animate-in slide-in-from-top-3 fade-in duration-300 max-w-3xl w-full">
-      <div className="bg-gradient-to-r from-emerald-950/95 via-slate-950/95 to-indigo-950/95 border border-emerald-500/30 rounded-b-2xl shadow-2xl shadow-emerald-500/10 relative overflow-hidden">
-        {/* Countdown bar at bottom */}
-        <div className={`absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-emerald-400 to-emerald-600 animate-shrink-width-12s ${isPaused ? 'animate-paused' : ''}`} />
-
-        {/* Close button top right */}
-        <button
-          onClick={onDismiss}
-          className="absolute top-3 right-4 text-slate-400 hover:text-white transition text-sm font-bold z-10"
-        >
-          ✕
-        </button>
-
-        <div className="max-w-3xl mx-auto px-6 py-4 pr-12">
-          <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest mb-2">🎉 Achievement Unlocked!</p>
-          <div className="flex items-center gap-4">
-            {newlyUnlocked.map((ach: any, i: number) => (
-              <div key={ach.id || i} className="flex items-center gap-3 py-1">
-                <span className="text-3xl">{ach.icon}</span>
-                <div>
-                  <p className="text-sm font-bold text-white">{ach.title}</p>
-                  <p className="text-[11px] text-slate-400">{ach.description}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

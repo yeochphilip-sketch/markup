@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import GlobalFeedbackWrapper from "@/app/components/GlobalFeedbackWrapper";
+import PageTransition from "@/app/components/PageTransition";
 import { Analytics } from '@vercel/analytics/react';
 
 const inter = Inter({ subsets: ["latin"] });
@@ -21,7 +22,10 @@ export default function RootLayout({
       <body className={inter.className}>
         {/* 💬 Wrap the children content inside the feedback layer so it renders perfectly */}
         <GlobalFeedbackWrapper>
-          {children}
+          {/* 🎬 Route transition animation wrapper */}
+          <PageTransition>
+            {children}
+          </PageTransition>
         </GlobalFeedbackWrapper>
         
         {/* 📊 Production analytics script tracking tag */}

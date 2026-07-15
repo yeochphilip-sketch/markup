@@ -233,8 +233,14 @@ ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS last_decay_check_
 -- ════════════════════════════════════════════════════════════
 --  Personalized reminder columns
 -- ════════════════════════════════════════════════════════════
-ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS last_active_at         TIMESTAMP WITH TIME ZONE;
-ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS last_reminder_sent_at   DATE;
+ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS last_active_at           TIMESTAMP WITH TIME ZONE;
+ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS last_reminder_sent_at     DATE;
+
+-- ════════════════════════════════════════════════════════════
+--  Notification preference columns
+-- ════════════════════════════════════════════════════════════
+ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS email_reminders_enabled   BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS practice_receipt_enabled  BOOLEAN DEFAULT TRUE;
 
 -- Ensure UNIQUE on user_id (for ON CONFLICT in seed query)
 DO $$ BEGIN
@@ -587,5 +593,21 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ============================================================
+-- 13. user_feedback admin_view RLS (admin can read all feedback)
+--     Already handled by RLS policy above (Allow admin read user_feedback)
+--     No schema changes needed for admin feedback viewer feature.
+-- ============================================================
+
+-- ============================================================
 -- Done.
+-- ════════════════════════════════════════════════════════════
+-- 
+--  New additions in this session (no SQL changes needed):
+--  
+--  Dashboard → extracted AnalyticsPanel, ConfiguratorSidebar components
+--  Admin     → added refresh button, feedback viewer tab, evaluations CSV export
+--  Email     → SEND_FROM_EMAIL env var, configurable SITE_URL in all HTML templates
+--
+--  All columns already exist in the schema. No migration needed.
+-- ════════════════════════════════════════════════════════════
 -- ============================================================

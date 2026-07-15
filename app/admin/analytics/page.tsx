@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState, Suspense, useMemo } from 'react';
+import { useEffect, useState, Suspense, useMemo, useCallback } from 'react';
 import { supabase } from '@/utils/supabase';
 import { useRouter } from 'next/navigation';
+import LoadingSpinner from '@/app/components/LoadingSpinner';
 
 interface ProfileRow {
   id: string;
@@ -28,6 +29,15 @@ interface EssayRow {
   created_at: string;
   subject: string | null;
   score_estimate: string;
+}
+
+interface FeedbackRow {
+  id: string;
+  created_at: string;
+  user_id: string | null;
+  user_email: string | null;
+  feedback_type: string;
+  description: string;
 }
 
 interface SkillMetricsRow {
@@ -153,9 +163,17 @@ function AnalyticsDashboardContent() {
   const [skillMetrics, setSkillMetrics] = useState<SkillMetricsRow[]>([]);
   const [loadingMetrics, setLoadingMetrics] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [feedback, setFeedback] = useState<FeedbackRow[]>([]);
+  const [loadingFeedback, setLoadingFeedback] = useState(true);
+  const [feedbackSearch, setFeedbackSearch] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  useEffect(() => {
-    async function bootstrap() {
+  const fetchAllData = useCallback(async () => {
+    setLoading(true);
+    setLoadingWaitlist(true);
+    setLoadingEssays(true);
+    setLoadingMetrics(true);
+    setLoadingFeedback(true);
       const { data: sessionData } = await supabase.auth.getSession();
       const user = sessionData.session?.user;
 
@@ -169,9 +187,7 @@ function AnalyticsDashboardContent() {
         return;
       }
 
-      setIsAuthorized(true);
-
-      // Fetch profiles
+    // Fetch profiles
       try {
         const { data, error } = await supabase
           .from('user_profiles')
@@ -229,10 +245,49 @@ function AnalyticsDashboardContent() {
       } finally {
         setLoadingEssays(false);
       }
+    // Fetch feedback
+    try {
+      const { data, error } = await supabase
+        .from('user_feedback')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      if (data) setFeedback(data as FeedbackRow[]);
+    } catch (err) {
+      console.error('Error fetching feedback:', err);
+    } finally {
+      setLoadingFeedback(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    async function bootstrap() {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const user = sessionData.session?.user;
+
+      const adminFlag =
+        user?.app_metadata?.is_admin === true ||
+        user?.user_metadata?.is_admin === true ||
+        user?.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL;
+
+      if (!user || !adminFlag) {
+        router.replace('/dashboard');
+        return;
+      }
+
+      setIsAuthorized(true);
+      await fetchAllData();
     }
 
     bootstrap();
-  }, [router]);
+  }, [router, fetchAllData]);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchAllData();
+    setIsRefreshing(false);
+  };
 
   // ── Gamification derived stats ────────────────────────────
 
@@ -401,8 +456,8 @@ function AnalyticsDashboardContent() {
 
   if (!isAuthorized) {
     return (
-      <div className="min-h-screen bg-[#07090e] text-slate-500 font-mono flex items-center justify-center text-xs">
-        Loading Secure Registry Profile Matrix…
+      <div className="min-h-screen bg-[#07090e] flex flex-col items-center justify-center gap-6">
+        <LoadingSpinner size="lg" label="Authenticating..." color="indigo" />
       </div>
     );
   }
@@ -420,15 +475,25 @@ function AnalyticsDashboardContent() {
               Live data streams from users, essays, waitlist, and subscriptions
             </p>
           </div>
-          <button
-            onClick={async () => {
-              await supabase.auth.signOut();
-              router.push('/auth');
-            }}
-            className="text-[11px] font-bold text-slate-400 bg-slate-900 hover:bg-slate-800 border border-slate-800 px-3 py-1.5 rounded-lg transition"
-          >
-            Sign Out
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 disabled:opacity-50"
+            >
+              <span className={`${isRefreshing ? 'animate-spin' : ''}`}>⟳</span>
+              {isRefreshing ? 'Refreshing...' : 'Refresh'}
+            </button>
+            <button
+              onClick={async () => {
+                await supabase.auth.signOut();
+                router.push('/auth');
+              }}
+              className="text-[11px] font-bold text-slate-400 bg-slate-900 hover:bg-slate-800 border border-slate-800 px-3 py-1.5 rounded-lg transition"
+            >
+              Sign Out
           </button>
+          </div>
         </div>
 
         {/* ── Row 1: Core KPI tiles ────────────────────────── */}
@@ -542,7 +607,9 @@ function AnalyticsDashboardContent() {
             <div>
               <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-2">Subject Split</p>
               {loadingMetrics ? (
-                <p className="text-xs text-slate-600 font-mono animate-pulse">Loading…</p>
+                <div className="flex items-center justify-center py-4">
+                  <LoadingSpinner size="sm" label="" color="indigo" />
+                </div>
               ) : (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between bg-slate-900/40 rounded-lg px-3 py-2">
@@ -574,7 +641,9 @@ function AnalyticsDashboardContent() {
             <div>
               <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-2">SS Target Goals</p>
               {loadingMetrics ? (
-                <p className="text-xs text-slate-600 font-mono animate-pulse">Loading…</p>
+                <div className="flex items-center justify-center py-4">
+                  <LoadingSpinner size="sm" label="" color="indigo" />
+                </div>
               ) : (
                 <div className="space-y-1">
                   {Object.entries(ssGoalDistribution).length === 0 ? (
@@ -607,7 +676,9 @@ function AnalyticsDashboardContent() {
             <div>
               <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-2">History Target Goals</p>
               {loadingMetrics ? (
-                <p className="text-xs text-slate-600 font-mono animate-pulse">Loading…</p>
+                <div className="flex items-center justify-center py-4">
+                  <LoadingSpinner size="sm" label="" color="indigo" />
+                </div>
               ) : (
                 <div className="space-y-1">
                   {Object.entries(historyGoalDistribution).length === 0 ? (
@@ -747,8 +818,8 @@ function AnalyticsDashboardContent() {
           </div>
           <div className="overflow-x-auto">
             {loadingWaitlist ? (
-              <div className="p-8 text-center text-xs text-slate-500 font-mono animate-pulse">
-                Loading waitlist data…
+              <div className="p-8 flex items-center justify-center">
+                <LoadingSpinner size="sm" label="Loading waitlist..." color="amber" />
               </div>
             ) : filteredWaitlist.length === 0 ? (
               <div className="p-8 text-center text-xs text-slate-500 font-mono">
@@ -801,6 +872,103 @@ function AnalyticsDashboardContent() {
           </div>
         </div>
 
+        {/* ── Feedback Viewer ──────────────────────────── */}
+        <div className="bg-slate-950 border border-rose-500/20 rounded-2xl overflow-hidden">
+          <div className="p-5 border-b border-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <h2 className="text-sm font-bold text-slate-200">🐛 User Feedback</h2>
+              <span className="text-[10px] text-slate-500 font-mono bg-slate-900 px-2 py-0.5 rounded-full">
+                {feedback.length} submissions
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Search feedback..."
+                value={feedbackSearch}
+                onChange={(e) => setFeedbackSearch(e.target.value)}
+                className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-[11px] text-slate-200 placeholder-slate-600 focus:outline-none focus:border-rose-500/50 w-48"
+              />
+              <button
+                onClick={() =>
+                  csvDownload(
+                    feedback.map((f) => ({
+                      Email: f.user_email || 'anonymous',
+                      Type: f.feedback_type,
+                      Description: f.description.replace(/\n/g, '\\n'),
+                      Date: new Date(f.created_at).toLocaleDateString('en-SG'),
+                    })),
+                    'user-feedback',
+                  )
+                }
+                className="text-[10px] font-bold text-rose-400 bg-rose-500/10 border border-rose-500/30 px-3 py-1.5 rounded-lg hover:bg-rose-500/20 transition whitespace-nowrap"
+              >
+                ⬇ CSV
+              </button>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            {loadingFeedback ? (
+              <div className="p-8 flex items-center justify-center">
+                <LoadingSpinner size="sm" label="Loading feedback..." color="rose" />
+              </div>
+            ) : feedback.length === 0 ? (
+              <div className="p-8 text-center text-xs text-slate-500 font-mono">
+                No feedback submissions yet.
+              </div>
+            ) : (
+              <table className="w-full text-left text-xs text-slate-300">
+                <thead className="bg-slate-900/50 text-slate-400 uppercase text-[10px] tracking-wider font-mono border-b border-slate-900">
+                  <tr>
+                    <th className="p-4">Date</th>
+                    <th className="p-4">Email</th>
+                    <th className="p-4">Type</th>
+                    <th className="p-4">Description</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-900">
+                  {feedback
+                    .filter(
+                      (f) =>
+                        (f.user_email || '').toLowerCase().includes(feedbackSearch.toLowerCase()) ||
+                        f.feedback_type.toLowerCase().includes(feedbackSearch.toLowerCase()) ||
+                        f.description.toLowerCase().includes(feedbackSearch.toLowerCase()),
+                    )
+                    .map((entry) => (
+                      <tr key={entry.id} className="hover:bg-slate-900/20 transition">
+                        <td className="p-4 text-slate-500 font-mono whitespace-nowrap">
+                          {new Date(entry.created_at).toLocaleDateString('en-SG', {
+                            day: 'numeric',
+                            month: 'short',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </td>
+                        <td className="p-4 font-medium text-slate-200">{entry.user_email || 'anonymous'}</td>
+                        <td className="p-4">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                              entry.feedback_type === 'Bug'
+                                ? 'bg-rose-500/10 text-rose-400'
+                                : entry.feedback_type === 'Feature Request'
+                                  ? 'bg-amber-500/10 text-amber-400'
+                                  : entry.feedback_type === 'Compliment'
+                                    ? 'bg-emerald-500/10 text-emerald-400'
+                                    : 'bg-indigo-500/10 text-indigo-400'
+                            }`}
+                          >
+                            {entry.feedback_type}
+                          </span>
+                        </td>
+                        <td className="p-4 text-slate-400 max-w-md truncate">{entry.description}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+
         {/* ── User registry table ─────────────────────────── */}
         <div className="bg-slate-950 border border-slate-900 rounded-2xl overflow-hidden">
           <div className="p-5 border-b border-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -818,6 +986,24 @@ function AnalyticsDashboardContent() {
                 onChange={(e) => setProfileSearch(e.target.value)}
                 className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-[11px] text-slate-200 placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 w-48"
               />
+              <div className="flex gap-2">
+              <button
+                onClick={() =>
+                  csvDownload(
+                    essays.map((e) => ({
+                      ID: e.id,
+                      Date: new Date(e.created_at).toLocaleDateString('en-SG'),
+                      Subject: e.subject || '',
+                      Score: e.score_estimate,
+                    })),
+                    'essay-evaluations',
+                  )
+                }
+                className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-lg hover:bg-emerald-500/20 transition whitespace-nowrap"
+                title="Export evaluations CSV"
+              >
+                📝 Essays CSV
+              </button>
               <button
                 onClick={() =>
                   csvDownload(
@@ -836,12 +1022,13 @@ function AnalyticsDashboardContent() {
               >
                 ⬇ CSV
               </button>
+              </div>
             </div>
           </div>
           <div className="overflow-x-auto">
             {loading ? (
-              <div className="p-8 text-center text-xs text-slate-500 font-mono animate-pulse">
-                Syncing data rows…
+              <div className="p-8 flex items-center justify-center">
+                <LoadingSpinner size="sm" label="Loading user data..." color="indigo" />
               </div>
             ) : filteredProfiles.length === 0 ? (
               <div className="p-8 text-center text-xs text-slate-500 font-mono">
@@ -922,8 +1109,8 @@ export default function AdminAnalyticsPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#07090e] text-slate-500 font-mono flex items-center justify-center text-xs">
-          Loading Security Shell…
+        <div className="min-h-screen bg-[#07090e] flex flex-col items-center justify-center gap-6">
+          <LoadingSpinner size="lg" label="Loading Platform Insights..." color="indigo" />
         </div>
       }
     >

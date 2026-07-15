@@ -23,6 +23,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ sent: false, reason: 'RESEND_API_KEY not configured' });
     }
 
+    const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://markup-five.vercel.app';
+
     // Build referral link
     let referralLink = '';
     if (userId && process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -37,7 +39,7 @@ export async function POST(request: Request) {
           .eq('id', userId)
           .single() as any;
         if (profile?.referral_code) {
-          referralLink = `https://markup-five.vercel.app?ref=${profile.referral_code}`;
+          referralLink = `${SITE_URL}?ref=${profile.referral_code}`;
         }
       } catch {
         // non-fatal
@@ -85,7 +87,7 @@ export async function POST(request: Request) {
         </div>
 
         <div style="margin-top: 20px; text-align: center;">
-          <a href="https://markup-five.vercel.app/dashboard" style="display: inline-block; background: #6366f1; color: white; padding: 14px 32px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 14px;">
+          <a href="${SITE_URL}/dashboard" style="display: inline-block; background: #6366f1; color: white; padding: 14px 32px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 14px;">
             Start Practicing →
           </a>
         </div>
@@ -113,7 +115,7 @@ export async function POST(request: Request) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'MARKUP <onboarding@resend.dev>',
+        from: process.env.SEND_FROM_EMAIL || 'MARKUP <onboarding@resend.dev>',
         to: email,
         subject: '🎉 Welcome to MARKUP — Start Practicing',
         html,

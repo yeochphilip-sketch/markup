@@ -20,6 +20,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
     }
 
+    const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://markup-five.vercel.app';
     const resendApiKey = process.env.RESEND_API_KEY;
     if (!resendApiKey) {
       return NextResponse.json({ sent: false, reason: 'RESEND_API_KEY not configured' });
@@ -61,7 +62,7 @@ export async function POST(request: Request) {
         ` : ''}
 
         <div style="margin-top: 24px; text-align: center;">
-          <a href="https://markup-five.vercel.app/dashboard" style="display: inline-block; background: #6366f1; color: white; padding: 12px 24px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 13px;">
+          <a href="${SITE_URL}/dashboard" style="display: inline-block; background: #6366f1; color: white; padding: 12px 24px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 13px;">
             View Full Results →
           </a>
         </div>
@@ -81,7 +82,7 @@ export async function POST(request: Request) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'MARKUP <onboarding@resend.dev>',
+        from: process.env.SEND_FROM_EMAIL || 'MARKUP <onboarding@resend.dev>',
         to: email,
         subject: `📝 Practice Complete — ${subject || 'Humanities'} (${scoreEstimate || 'N/A'})`,
         html,

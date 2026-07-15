@@ -11,8 +11,8 @@ interface ExamCountdownProps {
   historyGoalLevel: string | null;
   takesHistory: boolean;
   currentLevel: string;
-  onSetGoal: (subject: 'ss' | 'history', goalLevel: string) => Promise<void>;
-  onSetTakesHistory: (takes: boolean) => Promise<void>;
+  onSetGoal: (subject: 'ss' | 'history', goalLevel: string) => void;
+  onSetTakesHistory: (takes: boolean) => void;
 }
 
 const LEVEL_TARGETS = [

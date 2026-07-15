@@ -1,8 +1,39 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
+
+/**
+ * Shared auth checker — accepts `x-cron-secret` header OR `?secret=` query param.
+ * Supports both POST (header auth) and GET (query-param auth for cron-job.org).
+ */
+function isAuthorized(request: NextRequest): boolean {
+  const expectedSecret = process.env.CRON_SECRET;
+  if (!expectedSecret) return true; // no secret configured = open
+
+  const headerSecret = request.headers.get('x-cron-secret');
+  if (headerSecret === expectedSecret) return true;
+
+  const querySecret = request.nextUrl.searchParams.get('secret');
+  if (querySecret === expectedSecret) return true;
+
+  return false;
+}
+
+/**
+ * GET /api/email/daily-reminder
+ *
+ * Same as POST but uses query-param auth — designed for cron-job.org which
+ * sends GET requests by default. Add `?secret=YOUR_CRON_SECRET` to the URL.
+ */
+export async function GET(request: NextRequest) {
+  if (!isAuthorized(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  // Delegate to POST handler via shared logic
+  return POST(request);
+}
 
 /**
  * POST /api/email/daily-reminder
@@ -12,14 +43,11 @@ export const maxDuration = 60;
  * (in Singapore timezone). If the preferred time falls within the next 45 minutes,
  * the user gets a reminder email.
  *
- * Designed to be called by a cron job every 30 minutes (or every hour).
- * Set header `x-cron-secret` matching CRON_SECRET env var for security.
+ * Designed to be called by a cron job (e.g. cron-job.org) every ~30 minutes.
+ * Auth: `x-cron-secret` header OR `?secret=YOUR_CRON_SECRET` query param.
  */
-export async function POST(request: Request) {
-  // ── Auth guard ──
-  const authHeader = request.headers.get('x-cron-secret');
-  const expectedSecret = process.env.CRON_SECRET;
-  if (expectedSecret && authHeader !== expectedSecret) {
+export async function POST(request: NextRequest) {
+  if (!isAuthorized(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -60,10 +88,12 @@ export async function POST(request: Request) {
         total_xp,
         level_title,
         last_practice_date,
+        email_reminders_enabled,
         user_profiles!inner(email, display_name)
       `)
       .not('last_active_at', 'is', null)
       .or(`last_reminder_sent_at.is.null,last_reminder_sent_at.lt.${todayStr}`)
+      .eq('email_reminders_enabled', true)
       .limit(200) as unknown as {
       data: Array<{
         user_id: string;
@@ -113,6 +143,8 @@ export async function POST(request: Request) {
         window: `${Math.floor(currentSgtMinutes / 60)}:${String(currentSgtMinutes % 60).padStart(2, '0')} → next ${WINDOW_MINUTES}min SGT`,
       });
     }
+
+    const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://markup-five.vercel.app';
 
     // ── Send personalized reminders ──
     let sentCount = 0;
@@ -177,7 +209,7 @@ export async function POST(request: Request) {
           </div>
 
           <div style="margin-top: 20px; text-align: center;">
-            <a href="https://markup-five.vercel.app/dashboard" style="display: inline-block; background: #6366f1; color: white; padding: 14px 32px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 14px;">
+            <a href="${SITE_URL}/dashboard" style="display: inline-block; background: #6366f1; color: white; padding: 14px 32px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 14px;">
               Practice Now ${streak > 0 ? '🔥' : '🚀'}
             </a>
           </div>
@@ -186,7 +218,7 @@ export async function POST(request: Request) {
             <p style="font-size: 10px; color: #475569; margin: 0;">
               You are receiving this because you have a MARKUP account.
               <br/>
-              <a href="https://markup-five.vercel.app/dashboard/settings" style="color: #6366f1; text-decoration: underline;">Manage preferences</a>
+              <a href="${SITE_URL}/dashboard/settings" style="color: #6366f1; text-decoration: underline;">Manage preferences</a>
             </p>
           </div>
         </div>
@@ -200,7 +232,7 @@ export async function POST(request: Request) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            from: 'MARKUP <onboarding@resend.dev>',
+            from: process.env.SEND_FROM_EMAIL || 'MARKUP <onboarding@resend.dev>',
             to: profile.email,
             subject: streak > 0
               ? `⏰ ${name || 'Champion'} — do not lose your ${streak}-day streak!`

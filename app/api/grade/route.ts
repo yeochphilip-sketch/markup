@@ -411,31 +411,42 @@ export async function POST(request: Request) {
 
     await Promise.allSettled(dbWrites);
 
-    // ── Send practice receipt email (awaited so it completes on serverless) ──
+    // ── Send practice receipt email (respects user preference) ──
     if (userId && supabaseAdmin) {
       try {
-        const { data: profile } = await supabaseAdmin
-          .from('user_profiles')
-          .select('email, display_name')
-          .eq('id', userId)
+        // Check if user has practice receipts enabled
+        const { data: metrics } = await supabaseAdmin
+          .from('user_skill_metrics')
+          .select('practice_receipt_enabled')
+          .eq('user_id', userId)
           .single() as any;
-        if (profile?.email) {
-          await fetch(
-            `${process.env.NEXT_PUBLIC_SITE_URL || 'https://markup-five.vercel.app'}/api/email/practice-receipt`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                email: profile.email,
-                name: profile.display_name || undefined,
-                scoreEstimate: evaluation.scoreLabel,
-                subject: resolvedSubject,
-                topic: resolvedTopic,
-                skill: resolvedQuestionType,
-                xpEarned: earnedXp,
-              }),
-            },
-          );
+        
+        const receiptEnabled = metrics?.practice_receipt_enabled !== false;
+        
+        if (receiptEnabled) {
+          const { data: profile } = await supabaseAdmin
+            .from('user_profiles')
+            .select('email, display_name')
+            .eq('id', userId)
+            .single() as any;
+          if (profile?.email) {
+            await fetch(
+              `${process.env.NEXT_PUBLIC_SITE_URL || 'https://markup-five.vercel.app'}/api/email/practice-receipt`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  email: profile.email,
+                  name: profile.display_name || undefined,
+                  scoreEstimate: evaluation.scoreLabel,
+                  subject: resolvedSubject,
+                  topic: resolvedTopic,
+                  skill: resolvedQuestionType,
+                  xpEarned: earnedXp,
+                }),
+              },
+            );
+          }
         }
       } catch {
         // Non-critical — practice receipt is best-effort
