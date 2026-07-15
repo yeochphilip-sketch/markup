@@ -459,6 +459,7 @@ ALTER TABLE public.study_groups ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Allow owner select study_groups" ON public.study_groups;
 DROP POLICY IF EXISTS "Allow owner insert study_groups" ON public.study_groups;
 DROP POLICY IF EXISTS "Allow member select study_groups" ON public.study_groups;
+DROP POLICY IF EXISTS "Allow group_select" ON public.study_groups;
 CREATE POLICY "Allow group_select"
     ON public.study_groups FOR SELECT
     USING (true);  -- Anyone can look up a group by join code

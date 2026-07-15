@@ -276,9 +276,11 @@ CREATE TABLE IF NOT EXISTS public.waitlist_signups (
 );
 
 ALTER TABLE public.waitlist_signups ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow anon insert waitlist" ON public.waitlist_signups;
 CREATE POLICY "Allow anon insert waitlist"
     ON public.waitlist_signups FOR INSERT
     WITH CHECK (true);
+DROP POLICY IF EXISTS "Allow service role all" ON public.waitlist_signups;
 CREATE POLICY "Allow service role all"
     ON public.waitlist_signups FOR ALL
     USING (auth.role() = 'service_role');
@@ -303,12 +305,15 @@ CREATE INDEX user_notifications_user_idx
     ON public.user_notifications (user_id, created_at DESC);
 
 ALTER TABLE public.user_notifications ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow owner read notifications" ON public.user_notifications;
 CREATE POLICY "Allow owner read notifications"
     ON public.user_notifications FOR SELECT
     USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Allow owner update notifications" ON public.user_notifications;
 CREATE POLICY "Allow owner update notifications"
     ON public.user_notifications FOR UPDATE
     USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Allow service role all" ON public.user_notifications;
 CREATE POLICY "Allow service role all"
     ON public.user_notifications FOR ALL
     USING (auth.role() = 'service_role');
@@ -326,12 +331,15 @@ CREATE TABLE IF NOT EXISTS public.study_groups (
 );
 
 ALTER TABLE public.study_groups ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow authenticated create groups" ON public.study_groups;
 CREATE POLICY "Allow authenticated create groups"
     ON public.study_groups FOR INSERT
     WITH CHECK (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Allow members read groups" ON public.study_groups;
 CREATE POLICY "Allow members read groups"
     ON public.study_groups FOR SELECT
     USING (true);
+DROP POLICY IF EXISTS "Allow service role all" ON public.study_groups;
 CREATE POLICY "Allow service role all"
     ON public.study_groups FOR ALL
     USING (auth.role() = 'service_role');
@@ -350,9 +358,11 @@ CREATE TABLE IF NOT EXISTS public.study_group_members (
 );
 
 ALTER TABLE public.study_group_members ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow authenticated CRUD members" ON public.study_group_members;
 CREATE POLICY "Allow authenticated CRUD members"
     ON public.study_group_members FOR ALL
     USING (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Allow service role all" ON public.study_group_members;
 CREATE POLICY "Allow service role all"
     ON public.study_group_members FOR ALL
     USING (auth.role() = 'service_role');
