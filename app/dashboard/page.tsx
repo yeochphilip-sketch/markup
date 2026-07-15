@@ -133,8 +133,9 @@ export default function DashboardPage() {
   const [decayWarning, setDecayWarning] = useState({ show: false, message: '', severity: 'warning' as 'warning' | 'danger' });
   const [isStudyGroupOpen, setIsStudyGroupOpen] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
-  const [examDate, setExamDate] = useState<string | null>(null);
-  const [examGoalLevel, setExamGoalLevel] = useState<string | null>(null);
+  const [ssGoalLevel, setSsGoalLevel] = useState<string | null>(null);
+  const [historyGoalLevel, setHistoryGoalLevel] = useState<string | null>(null);
+  const [takesHistory, setTakesHistory] = useState(false);
 
   const [timeLeft, setTimeLeft] = useState(1200); 
   const [isTimerActive, setIsTimerActive] = useState(false);
@@ -292,8 +293,9 @@ export default function DashboardPage() {
         setAchievements(metricsData.achievements ?? []);
         setDailyGoalMet(isDailyGoalMet(metricsData.last_practice_date));
         setDecayWarning(getDecayWarning(metricsData.last_practice_date, xp));
-        setExamDate(metricsData.exam_date ?? null);
-        setExamGoalLevel(metricsData.exam_goal_level ?? null);
+        setSsGoalLevel(metricsData.ss_goal_level ?? null);
+        setHistoryGoalLevel(metricsData.history_goal_level ?? null);
+        setTakesHistory(metricsData.takes_history ?? false);
         // Calculate XP progress to next level
         const nextLevelXp = getNextLevelXp(xp);
         const prevLevelXp = getPrevLevelXp(xp);
@@ -395,8 +397,10 @@ export default function DashboardPage() {
             question_type: selectedSkill,
             question_prompt: data.questionPrompt || 'Comprehensive Sheet Bundle',
             background_context: data.backgroundContext,
-            source_a: data.sourceA, 
-            source_b: data.sourceB, 
+            source_a: data.sourceA,
+            source_a_provenance: data.sourceAProvenance,
+            source_b: data.sourceB,
+            source_b_provenance: data.sourceBProvenance,
             suggested_answer: data.suggestedAnswer
           }])
           .select()
@@ -587,18 +591,40 @@ export default function DashboardPage() {
     setEvaluation({ scoreEstimate: '', critique: [], segments: [], confidence: 0, a1Upgrade: '' });
   };
 
-  const handleSetExamGoal = async (date: string, level: string) => {
+  const handleSetExamGoal = async (subject: 'ss' | 'history', goalLevel: string) => {
     if (!userId) return;
     try {
-      await fetch('/api/exam-goal', {
+      const res = await fetch('/api/exam-goal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, examDate: date, examGoalLevel: level }),
+        body: JSON.stringify({ userId, subject, goalLevel }),
       });
-      setExamDate(date);
-      setExamGoalLevel(level);
+      if (res.ok) {
+        if (subject === 'ss') {
+          setSsGoalLevel(goalLevel);
+        } else {
+          setHistoryGoalLevel(goalLevel);
+        }
+      }
     } catch (err) {
       console.warn('Failed to save exam goal:', err);
+    }
+  };
+
+  const handleSetTakesHistory = async (takes: boolean) => {
+    if (!userId) return;
+    try {
+      const res = await fetch('/api/exam-goal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, subject: 'history', goalLevel: takes ? 'Novice' : null }),
+      });
+      if (res.ok) {
+        setTakesHistory(takes);
+        if (!takes) setHistoryGoalLevel(null);
+      }
+    } catch (err) {
+      console.warn('Failed to update History setting:', err);
     }
   };
 
@@ -792,14 +818,16 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Exam Countdown + Goal Setting */}
+        {/* Exam Countdowns — SS (mandatory) + History (optional) */}
         {userId && (
           <ExamCountdown
             userId={userId}
-            examDate={examDate}
-            examGoalLevel={examGoalLevel}
+            ssGoalLevel={ssGoalLevel}
+            historyGoalLevel={historyGoalLevel}
+            takesHistory={takesHistory}
             currentLevel={levelTitle}
             onSetGoal={handleSetExamGoal}
+            onSetTakesHistory={handleSetTakesHistory}
           />
         )}
 

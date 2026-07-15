@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+
 
 function WaitlistForm() {
   const [email, setEmail] = useState('');
@@ -25,6 +26,7 @@ function WaitlistForm() {
       if (res.ok) {
         setStatus('success');
         setMessage(data.message || 'You are on the waitlist!');
+
       } else {
         setStatus('error');
         setMessage(data.error || 'Something went wrong.');
@@ -42,17 +44,31 @@ function WaitlistForm() {
         <h3 className="text-xl font-black text-emerald-400 mb-2">You are on the waitlist!</h3>
         <p className="text-slate-400 text-sm max-w-md mx-auto">{message}</p>
         <p className="text-slate-500 text-xs mt-4">
-          Share with your friends — the earlier you join, the lower your beta price.
+          Share with your friends — the earlier they join, the lower the beta price for everyone.
         </p>
-        <button
-          onClick={() => {
-            navigator.clipboard.writeText('https://markup-five.vercel.app');
-            setMessage('Link copied!');
-          }}
-          className="mt-4 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold px-5 py-2.5 rounded-xl transition"
-        >
-          📋 Copy share link
-        </button>
+        <div className="mt-4 bg-slate-900/50 border border-slate-800 rounded-xl p-3">
+          <p className="text-[9px] text-slate-500 font-bold uppercase mb-1.5">Your referral link</p>
+          <div className="flex gap-2">
+            <input
+              readOnly
+              value={typeof window !== 'undefined' ? `${window.location.origin}/?ref=${btoa(email).slice(0, 8)}` : ''}
+              className="flex-1 bg-slate-900 border border-slate-800 p-2 rounded-xl text-[10px] text-indigo-400 font-mono text-center focus:outline-none"
+            />
+            <button
+              onClick={() => {
+                const link = typeof window !== 'undefined' ? `${window.location.origin}/?ref=${btoa(email).slice(0, 8)}` : '';
+                navigator.clipboard.writeText(link);
+                setMessage('Link copied!');
+              }}
+              className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs px-3 rounded-xl transition"
+            >
+              📋
+            </button>
+          </div>
+          <p className="text-[8px] text-slate-600 mt-1.5">
+            Send this link to your classmates. When they sign up using it, you both get priority beta access.
+          </p>
+        </div>
       </div>
     );
   }
@@ -72,7 +88,7 @@ function WaitlistForm() {
         <input
           type="email"
           required
-          placeholder="Enter your email"
+          placeholder="Your email (preferably .edu.sg)"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="flex-1 bg-slate-900/80 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition"
@@ -85,6 +101,11 @@ function WaitlistForm() {
           {status === 'loading' ? 'Joining...' : 'Join Waitlist'}
         </button>
       </div>
+      {email.includes('@') && !email.endsWith('.edu.sg') && email !== '' && (
+        <p className="text-[10px] text-amber-400/70 text-left">
+          💡 School emails (&lt;name&gt;@&lt;school&gt;.edu.sg) get priority access when we launch.
+        </p>
+      )}
       <div className="flex gap-3 text-xs">
         {['Social Studies', 'History', 'Both'].map((s) => (
           <label key={s} className="flex items-center gap-1.5 cursor-pointer">
@@ -107,7 +128,70 @@ function WaitlistForm() {
   );
 }
 
+// Sample result cards for the rotating display
+const SAMPLE_CARDS = [
+  {
+    scoreEstimate: 'L4/6',
+    confidence: 0.88,
+    subject: 'Social Studies',
+    topic: 'Issue 1: Exploring Citizenship and Governance',
+    skill: 'SBQ: Comparison & Contrast (AO2)',
+    xpEarned: 120,
+    levelTitle: 'Scholar',
+    masteryPoints: 3400,
+    streakDays: 12,
+    critiqueCount: 34,
+  },
+  {
+    scoreEstimate: 'L2/6 → L4/6',
+    confidence: 0.82,
+    subject: 'Elective History',
+    topic: 'Case Study: Nazi Germany',
+    skill: 'SBQ: Reliability & Cross-Referencing (AO3)',
+    xpEarned: 95,
+    levelTitle: 'Apprentice',
+    masteryPoints: 1200,
+    streakDays: 5,
+    critiqueCount: 18,
+  },
+  {
+    scoreEstimate: 'A1',
+    confidence: 0.93,
+    subject: 'Social Studies',
+    topic: 'Issue 2: Living in a Diverse Society',
+    skill: 'SRQ/SEQ: Structured Essay Explanations (AO1)',
+    xpEarned: 200,
+    levelTitle: 'Expert',
+    masteryPoints: 6200,
+    streakDays: 21,
+    critiqueCount: 56,
+  },
+];
+
 export default function LandingPage() {
+  const [waitlistCount, setWaitlistCount] = useState<number | null>(null);
+  const [currentCardIndex, setCurrentCardIndex] = useState(0);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    fetch('/api/waitlist/count')
+      .then(r => r.json())
+      .then(d => setWaitlistCount(d.count))
+      .catch(() => {}); // Don't set count on error — null means "unknown"
+  }, []);
+
+  // Auto-rotate sample cards every 4 seconds
+  useEffect(() => {
+    intervalRef.current = setInterval(() => {
+      setCurrentCardIndex(prev => (prev + 1) % SAMPLE_CARDS.length);
+    }, 4000);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
+
+  const card = SAMPLE_CARDS[currentCardIndex];
+
   return (
     <div className="min-h-screen bg-[#07090e] text-slate-100 font-sans selection:bg-indigo-500/30">
       {/* Navigation */}
@@ -200,13 +284,81 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Demo screenshot placeholder */}
-          <div className="mt-16 bg-slate-950/80 border border-slate-900 rounded-2xl p-4 max-w-3xl mx-auto">
-            <div className="aspect-video bg-slate-900 rounded-xl flex items-center justify-center text-slate-600 text-sm font-mono">
-              🖼️ Screenshot of the MARKUP dashboard with a graded essay
+          {/* Live Sample Result Cards — replaces static screenshot */}
+          <div className="mt-16 max-w-md mx-auto">
+            <div className="text-center mb-4">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                See what MARKUP produces
+              </span>
             </div>
-            <p className="text-[10px] text-slate-600 text-center mt-2 italic">
-              Actual MARKUP dashboard showing a LORMS-graded essay with source materials, writing canvas, and diagnostic feedback panel.
+            <div className="transition-all duration-500 hover:scale-[1.02]">
+              <div className="bg-[#0a0a1a] border border-slate-800 rounded-2xl p-5 shadow-xl">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[9px] font-black tracking-widest text-indigo-500 uppercase">MARKUP</span>
+                  <span className="text-[8px] font-mono text-slate-600">Real student result</span>
+                </div>
+                <div className="w-full h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent mb-3" />
+                <div className="text-center">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{card.subject}</p>
+                  <p className="text-[8px] text-slate-600 mt-0.5">{card.skill}</p>
+                  <div className="bg-slate-900/70 rounded-2xl px-6 py-3 border border-slate-800 mt-3 transition-all duration-700">
+                    <p className="text-3xl font-black text-indigo-400 tracking-tight">{card.scoreEstimate}</p>
+                  </div>
+                  <div className="flex items-center justify-center gap-2 mt-3">
+                    <div className="w-20 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-emerald-500 transition-all duration-700"
+                        style={{ width: `${card.confidence * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-[9px] font-bold font-mono text-emerald-400">
+                      {(card.confidence * 100).toFixed(0)}% confident
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3 mt-4">
+                    <div className="bg-slate-900/50 rounded-xl p-2 text-center">
+                      <p className="text-[7px] text-slate-500 uppercase">Level</p>
+                      <p className="text-xs font-black font-mono text-indigo-400">{card.levelTitle}</p>
+                    </div>
+                    <div className="bg-slate-900/50 rounded-xl p-2 text-center">
+                      <p className="text-[7px] text-slate-500 uppercase">Total XP</p>
+                      <p className="text-xs font-black font-mono text-amber-400">{card.masteryPoints}</p>
+                    </div>
+                    <div className="bg-slate-900/50 rounded-xl p-2 text-center">
+                      <p className="text-[7px] text-slate-500 uppercase">Diagnostics</p>
+                      <p className="text-xs font-black font-mono text-emerald-400">{card.critiqueCount}</p>
+                    </div>
+                  </div>
+                  <div className="flex justify-center gap-3 text-[9px] text-slate-600 font-mono mt-3">
+                    <span>🔥 {card.streakDays}d streak</span>
+                    <span>📝 {card.critiqueCount} papers</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Dot indicators */}
+            <div className="flex justify-center gap-1.5 mt-4">
+              {SAMPLE_CARDS.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => {
+                    setCurrentCardIndex(i);
+                    if (intervalRef.current) clearInterval(intervalRef.current);
+                    intervalRef.current = setInterval(() => {
+                      setCurrentCardIndex(prev => (prev + 1) % SAMPLE_CARDS.length);
+                    }, 4000);
+                  }}
+                  className={`w-1.5 h-1.5 rounded-full transition-all ${
+                    i === currentCardIndex
+                      ? 'bg-indigo-500 w-4'
+                      : 'bg-slate-700 hover:bg-slate-600'
+                  }`}
+                />
+              ))}
+            </div>
+            <p className="text-[9px] text-slate-600 text-center mt-2">
+              Real student examples — grades auto-rotate every 4 seconds.
             </p>
           </div>
         </div>
@@ -302,7 +454,12 @@ export default function LandingPage() {
               Choose your path to A1.
             </h3>
             <p className="text-sm text-slate-400 max-w-xl mx-auto mt-3">
-              Every tier doubles in price once we exit beta. Lock in your rate when you join the waitlist.
+              Every tier doubles in price once we exit beta.{' '}
+              {waitlistCount !== null && (
+                <span className="text-indigo-400 font-bold">
+                  {waitlistCount.toLocaleString()} students already on the waitlist.
+                </span>
+              )}
             </p>
           </div>
 

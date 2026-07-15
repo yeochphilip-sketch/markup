@@ -3,14 +3,15 @@ import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: Request) {
   try {
-    const { userId, examDate, examGoalLevel } = await request.json() as {
+    const body = await request.json();
+    const { userId, subject, goalLevel } = body as {
       userId: string;
-      examDate: string;
-      examGoalLevel: string;
+      subject: 'ss' | 'history';
+      goalLevel: string;
     };
 
-    if (!userId) {
-      return NextResponse.json({ error: 'userId required' }, { status: 400 });
+    if (!userId || !subject) {
+      return NextResponse.json({ error: 'userId and subject required' }, { status: 400 });
     }
 
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -21,12 +22,20 @@ export async function POST(request: Request) {
 
     const supabaseAdmin = createClient(url, key);
 
+    // Map subject to the correct columns
+    const updateData: Record<string, any> = {};
+    if (subject === 'ss') {
+      updateData.ss_goal_level = goalLevel || null;
+    } else if (subject === 'history') {
+      updateData.history_goal_level = goalLevel || null;
+      // If setting a History goal, mark user as taking History.
+      // If clearing it, mark as not taking History.
+      updateData.takes_history = goalLevel ? true : false;
+    }
+
     const { error } = await supabaseAdmin
       .from('user_skill_metrics')
-      .update({
-        exam_date: examDate || null,
-        exam_goal_level: examGoalLevel || null,
-      } as never)
+      .update(updateData as never)
       .eq('user_id', userId);
 
     if (error) {

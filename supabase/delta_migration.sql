@@ -529,10 +529,13 @@ DO $$ BEGIN
 END $$;
 
 -- ============================================================
--- Add exam_goal column to user_skill_metrics
+-- Add per-subject exam goal columns to user_skill_metrics
 -- ============================================================
 ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS exam_goal_level TEXT;
 ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS exam_date DATE;
+ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS ss_goal_level TEXT;
+ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS history_goal_level TEXT;
+ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS takes_history BOOLEAN DEFAULT FALSE;
 
 -- ============================================================
 -- Update handle_new_user to generate referral code

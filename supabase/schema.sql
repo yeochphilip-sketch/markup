@@ -166,7 +166,23 @@ CREATE TABLE public.user_skill_metrics (
     sbq_comparison_score INTEGER DEFAULT 1,
     sbq_reliability_score INTEGER DEFAULT 1,
     seq_essay_score     INTEGER DEFAULT 1,
-    seq_conclusion_score INTEGER DEFAULT 0
+    seq_conclusion_score INTEGER DEFAULT 0,
+    -- Gamification
+    total_xp            INTEGER DEFAULT 0,
+    level_title         TEXT DEFAULT 'Novice',
+    last_practice_date  DATE,
+    current_streak      INTEGER DEFAULT 0,
+    longest_streak      INTEGER DEFAULT 0,
+    achievements        TEXT[] DEFAULT '{}',
+    total_evaluations   INTEGER DEFAULT 0,
+    total_xp_decayed    INTEGER DEFAULT 0,
+    last_decay_check_date DATE,
+    -- Exam goals (per-subject)
+    exam_goal_level     TEXT,
+    exam_date           DATE,
+    ss_goal_level       TEXT,
+    history_goal_level  TEXT,
+    takes_history       BOOLEAN DEFAULT FALSE
 );
 
 ALTER TABLE public.user_skill_metrics ENABLE ROW LEVEL SECURITY;

@@ -39,6 +39,9 @@ interface SkillMetricsRow {
   achievements: string[];
   total_evaluations: number;
   total_xp_decayed: number;
+  ss_goal_level: string | null;
+  history_goal_level: string | null;
+  takes_history: boolean;
 }
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -202,7 +205,7 @@ function AnalyticsDashboardContent() {
       try {
         const { data, error } = await supabase
           .from('user_skill_metrics')
-          .select('user_id, total_xp, level_title, current_streak, longest_streak, achievements, total_evaluations, total_xp_decayed');
+          .select('user_id, total_xp, level_title, current_streak, longest_streak, achievements, total_evaluations, total_xp_decayed, ss_goal_level, history_goal_level, takes_history');
 
         if (error) throw error;
         if (data) setSkillMetrics(data as SkillMetricsRow[]);
@@ -254,6 +257,37 @@ function AnalyticsDashboardContent() {
 
   const usersWithStreaks = useMemo(
     () => skillMetrics.filter(m => (m.current_streak || 0) >= 3).length,
+    [skillMetrics],
+  );
+
+  // Per-subject goal analytics
+  const subjectSplit = useMemo(() => {
+    const total = skillMetrics.length;
+    const takesHistory = skillMetrics.filter(m => m.takes_history).length;
+    const ssOnly = total - takesHistory;
+    return { total, takesHistory, ssOnly };
+  }, [skillMetrics]);
+
+  const ssGoalDistribution = useMemo(() => {
+    const counts: Record<string, number> = {};
+    skillMetrics.forEach(m => {
+      const goal = m.ss_goal_level || 'Not set';
+      counts[goal] = (counts[goal] || 0) + 1;
+    });
+    return counts;
+  }, [skillMetrics]);
+
+  const historyGoalDistribution = useMemo(() => {
+    const counts: Record<string, number> = {};
+    skillMetrics.filter(m => m.takes_history).forEach(m => {
+      const goal = m.history_goal_level || 'Not set';
+      counts[goal] = (counts[goal] || 0) + 1;
+    });
+    return counts;
+  }, [skillMetrics]);
+
+  const usersWithGoals = useMemo(
+    () => skillMetrics.filter(m => m.ss_goal_level || (m.takes_history && m.history_goal_level)).length,
     [skillMetrics],
   );
 
@@ -492,6 +526,117 @@ function AnalyticsDashboardContent() {
             ))}
           </div>
         )}
+
+        {/* ── Subject Goal Analytics ───────────────────── */}
+        <div className="bg-slate-950 border border-slate-900 rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+              🎯 Subject Goals
+            </h3>
+            <span className="text-[9px] text-slate-600 font-mono">
+              {usersWithGoals} users with goals set
+            </span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Subject split */}
+            <div>
+              <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-2">Subject Split</p>
+              {loadingMetrics ? (
+                <p className="text-xs text-slate-600 font-mono animate-pulse">Loading…</p>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between bg-slate-900/40 rounded-lg px-3 py-2">
+                    <span className="text-[11px] text-slate-400">SS Only</span>
+                    <span className="text-xs font-black font-mono text-indigo-400">{subjectSplit.ssOnly}</span>
+                  </div>
+                  <div className="flex items-center justify-between bg-slate-900/40 rounded-lg px-3 py-2">
+                    <span className="text-[11px] text-slate-400">SS + History</span>
+                    <span className="text-xs font-black font-mono text-amber-400">{subjectSplit.takesHistory}</span>
+                  </div>
+                  {/* Bar */}
+                  {subjectSplit.total > 0 && (
+                    <div className="h-2 bg-slate-800 rounded-full overflow-hidden flex">
+                      <div
+                        className="h-full bg-indigo-500/70 transition-all"
+                        style={{ width: `${((subjectSplit.ssOnly / subjectSplit.total) * 100)}%` }}
+                      />
+                      <div
+                        className="h-full bg-amber-500/70 transition-all"
+                        style={{ width: `${((subjectSplit.takesHistory / subjectSplit.total) * 100)}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* SS Goal Distribution */}
+            <div>
+              <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-2">SS Target Goals</p>
+              {loadingMetrics ? (
+                <p className="text-xs text-slate-600 font-mono animate-pulse">Loading…</p>
+              ) : (
+                <div className="space-y-1">
+                  {Object.entries(ssGoalDistribution).length === 0 ? (
+                    <p className="text-[10px] text-slate-600 italic">No goals set</p>
+                  ) : (
+                    Object.entries(ssGoalDistribution)
+                      .sort((a, b) => {
+                        const order = ['Master', 'Expert', 'Scholar', 'Apprentice', 'Novice', 'Not set'];
+                        return order.indexOf(a[0]) - order.indexOf(b[0]);
+                      })
+                      .map(([level, count]) => (
+                        <div key={level} className="flex items-center justify-between bg-slate-900/30 rounded-lg px-3 py-1.5">
+                          <span className={`text-[10px] font-bold ${
+                            level === 'Not set' ? 'text-slate-600' :
+                            level === 'Master' ? 'text-emerald-400' :
+                            level === 'Expert' ? 'text-purple-400' :
+                            level === 'Scholar' ? 'text-indigo-400' :
+                            level === 'Apprentice' ? 'text-amber-400' :
+                            'text-slate-400'
+                          }`}>{level}</span>
+                          <span className="text-[10px] font-mono text-slate-500">{count}</span>
+                        </div>
+                      ))
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* History Goal Distribution */}
+            <div>
+              <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-2">History Target Goals</p>
+              {loadingMetrics ? (
+                <p className="text-xs text-slate-600 font-mono animate-pulse">Loading…</p>
+              ) : (
+                <div className="space-y-1">
+                  {Object.entries(historyGoalDistribution).length === 0 ? (
+                    <p className="text-[10px] text-slate-600 italic">No goals set</p>
+                  ) : (
+                    Object.entries(historyGoalDistribution)
+                      .sort((a, b) => {
+                        const order = ['Master', 'Expert', 'Scholar', 'Apprentice', 'Novice', 'Not set'];
+                        return order.indexOf(a[0]) - order.indexOf(b[0]);
+                      })
+                      .map(([level, count]) => (
+                        <div key={level} className="flex items-center justify-between bg-slate-900/30 rounded-lg px-3 py-1.5">
+                          <span className={`text-[10px] font-bold ${
+                            level === 'Not set' ? 'text-slate-600' :
+                            level === 'Master' ? 'text-emerald-400' :
+                            level === 'Expert' ? 'text-purple-400' :
+                            level === 'Scholar' ? 'text-indigo-400' :
+                            level === 'Apprentice' ? 'text-amber-400' :
+                            'text-slate-400'
+                          }`}>{level}</span>
+                          <span className="text-[10px] font-mono text-slate-500">{count}</span>
+                        </div>
+                      ))
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
 
         {/* ── Row: Essay + usage KPI tiles ──────────────── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
