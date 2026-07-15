@@ -48,7 +48,7 @@ export async function GET(request: Request) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('notifications GET failed:', message);
-    return NextResponse.json({ notifications: [], unreadCount: 0 });
+    return NextResponse.json({ notifications: [], unreadCount: 0, _debug: 'notif get catch: ' + message });
   }
 }
 
@@ -84,6 +84,6 @@ export async function PATCH(request: Request) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('notifications PATCH failed:', message);
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, _debug: 'notif patch catch: ' + message });
   }
 }
