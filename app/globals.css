@@ -19,10 +19,14 @@
   }
 }
 
+html {
+  background: #07090e;
+}
 body {
-  background: var(--background);
+  background: #07090e;
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  min-height: 100vh;
 }
 
 /* ── Page transition animations ── */

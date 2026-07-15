@@ -1,60 +1,55 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface PageTransitionProps {
   children: React.ReactNode;
 }
 
 /**
- * Wraps page content with a fade-in-up animation whenever the route changes.
- * Uses a key derived from the pathname to force React to remount the animated
- * container on navigation, giving a smooth enter transition each time.
+ * Wraps page content with a smooth fade-in-up animation on route changes.
+ * Key increment forces React to remount the wrapper on navigation → animation plays.
+ *
+ * No `animationFillMode: backwards` — avoids the white flash from pre-applying
+ * opacity:0 before the animation begins. The `forwards` in the CSS animation
+ * shorthand already holds the final state once the animation completes.
  *
  * Variants:
- *   - fadeInUp:   opacity 0→1 + translateY(12px→0) — default
- *   - fadeIn:     opacity 0→1 only
- *   - scaleIn:    opacity 0→1 + scale(0.97→1)
+ *   - /auth       → fade-in (opacity only, cleaner for auth flow)
+ *   - /admin/*    → scale-in (subtle zoom)
+ *   - everything  → fade-in-up (slide + opacity)
  */
 export default function PageTransition({ children }: PageTransitionProps) {
   const pathname = usePathname();
-  const prevPathRef = useRef(pathname);
-  const [animClass, setAnimClass] = useState('animate-fade-in-up');
+  const [animClass, setAnimClass] = useState('');
   const [transitionKey, setTransitionKey] = useState(0);
-  const [mounted, setMounted] = useState(false);
-
-  // Track mount state to skip animation on initial render
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Detect route changes
-  useEffect(() => {
-    if (prevPathRef.current !== pathname) {
-      prevPathRef.current = pathname;
-      // Increment key to force remount of animated container
-      setTransitionKey((k) => k + 1);
-    }
-  }, [pathname]);
+  const isFirstRender = useRef(true);
 
   // Pick animation variant based on path
-  const getAnimClass = useCallback((path: string) => {
+  function getAnimClass(path: string) {
     if (path === '/auth') return 'animate-fade-in';
     if (path.startsWith('/admin')) return 'animate-scale-in';
     return 'animate-fade-in-up';
-  }, []);
+  }
 
-  // Update anim class when path changes
+  // Detect route changes → force remount with new animation
   useEffect(() => {
+    if (isFirstRender.current) {
+      // On first mount, don't animate — just render normally
+      isFirstRender.current = false;
+      return;
+    }
+
+    // On navigation, update anim class and increment key to remount
     setAnimClass(getAnimClass(pathname));
-  }, [pathname, getAnimClass]);
+    setTransitionKey((k) => k + 1);
+  }, [pathname]);
 
   return (
     <div
       key={transitionKey}
-      className={`${mounted ? animClass : ''} w-full`}
-      style={{ animationFillMode: 'backwards' }}
+      className={`bg-[#07090e] w-full ${animClass}`}
     >
       {children}
     </div>
