@@ -34,6 +34,7 @@ interface HistoryItem {
   source_b_provenance?: string;
   suggested_answer: string;
   created_at: string;
+  metadata?: Record<string, any>;
 }
 
 const SYLLABUS_MAP: Record<string, { topics: string[]; skills: string[] }> = {
@@ -211,10 +212,29 @@ export default function DashboardPage() {
     sourceA: 'Source A contents appear here once generated.',
     sourceBProvenance: 'Source B sample provenance information context.',
     sourceB: 'Source B contents appear here once generated.',
+    sourceCProvenance: '' as string | undefined,
+    sourceC: '' as string | undefined,
+    sourceDProvenance: '' as string | undefined,
+    sourceD: '' as string | undefined,
+    sourceEProvenance: '' as string | undefined,
+    sourceE: '' as string | undefined,
     questionPrompt: 'No question active. Use the configurator panel on the left to start.',
     sbcsPrompt: 'SBCS evaluation task criteria will render here.',
     seqPrompt: 'SEQ structural essay prompt query will render here.',
     srqPrompt: 'SRQ contextual evaluation prompt query will render here.',
+    // All Formats fields
+    partA_Inference: '' as string | undefined,
+    partB_Comparison: '' as string | undefined,
+    partC_Purpose: '' as string | undefined,
+    partD_Reliability: '' as string | undefined,
+    partE_Assertion: '' as string | undefined,
+    srqBackgroundContext: '' as string | undefined,
+    srqQuestionA: '' as string | undefined,
+    srqQuestionB: '' as string | undefined,
+    seqQuestion1: '' as string | undefined,
+    seqQuestion2: '' as string | undefined,
+    seqQuestion3: '' as string | undefined,
+    isAllFormats: false as boolean | undefined,
     suggestedAnswer: ''
   });
 
@@ -515,14 +535,56 @@ export default function DashboardPage() {
         sourceA: data.sourceA || '',
         sourceBProvenance: data.sourceBProvenance || '',
         sourceB: data.sourceB || '',
+        sourceCProvenance: data.sourceCProvenance || undefined,
+        sourceC: data.sourceC || undefined,
+        sourceDProvenance: data.sourceDProvenance || undefined,
+        sourceD: data.sourceD || undefined,
+        sourceEProvenance: data.sourceEProvenance || undefined,
+        sourceE: data.sourceE || undefined,
         questionPrompt: data.questionPrompt || `${activeSubject} Comprehensive Suite`,
         sbcsPrompt: data.sbcsPrompt || 'How far does Source A support the claim? Explain your answer.',
         seqPrompt: data.seqPrompt || 'Explain the impact of the policy decisions on the local population.',
         srqPrompt: data.srqPrompt || 'In your opinion, is institutional intervention or local management more vital?',
+        // All Formats fields
+        partA_Inference: data.partA_Inference || undefined,
+        partB_Comparison: data.partB_Comparison || undefined,
+        partC_Purpose: data.partC_Purpose || undefined,
+        partD_Reliability: data.partD_Reliability || undefined,
+        partE_Assertion: data.partE_Assertion || undefined,
+        srqBackgroundContext: data.srqBackgroundContext || undefined,
+        srqQuestionA: data.srqQuestionA || undefined,
+        srqQuestionB: data.srqQuestionB || undefined,
+        seqQuestion1: data.seqQuestion1 || undefined,
+        seqQuestion2: data.seqQuestion2 || undefined,
+        seqQuestion3: data.seqQuestion3 || undefined,
+        isAllFormats: data.isAllFormats || undefined,
         suggestedAnswer: data.suggestedAnswer || ''
       });
 
       if (userId) {
+        // Build metadata for All Formats: store extra sources, parts, and subject-specific content
+        const metadata: Record<string, any> = {};
+        if (data.isAllFormats) {
+          metadata.isAllFormats = true;
+          metadata.sourceCProvenance = data.sourceCProvenance || '';
+          metadata.sourceC = data.sourceC || '';
+          metadata.sourceDProvenance = data.sourceDProvenance || '';
+          metadata.sourceD = data.sourceD || '';
+          metadata.sourceEProvenance = data.sourceEProvenance || '';
+          metadata.sourceE = data.sourceE || '';
+          metadata.partA_Inference = data.partA_Inference || '';
+          metadata.partB_Comparison = data.partB_Comparison || '';
+          metadata.partC_Purpose = data.partC_Purpose || '';
+          metadata.partD_Reliability = data.partD_Reliability || '';
+          metadata.partE_Assertion = data.partE_Assertion || '';
+          metadata.srqBackgroundContext = data.srqBackgroundContext || '';
+          metadata.srqQuestionA = data.srqQuestionA || '';
+          metadata.srqQuestionB = data.srqQuestionB || '';
+          metadata.seqQuestion1 = data.seqQuestion1 || '';
+          metadata.seqQuestion2 = data.seqQuestion2 || '';
+          metadata.seqQuestion3 = data.seqQuestion3 || '';
+        }
+
         const { data: savedRecord } = await supabase
           .from('practice_history')
           .insert([{
@@ -536,7 +598,8 @@ export default function DashboardPage() {
             source_a_provenance: data.sourceAProvenance,
             source_b: data.sourceB,
             source_b_provenance: data.sourceBProvenance,
-            suggested_answer: data.suggestedAnswer
+            suggested_answer: data.suggestedAnswer,
+            metadata: Object.keys(metadata).length > 0 ? metadata : undefined
           }])
           .select()
           .single();
@@ -725,16 +788,41 @@ export default function DashboardPage() {
     setCurrentChallengeId(item.id);
     setHasScanned(false);
     setIsExemplarOpen(false);
+
+    // Restore All Formats extras from metadata (JSONB column)
+    const meta = item.metadata || {};
+    const isAllFormats = meta.isAllFormats === true;
+
     setChallenge({
       backgroundContext: item.background_context || '',
       sourceAProvenance: item.source_a_provenance || 'Source A Context:',
       sourceA: item.source_a || '',
       sourceBProvenance: item.source_b_provenance || 'Source B Context:',
       sourceB: item.source_b,
+      // Restore sources C-E from metadata (All Formats only)
+      sourceCProvenance: isAllFormats ? (meta.sourceCProvenance || undefined) : undefined,
+      sourceC: isAllFormats ? (meta.sourceC || undefined) : undefined,
+      sourceDProvenance: isAllFormats ? (meta.sourceDProvenance || undefined) : undefined,
+      sourceD: isAllFormats ? (meta.sourceD || undefined) : undefined,
+      sourceEProvenance: isAllFormats ? (meta.sourceEProvenance || undefined) : undefined,
+      sourceE: isAllFormats ? (meta.sourceE || undefined) : undefined,
       questionPrompt: item.question_prompt,
       sbcsPrompt: 'Historical record segment task.',
       seqPrompt: 'Historical prioritization prompt layer.',
       srqPrompt: 'Contextual recommendations query segment.',
+      // Restore All Formats parts from metadata
+      partA_Inference: isAllFormats ? (meta.partA_Inference || undefined) : undefined,
+      partB_Comparison: isAllFormats ? (meta.partB_Comparison || undefined) : undefined,
+      partC_Purpose: isAllFormats ? (meta.partC_Purpose || undefined) : undefined,
+      partD_Reliability: isAllFormats ? (meta.partD_Reliability || undefined) : undefined,
+      partE_Assertion: isAllFormats ? (meta.partE_Assertion || undefined) : undefined,
+      srqBackgroundContext: isAllFormats ? (meta.srqBackgroundContext || undefined) : undefined,
+      srqQuestionA: isAllFormats ? (meta.srqQuestionA || undefined) : undefined,
+      srqQuestionB: isAllFormats ? (meta.srqQuestionB || undefined) : undefined,
+      seqQuestion1: isAllFormats ? (meta.seqQuestion1 || undefined) : undefined,
+      seqQuestion2: isAllFormats ? (meta.seqQuestion2 || undefined) : undefined,
+      seqQuestion3: isAllFormats ? (meta.seqQuestion3 || undefined) : undefined,
+      isAllFormats: isAllFormats || undefined,
       suggestedAnswer: item.suggested_answer || ''
     });
     setEvaluation({ scoreEstimate: '', critique: [], segments: [], confidence: 0, a1Upgrade: '' });
@@ -1068,14 +1156,25 @@ export default function DashboardPage() {
                 <div className="text-[10px] text-slate-600 font-mono italic p-2 border border-dashed border-slate-900 rounded-xl text-center">No logs recorded.</div>
               ) : (
                 <>
-                  {history.map((item) => (
-                    <div key={item.id} onClick={() => loadHistoricalItem(item)} className="bg-slate-950/30 hover:bg-slate-900/60 border border-slate-900 p-3 rounded-xl cursor-pointer transition text-left space-y-1.5 group">
-                      <div className="flex justify-between items-center gap-2">
-                        <span className="text-[9px] bg-slate-900 px-2 py-0.5 rounded text-indigo-400 font-bold uppercase">{item.subject === 'Social Studies' ? 'SS' : 'HIST'}</span>
+                  {history.map((item) => {
+                    const meta = item.metadata || {};
+                    const isAllFormats = meta.isAllFormats === true;
+                    // Count actual sources from metadata
+                    const sourceCount = [
+                      meta.sourceC, meta.sourceD, meta.sourceE
+                    ].filter(Boolean).length + 2; // +2 for sourceA + sourceB
+                    return (
+                      <div key={item.id} onClick={() => loadHistoricalItem(item)} className="bg-slate-950/30 hover:bg-slate-900/60 border border-slate-900 p-3 rounded-xl cursor-pointer transition text-left space-y-1.5 group">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[9px] bg-slate-900 px-2 py-0.5 rounded text-indigo-400 font-bold uppercase">{item.subject === 'Social Studies' ? 'SS' : 'HIST'}</span>
+                          {isAllFormats && (
+                            <span className="text-[8px] bg-amber-900/40 text-amber-400 px-1.5 py-0.5 rounded font-bold">{sourceCount}-SRC</span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-slate-400 line-clamp-2 font-medium group-hover:text-slate-200 transition">{item.question_prompt}</p>
                       </div>
-                      <p className="text-[11px] text-slate-400 line-clamp-2 font-medium group-hover:text-slate-200 transition">{item.question_prompt}</p>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {/* Load More button */}
                   {hasMoreHistory && (
                     <button
@@ -1126,6 +1225,37 @@ export default function DashboardPage() {
               <p className="text-slate-300 leading-relaxed select-text whitespace-pre-line font-serif">{isCustomMode ? 'Reference document texts...' : challenge.sourceB}</p>
             </div>
           </div>
+
+          {/* Sources C, D, E — shown only in All Formats mode */}
+          {challenge.isAllFormats && challenge.sourceC && (
+            <div className="space-y-1.5 pt-2 border-t border-slate-800/50">
+              <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Additional Sources</span>
+            </div>
+          )}
+          {challenge.isAllFormats && challenge.sourceC && (
+            <div className="space-y-1.5">
+              <span className="text-[11px] font-bold text-slate-200 block select-text">{challenge.sourceCProvenance || 'Source 3'}</span>
+              <div className="bg-transparent border border-slate-800 rounded-xl p-4 text-xs">
+                <p className="text-slate-300 leading-relaxed select-text whitespace-pre-line font-serif">{challenge.sourceC}</p>
+              </div>
+            </div>
+          )}
+          {challenge.isAllFormats && challenge.sourceD && (
+            <div className="space-y-1.5">
+              <span className="text-[11px] font-bold text-slate-200 block select-text">{challenge.sourceDProvenance || 'Source 4'}</span>
+              <div className="bg-transparent border border-slate-800 rounded-xl p-4 text-xs">
+                <p className="text-slate-300 leading-relaxed select-text whitespace-pre-line font-serif">{challenge.sourceD}</p>
+              </div>
+            </div>
+          )}
+          {challenge.isAllFormats && challenge.sourceE && (
+            <div className="space-y-1.5">
+              <span className="text-[11px] font-bold text-slate-200 block select-text">{challenge.sourceEProvenance || 'Source 5'}</span>
+              <div className="bg-transparent border border-slate-800 rounded-xl p-4 text-xs">
+                <p className="text-slate-300 leading-relaxed select-text whitespace-pre-line font-serif">{challenge.sourceE}</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Workspace Textareas & Prompt Column Suite */}
@@ -1162,44 +1292,137 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <div className="space-y-4 pb-4">
-                  {/* SBCS Segment Block */}
+                  {/* SBCS Segment Block — All Formats: show 5 individual parts */}
                   <div className="bg-slate-950/60 border border-slate-900 p-4 rounded-xl space-y-2">
                     <div className="flex items-center justify-between">
-                      <label className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase font-mono">Section A: Source-Based Question (SBCS)</label>
+                      <label className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase font-mono">Section A: Source-Based Case Study (SBCS) — 35 marks</label>
                       <div className="flex gap-2">
                         <button onClick={() => handlePasteFromClipboard('sbcs')} type="button" className="text-[10px] text-indigo-400 hover:underline">📋 Paste</button>
                         <button onClick={() => handleInjectPeelFrame('sbcs')} type="button" className="text-[10px] text-slate-400 hover:underline">💡 PEEL</button>
                       </div>
                     </div>
-                    <p className="text-xs font-medium text-slate-300 bg-slate-900/40 p-2.5 rounded-lg border border-slate-800">{challenge.sbcsPrompt}</p>
+
+                    {challenge.isAllFormats ? (
+                      <>
+                        {/* Part (a) - Inference */}
+                        <div className="bg-indigo-950/20 border border-indigo-900/30 rounded-lg p-3">
+                          <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider">Part (a) — Inference / Message — 2 marks</span>
+                          <p className="text-xs font-medium text-slate-300 mt-1">{challenge.partA_Inference}</p>
+                        </div>
+                        {/* Part (b) - Comparison */}
+                        <div className="bg-indigo-950/20 border border-indigo-900/30 rounded-lg p-3">
+                          <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider">Part (b) — Comparison — 5 marks</span>
+                          <p className="text-xs font-medium text-slate-300 mt-1">{challenge.partB_Comparison}</p>
+                        </div>
+                        {/* Part (c) - Purpose */}
+                        <div className="bg-indigo-950/20 border border-indigo-900/30 rounded-lg p-3">
+                          <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider">Part (c) — Purpose — 4 marks</span>
+                          <p className="text-xs font-medium text-slate-300 mt-1">{challenge.partC_Purpose}</p>
+                        </div>
+                        {/* Part (d) - Reliability */}
+                        <div className="bg-indigo-950/20 border border-indigo-900/30 rounded-lg p-3">
+                          <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider">Part (d) — Reliability — 5 marks</span>
+                          <p className="text-xs font-medium text-slate-300 mt-1">{challenge.partD_Reliability}</p>
+                        </div>
+                        {/* Part (e) - Assertion */}
+                        <div className="bg-amber-950/20 border border-amber-900/30 rounded-lg p-3">
+                          <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider">Part (e) — Assertion / Synthesis — 10 marks</span>
+                          <p className="text-xs font-medium text-slate-300 mt-1">{challenge.partE_Assertion}</p>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-xs font-medium text-slate-300 bg-slate-900/40 p-2.5 rounded-lg border border-slate-800">{challenge.sbcsPrompt}</p>
+                    )}
                     <textarea value={sbcsAnswer} onChange={(e) => setSbcsAnswer(e.target.value)} placeholder="Type source inference or comparison analysis here..." className="w-full min-h-[140px] bg-transparent text-slate-300 border border-slate-800 p-2.5 font-mono text-xs focus:outline-none focus:border-indigo-600 bg-slate-950 rounded-xl resize-none" />
                   </div>
 
-                  {/* SEQ Segment Block */}
-                  <div className="bg-slate-950/60 border border-slate-900 p-4 rounded-xl space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase font-mono">Section B: Structured Essay Question (SEQ)</label>
-                      <div className="flex gap-2">
-                        <button onClick={() => handlePasteFromClipboard('seq')} type="button" className="text-[10px] text-indigo-400 hover:underline">📋 Paste</button>
-                        <button onClick={() => handleInjectPeelFrame('seq')} type="button" className="text-[10px] text-slate-400 hover:underline">💡 PEEL</button>
-                      </div>
-                    </div>
-                    <p className="text-xs font-medium text-slate-300 bg-slate-900/40 p-2.5 rounded-lg border border-slate-800">{challenge.seqPrompt}</p>
-                    <textarea value={seqAnswer} onChange={(e) => setSeqAnswer(e.target.value)} placeholder="Draft factor prioritization essay structure here..." className="w-full min-h-[140px] bg-transparent text-slate-300 border border-slate-800 p-2.5 font-mono text-xs focus:outline-none focus:border-indigo-600 bg-slate-950 rounded-xl resize-none" />
-                  </div>
+                  {/* All Formats: Subject-specific sections */}
+                  {challenge.isAllFormats && (
+                    <>
+                      {/* SS: SRQ Section */}
+                      {challenge.srqBackgroundContext && (
+                        <div className="bg-emerald-950/20 border border-emerald-900/30 p-4 rounded-xl space-y-3">
+                          <label className="text-[10px] font-bold tracking-widest text-emerald-400 uppercase font-mono">Section B: Structured Response Questions (SRQ) — 15 marks [Social Studies]</label>
+                          
+                          {/* Background context */}
+                          <div className="bg-slate-950/60 border border-slate-900 rounded-lg p-3">
+                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Background Context</span>
+                            <p className="text-xs text-slate-400 mt-1 leading-relaxed">{challenge.srqBackgroundContext}</p>
+                          </div>
 
-                  {/* SRQ Segment Block */}
-                  <div className="bg-slate-950/60 border border-slate-900 p-4 rounded-xl space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase font-mono">Section C: Structured Response Question (SRQ)</label>
-                      <div className="flex gap-2">
-                        <button onClick={() => handlePasteFromClipboard('srq')} type="button" className="text-[10px] text-indigo-400 hover:underline">📋 Paste</button>
-                        <button onClick={() => handleInjectPeelFrame('srq')} type="button" className="text-[10px] text-slate-400 hover:underline">💡 PEEL</button>
+                          {/* SRQ (a) — 7 marks */}
+                          {challenge.srqQuestionA && (
+                            <div className="bg-slate-950/60 border border-slate-900 rounded-lg p-3">
+                              <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider">SRQ (a) — Recommendation / Strategy — 7 marks</span>
+                              <p className="text-xs font-medium text-slate-300 mt-1">{challenge.srqQuestionA}</p>
+                            </div>
+                          )}
+
+                          {/* SRQ (b) — 8 marks */}
+                          {challenge.srqQuestionB && (
+                            <div className="bg-slate-950/60 border border-slate-900 rounded-lg p-3">
+                              <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider">SRQ (b) — Evaluation / Judgment — 8 marks</span>
+                              <p className="text-xs font-medium text-slate-300 mt-1">{challenge.srqQuestionB}</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* History: SEQ Section */}
+                      {challenge.seqQuestion1 && !challenge.srqBackgroundContext && (
+                        <div className="bg-amber-950/20 border border-amber-900/30 p-4 rounded-xl space-y-3">
+                          <label className="text-[10px] font-bold tracking-widest text-amber-400 uppercase font-mono">Section B: Structured Essay Questions (SEQ) — 20 marks [Elective History]</label>
+                          <p className="text-[9px] text-slate-500 italic">Answer any ONE of the following three questions.</p>
+                          
+                          <div className="bg-slate-950/60 border border-slate-900 rounded-lg p-3">
+                            <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider">SEQ Question 1 — Causes / Consequences</span>
+                            <p className="text-xs font-medium text-slate-300 mt-1">{challenge.seqQuestion1}</p>
+                          </div>
+
+                          <div className="bg-slate-950/60 border border-slate-900 rounded-lg p-3">
+                            <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider">SEQ Question 2 — Significance / Impact</span>
+                            <p className="text-xs font-medium text-slate-300 mt-1">{challenge.seqQuestion2}</p>
+                          </div>
+
+                          <div className="bg-slate-950/60 border border-slate-900 rounded-lg p-3">
+                            <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider">SEQ Question 3 — Comparison / Judgment</span>
+                            <p className="text-xs font-medium text-slate-300 mt-1">{challenge.seqQuestion3}</p>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* Individual skill tracks: SEQ + SRQ blocks */}
+                  {!challenge.isAllFormats && (
+                    <>
+                      {/* SEQ Segment Block */}
+                      <div className="bg-slate-950/60 border border-slate-900 p-4 rounded-xl space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase font-mono">Section B: Structured Essay Question (SEQ)</label>
+                          <div className="flex gap-2">
+                            <button onClick={() => handlePasteFromClipboard('seq')} type="button" className="text-[10px] text-indigo-400 hover:underline">📋 Paste</button>
+                            <button onClick={() => handleInjectPeelFrame('seq')} type="button" className="text-[10px] text-slate-400 hover:underline">💡 PEEL</button>
+                          </div>
+                        </div>
+                        <p className="text-xs font-medium text-slate-300 bg-slate-900/40 p-2.5 rounded-lg border border-slate-800">{challenge.seqPrompt}</p>
+                        <textarea value={seqAnswer} onChange={(e) => setSeqAnswer(e.target.value)} placeholder="Draft factor prioritization essay structure here..." className="w-full min-h-[140px] bg-transparent text-slate-300 border border-slate-800 p-2.5 font-mono text-xs focus:outline-none focus:border-indigo-600 bg-slate-950 rounded-xl resize-none" />
                       </div>
-                    </div>
-                    <p className="text-xs font-medium text-slate-300 bg-slate-900/40 p-2.5 rounded-lg border border-slate-800">{challenge.srqPrompt}</p>
-                    <textarea value={srqAnswer} onChange={(e) => setSrqAnswer(e.target.value)} placeholder="State your assertions and balanced evaluation judgments here..." className="w-full min-h-[140px] bg-transparent text-slate-300 border border-slate-800 p-2.5 font-mono text-xs focus:outline-none focus:border-indigo-600 bg-slate-950 rounded-xl resize-none" />
-                  </div>
+
+                      {/* SRQ Segment Block */}
+                      <div className="bg-slate-950/60 border border-slate-900 p-4 rounded-xl space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase font-mono">Section C: Structured Response Question (SRQ)</label>
+                          <div className="flex gap-2">
+                            <button onClick={() => handlePasteFromClipboard('srq')} type="button" className="text-[10px] text-indigo-400 hover:underline">📋 Paste</button>
+                            <button onClick={() => handleInjectPeelFrame('srq')} type="button" className="text-[10px] text-slate-400 hover:underline">💡 PEEL</button>
+                          </div>
+                        </div>
+                        <p className="text-xs font-medium text-slate-300 bg-slate-900/40 p-2.5 rounded-lg border border-slate-800">{challenge.srqPrompt}</p>
+                        <textarea value={srqAnswer} onChange={(e) => setSrqAnswer(e.target.value)} placeholder="State your assertions and balanced evaluation judgments here..." className="w-full min-h-[140px] bg-transparent text-slate-300 border border-slate-800 p-2.5 font-mono text-xs focus:outline-none focus:border-indigo-600 bg-slate-950 rounded-xl resize-none" />
+                      </div>
+                    </>
+                  )}
                 </div>
               )
             ) : (

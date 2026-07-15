@@ -176,6 +176,7 @@ ALTER TABLE public.practice_history ADD COLUMN IF NOT EXISTS source_a_provenance
 ALTER TABLE public.practice_history ADD COLUMN IF NOT EXISTS source_b              TEXT;
 ALTER TABLE public.practice_history ADD COLUMN IF NOT EXISTS source_b_provenance   TEXT;
 ALTER TABLE public.practice_history ADD COLUMN IF NOT EXISTS suggested_answer      TEXT;
+ALTER TABLE public.practice_history ADD COLUMN IF NOT EXISTS metadata              JSONB DEFAULT '{}'::jsonb;
 
 ALTER TABLE public.practice_history ALTER COLUMN subject         SET NOT NULL;
 ALTER TABLE public.practice_history ALTER COLUMN topic           SET NOT NULL;

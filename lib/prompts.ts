@@ -92,6 +92,50 @@ You MUST apply these rules BEFORE any LORMS evaluation. The quality gate in Step
 ### Other rules:
 - Only one section submitted while others are empty: Grade ONLY the submitted sections; do not penalize for missing sections.
 - If the student clearly attempted the question but wrote very little (< 20 words of actual analysis), assign L1 with a note.
+
+## SEAB-ALIGNED STRUCTURE EXPECTATIONS (research-backed)
+
+### Inference (2 marks): Expect the ISE structure
+- I: State the inference (what the source implies/ suggests, not what it literally says)
+- S: Support with specific evidence from the source (quote or reference)
+- E: Explain how the evidence leads to the inference
+- L1 = surface facts only (what source says). L2 = inferred meaning (what source implies).
+
+### Comparison (5 marks): Expect explicit comparison, not separate summaries
+- L1–L2 = describes sources separately or identifies similarity OR difference
+- L3 = similarity AND difference identified
+- L4 = similarity AND difference WITH core message matching from both sources
+- Students who write "Source A says... Source B says..." without direct comparison phrases ("whereas", "in contrast", "similarly") should NOT reach L3.
+
+### Purpose (4 marks): Must explain WHY, not just WHAT
+- L1 = identifies author/audience
+- L2–L3 = identifies purpose with evidence
+- L4 = compares purposes and explains difference based on context
+- Expect students to discuss: author's intent, target audience, historical/political context
+
+### Reliability (5 marks): Provenance + cross-referencing + typical limitations
+- L1 = states reliable/unreliable without justification
+- L2 = provenance-only evaluation (author, date, type)
+- L3 = cross-referencing with another source (corroboration/contradiction)
+- L4 = comprehensive: provenance + cross-ref + typical limitations (bias, exaggeration, omission, propaganda)
+- High-scoring students identify SPECIFIC limitations rather than generic "bias"
+
+### Assertion / Synthesis (10 marks): This is the highest-mark question
+- L1 = simple agree/disagree without evidence
+- L2 = supports position with evidence from ONE source
+- L3 = cross-references BOTH/multiple sources
+- L4 = evaluates sources' strengths/limitations AND reaches a well-supported final judgment
+- Top band: Students must GROUP sources (supporting vs challenging), evaluate reliability of key sources, and reach a BALANCED final conclusion that directly answers the assertion.
+- Avoid: Listing sources one by one without synthesis. Students must compare and weigh evidence.
+
+### SEQ/SRQ Essays (8 marks): PEEL structure expected
+- P: Point — clear factor/argument stated
+- E: Evidence — specific historical/contextual example
+- E: Explanation — how/why this factor matters (the "because" chain)
+- L: Link — tie back to the question
+- L3 = TWO factors explained with evidence each
+- L4 = factors EVALUATED and WEIGHED with a substantiated conclusion
+- Students who list factors without evaluation should NOT reach L4.
 `;
 
 const EMPTY_SECTION_LABEL = '[This section was not submitted by the student — omit from grading.]';
@@ -550,6 +594,85 @@ const HIST_RELIABILITY_EXAMPLES: FewShotExample[] = [
 //  Generation Prompts (skill-track-aware question authoring)
 // ────────────────────────────────────────────────────────────────
 
+const ALL_FORMATS_INSTRUCTIONS = `
+## ALL FORMATS MODE — COMPLETE O-LEVEL EXAM PACKAGE (MANDATORY)
+
+When the target skill track is "All Formats", you MUST produce a COMPLETE, full-length O-Level examination stimulus package. This is NOT a single-skill exercise. You must generate ALL components described below.
+
+============================================
+=== OVERALL CONTEXT ===
+============================================
+
+Start with a short "backgroundContext" paragraph (3-5 sentences) that sets the scene for the case study. This should introduce the issue, event, or theme that all sources relate to. This is NOT one of the sources — it is the contextual framing for the entire question package.
+
+For Social Studies: Choose a scenario related to one of the three issues (Citizenship & Governance, Diverse Society, Globalised World).
+For History: Choose a scenario related to the selected case study topic.
+
+============================================
+=== SECTION A: SOURCES (Generate exactly 5) ===
+============================================
+
+Generate exactly 5 sources (numbered Source 1 through Source 5), each with:
+- A distinct, realistic provenance (date, author, publication/context — be specific)
+- Substantive content (at least 60 characters each)
+- Different source types: e.g., speech extract, newspaper article, interview transcript, government report, cartoon/poster description, diary entry, statistical table
+- Different perspectives: some sources should support a particular view, some should oppose or complicate it, and some should be neutral
+- Provenance should vary enough that reliability and purpose can be meaningfully assessed
+
+=====================================================
+=== SECTION B: QUESTIONS — Part (a) to Part (e) ===
+=====================================================
+
+Generate exactly 5 sub-questions labelled Part (a) through Part (e). Each must test a DIFFERENT source-based skill:
+
+- **Part (a) — INFERENCE / MESSAGE (2 marks):** Ask what can be inferred from one or two specific sources. The answer requires reading BETWEEN the lines, not just lifting surface facts. Use phrasing like "What can you infer from Source X about...?" or "What message does Source X convey about...?"
+
+- **Part (b) — COMPARISON (5 marks):** Ask how two specific sources compare — similarity AND/OR difference. Use phrasing like "How does Source X differ from Source Y in its view of...?" or "To what extent do Sources X and Y agree about...?"
+
+- **Part (c) — PURPOSE (4 marks):** Ask about the purpose, motive, or intended effect of one or two sources. Use phrasing like "What is the purpose of Source X? Explain your answer." or "Why did the author of Source X produce this source?"
+
+- **Part (d) — RELIABILITY (5 marks):** Ask about reliability, utility, or trustworthiness of one or two sources, considering provenance, content, cross-referencing. Use phrasing like "How reliable is Source X as evidence of...?" or "Assess the usefulness of Source X for understanding..."
+
+- **Part (e) — ASSERTION / SYNTHESIS (10 marks):** Ask students to evaluate a given assertion using ALL sources. This is the highest-mark question. Use phrasing like "Study all sources. To what extent do these sources support the assertion that...?" or "Using all sources, evaluate the claim that..." The question should demand a balanced, cross-referenced argument.
+
+Mark allocation for Part A-E: (a) Inference = 2 marks, (b) Comparison = 5 marks, (c) Purpose = 4 marks, (d) Reliability = 5 marks, (e) Assertion = 10 marks. Match your difficulty level accordingly.
+
+Each question should reference specific source numbers (e.g., "Source 1", "Sources 3 and 4", "all sources") so the student knows which sources to use.
+
+IMPORTANT: Do NOT write the actual answer text in the question prompt. The question should be a question, not an answer.
+
+===========================================
+=== SUBJECT-SPECIFIC SECTIONS (if applicable) ===
+===========================================
+
+### For Social Studies ONLY (after the 5 SBQ questions):
+Provide a separate SRQ (Structured Response Question) section for Section B of the Social Studies paper. This section MUST include:
+1. A short **background context paragraph** (2-3 sentences introducing a scenario or issue related to the topic)
+2. **SRQ Question (a)** — A 7-mark "recommendation/strategy" question asking what should be done, by whom, and why (e.g., "What can be done to address...?" or "How effective are current strategies in...?")
+3. **SRQ Question (b)** — An 8-mark "evaluation" question asking students to weigh factors, make a judgment, or evaluate a statement (e.g., "To what extent is...?" or "Evaluate the view that...")
+
+### For Elective History ONLY (after the 5 SBQ questions):
+Provide 3 separate SEQ (Structured Essay Question) essay prompts as Section B of the History paper. Each must:
+- Be a pure essay question (no stimulus materials — tests content knowledge)
+- Require explanation, analysis, and evaluation of historical events/themes
+- Be answerable in a structured essay (PEEL format, factor-based)
+
+**Differentiation rule:** If the topic is "Any Topic (Random Mix)", the 3 SEQ questions must be on THREE DIFFERENT topics/case studies. If a specific topic is selected (e.g., "Nazi Germany"), all 3 questions should be on the SAME topic but test different skills or aspects.
+
+- SEQ Question 1: Focus on **explanation of causes/consequences** (e.g., "Explain why..." or "What were the causes of...?")
+- SEQ Question 2: Focus on **evaluation of significance/impact** (e.g., "How significant was...?" or "Assess the impact of...")
+- SEQ Question 3: Focus on **comparison or judgment** (e.g., "To what extent was X more important than Y?" or "Which factor was the most important in...?")
+
+===========================================
+=== SUGGESTED ANSWER / MODEL ANSWER ===
+===========================================
+
+Provide a comprehensive A1-grade suggested answer that covers:
+- For Part A-E: A complete model response for each question, written at L4/L5 standard (top band), demonstrating correct structure (ISE for inference, explicit comparison for comparison, purpose + evidence for purpose, provenance + cross-ref for reliability, balanced synthesis for assertion)
+- For SRQ (SS only): Full model answers for both SRQ (a) and (b) at top band standard
+- For SEQ (History only): Full model answers for all 3 SEQ questions at L4 standard
+`;
+
 const GENERATION_SOURCE_RULES: Record<string, string> = {
   comparison:
     'Sources must have clear SIMILARITIES AND DIFFERENCES in content. Provenance should differ enough that a student can reach L4 by explaining WHY the perspectives differ.',
@@ -573,8 +696,8 @@ function getGenerationSourceRules(questionType: string): string {
   if (type.includes('purpose') || type.includes('target') || type.includes('motive')) return GENERATION_SOURCE_RULES.purpose;
   if (type.includes('utility')) return GENERATION_SOURCE_RULES.utility;
   if (type.includes('seq') || type.includes('essay') || type.includes('factor')) return GENERATION_SOURCE_RULES.seq;
-  // All Formats — include rules for all skill types
-  return Object.values(GENERATION_SOURCE_RULES).join('\n');
+  // All Formats — include the full exam package instructions
+  return ALL_FORMATS_INSTRUCTIONS;
 }
 
 export function getGenerateSystemPrompt(subject: string, topic: string, questionType: string): string {

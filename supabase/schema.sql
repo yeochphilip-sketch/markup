@@ -145,7 +145,8 @@ CREATE TABLE public.practice_history (
     source_a_provenance TEXT,
     source_b          TEXT,
     source_b_provenance TEXT,
-    suggested_answer  TEXT
+    suggested_answer  TEXT,
+    metadata          JSONB DEFAULT '{}'::jsonb
 );
 
 CREATE INDEX practice_history_user_idx
