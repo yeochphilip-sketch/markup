@@ -41,14 +41,20 @@ export async function POST(request: Request) {
     }
 
     // ── 1. Fetch current user's gamification state ──
-    const { data: myMetrics, error: myErr } = await (supabaseAdmin
-      .from('user_skill_metrics')
-      .select('total_xp, level_title, current_streak, longest_streak, last_practice_date, updated_at, sbq_inference_score, sbq_comparison_score, sbq_reliability_score, seq_essay_score, seq_conclusion_score')
-      .eq('user_id', userId)
-      .single() as any);
+    let myMetrics: any = null;
+    try {
+      const { data, error: myErr } = await (supabaseAdmin
+        .from('user_skill_metrics')
+        .select('total_xp, level_title, current_streak, longest_streak, last_practice_date, updated_at, sbq_inference_score, sbq_comparison_score, sbq_reliability_score, seq_essay_score, seq_conclusion_score')
+        .eq('user_id', userId)
+        .single() as any);
+      if (!myErr && data) myMetrics = data;
+    } catch (fetchErr) {
+      console.warn('Leaderboard fetch warning:', fetchErr);
+    }
 
-    if (myErr || !myMetrics) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    if (!myMetrics) {
+      return NextResponse.json({ error: 'User metrics not available yet' }, { status: 404 });
     }
 
     const myXp = myMetrics.total_xp ?? 0;

@@ -43,7 +43,10 @@ CREATE TABLE public.user_profiles (
         )),
     billing_rate        NUMERIC(10, 2) DEFAULT 0,
     account_status      TEXT DEFAULT 'Active',
-    is_admin            BOOLEAN DEFAULT FALSE
+    is_admin            BOOLEAN DEFAULT FALSE,
+    referral_code       TEXT UNIQUE,
+    referred_by         TEXT,
+    referral_count      INTEGER DEFAULT 0
 );
 
 ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
@@ -259,3 +262,97 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- ============================================================
+-- 8. waitlist_signups
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.waitlist_signups (
+    id            UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    created_at    TIMESTAMP WITH TIME ZONE
+        DEFAULT timezone('utc'::text, now()) NOT NULL,
+    email         TEXT NOT NULL UNIQUE,
+    name          TEXT,
+    subject       TEXT DEFAULT 'Both'
+);
+
+ALTER TABLE public.waitlist_signups ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow anon insert waitlist"
+    ON public.waitlist_signups FOR INSERT
+    WITH CHECK (true);
+CREATE POLICY "Allow service role all"
+    ON public.waitlist_signups FOR ALL
+    USING (auth.role() = 'service_role');
+
+-- ============================================================
+-- 9. user_notifications  (in-app notification bell)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.user_notifications (
+    id            UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    created_at    TIMESTAMP WITH TIME ZONE
+        DEFAULT timezone('utc'::text, now()) NOT NULL,
+    user_id       UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    title         TEXT NOT NULL,
+    body          TEXT,
+    is_read       BOOLEAN DEFAULT FALSE,
+    type          TEXT DEFAULT 'info'
+        CHECK (type IN ('info', 'achievement', 'streak', 'levelup', 'reminder')),
+    metadata      JSONB DEFAULT '{}'::jsonb
+);
+
+CREATE INDEX user_notifications_user_idx
+    ON public.user_notifications (user_id, created_at DESC);
+
+ALTER TABLE public.user_notifications ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow owner read notifications"
+    ON public.user_notifications FOR SELECT
+    USING (auth.uid() = user_id);
+CREATE POLICY "Allow owner update notifications"
+    ON public.user_notifications FOR UPDATE
+    USING (auth.uid() = user_id);
+CREATE POLICY "Allow service role all"
+    ON public.user_notifications FOR ALL
+    USING (auth.role() = 'service_role');
+
+-- ============================================================
+-- 9. study_groups
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.study_groups (
+    id            UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    created_at    TIMESTAMP WITH TIME ZONE
+        DEFAULT timezone('utc'::text, now()) NOT NULL,
+    name          TEXT NOT NULL,
+    join_code     TEXT NOT NULL UNIQUE,
+    owner_id      UUID REFERENCES auth.users(id) ON DELETE SET NULL
+);
+
+ALTER TABLE public.study_groups ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow authenticated create groups"
+    ON public.study_groups FOR INSERT
+    WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Allow members read groups"
+    ON public.study_groups FOR SELECT
+    USING (true);
+CREATE POLICY "Allow service role all"
+    ON public.study_groups FOR ALL
+    USING (auth.role() = 'service_role');
+
+-- ============================================================
+-- 10. study_group_members
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.study_group_members (
+    id            UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    created_at    TIMESTAMP WITH TIME ZONE
+        DEFAULT timezone('utc'::text, now()) NOT NULL,
+    group_id      UUID REFERENCES public.study_groups(id) ON DELETE CASCADE NOT NULL,
+    user_id       UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    is_owner      BOOLEAN DEFAULT FALSE,
+    UNIQUE(group_id, user_id)
+);
+
+ALTER TABLE public.study_group_members ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow authenticated CRUD members"
+    ON public.study_group_members FOR ALL
+    USING (auth.role() = 'authenticated');
+CREATE POLICY "Allow service role all"
+    ON public.study_group_members FOR ALL
+    USING (auth.role() = 'service_role');

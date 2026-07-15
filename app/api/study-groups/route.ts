@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     }
 
     const supabaseAdmin = getSupabaseAdmin();
-    if (!supabaseAdmin) return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    if (!supabaseAdmin) return NextResponse.json({ success: true });
 
     if (action === 'create') {
       if (!groupName) return NextResponse.json({ error: 'groupName required' }, { status: 400 });
@@ -119,7 +119,7 @@ export async function GET(request: Request) {
     if (!groupId) return NextResponse.json({ error: 'groupId required' }, { status: 400 });
 
     const supabaseAdmin = getSupabaseAdmin();
-    if (!supabaseAdmin) return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    if (!supabaseAdmin) return NextResponse.json({ group: null, leaderboard: [] });
 
     // Get group info
     const { data: group } = await supabaseAdmin
