@@ -38,6 +38,8 @@ interface FeedbackRow {
   user_email: string | null;
   feedback_type: string;
   description: string;
+  testimonial_rating?: number;
+  testimonial_approved?: boolean;
 }
 
 interface SkillMetricsRow {
@@ -167,6 +169,11 @@ function AnalyticsDashboardContent() {
   const [loadingFeedback, setLoadingFeedback] = useState(true);
   const [feedbackSearch, setFeedbackSearch] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [testimonials, setTestimonials] = useState<FeedbackRow[]>([]);
+  const [loadingTestimonials, setLoadingTestimonials] = useState(true);
+  const [testimonialSearch, setTestimonialSearch] = useState('');
+  const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const fetchAllData = useCallback(async () => {
     setLoading(true);
@@ -174,6 +181,7 @@ function AnalyticsDashboardContent() {
     setLoadingEssays(true);
     setLoadingMetrics(true);
     setLoadingFeedback(true);
+    setLoadingTestimonials(true);
       const { data: sessionData } = await supabase.auth.getSession();
       const user = sessionData.session?.user;
 
@@ -259,6 +267,22 @@ function AnalyticsDashboardContent() {
     } finally {
       setLoadingFeedback(false);
     }
+
+    // Fetch testimonials (feedback with type 'Testimonial')
+    try {
+      const { data, error } = await supabase
+        .from('user_feedback')
+        .select('*')
+        .eq('feedback_type', 'Testimonial')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      if (data) setTestimonials(data as FeedbackRow[]);
+    } catch (err) {
+      console.error('Error fetching testimonials:', err);
+    } finally {
+      setLoadingTestimonials(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -290,6 +314,83 @@ function AnalyticsDashboardContent() {
     const _elapsed = Date.now() - _start;
     if (_elapsed < 1500) await new Promise(r => setTimeout(r, 1500 - _elapsed));
     setIsRefreshing(false);
+  };
+
+  /** Toggle testimonial approval status */
+  const handleToggleApproval = async (id: string, currentlyApproved: boolean) => {
+    setApprovingId(id);
+    try {
+      const res = await fetch('/api/feedback', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, approved: !currentlyApproved }),
+      });
+      if (!res.ok) throw new Error('Failed to toggle approval');
+      // Optimistically update local state
+      setTestimonials(prev =>
+        prev.map(t =>
+          t.id === id
+            ? { ...t, testimonial_approved: !currentlyApproved }
+            : t
+        )
+      );
+    } catch (err) {
+      console.error('Error toggling approval:', err);
+    } finally {
+      setApprovingId(null);
+    }
+  };
+
+  /** Copy testimonial quote to clipboard */
+  const handleCopyQuote = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  /** Parse star rating from testimonial description or use testimonial_rating column */
+  const extractRating = (t: FeedbackRow): number => {
+    if (t.testimonial_rating) return t.testimonial_rating;
+    const match = t.description?.match(/^(?:⭐\s*)?(\d)\/5/);
+    return match ? parseInt(match[1], 10) : 0;
+  };
+
+  /** Extract the name from testimonial description (after last '—') */
+  const extractName = (t: FeedbackRow): string | null => {
+    const lines = t.description?.split('\n') ?? [];
+    const lastLine = lines[lines.length - 1];
+    if (lastLine?.startsWith('— ')) return lastLine.slice(2).trim();
+    return t.user_email?.split('@')[0] || null;
+  };
+
+  /** Extract the rating label from the first line (e.g. "Amazing!") */
+  const extractRatingLabel = (t: FeedbackRow): string => {
+    const firstLine = t.description?.split('\n')[0] ?? '';
+    // Match: ⭐ 5/5 — Amazing!  OR  ⭐5/5—Amazing!
+    const match = firstLine.match(/—\s*(.+)$/);
+    return match ? match[1].trim() : '';
+  };
+
+  /** Extract the user's written feedback text (between the star line and the name line) */
+  const extractFeedback = (t: FeedbackRow): string => {
+    const lines = t.description?.split('\n') ?? [];
+    // Remove first line (stars header) and last line if it starts with — (name)
+    const body = lines.filter((l: string, i: number) => {
+      if (i === 0 && l.match(/^⭐?\s*\d\/5/)) return false;
+      if (i === lines.length - 1 && l.startsWith('— ')) return false;
+      return true;
+    });
+    return body.join('\n').trim();
+  };
+
+  /** Alias for CSV export */
+  const extractQuote = extractFeedback;
+
+  /** Render star icons */
+  const renderStars = (rating: number) => {
+    return Array.from({ length: 5 }, (_, i) => (
+      <span key={i} className={`text-xs ${i < rating ? 'text-amber-400' : 'text-slate-700'}`}>★</span>
+    ));
   };
 
   // ── Gamification derived stats ────────────────────────────
@@ -453,6 +554,16 @@ function AnalyticsDashboardContent() {
           p.subscription_tier.toLowerCase().includes(profileSearch.toLowerCase()),
       ),
     [profiles, profileSearch],
+  );
+
+  const filteredTestimonials = useMemo(
+    () =>
+      testimonials.filter(
+        (t) =>
+          (t.user_email || '').toLowerCase().includes(testimonialSearch.toLowerCase()) ||
+          t.description.toLowerCase().includes(testimonialSearch.toLowerCase()),
+      ),
+    [testimonials, testimonialSearch],
   );
 
   // ── Render ─────────────────────────────────────────────────
@@ -871,6 +982,201 @@ function AnalyticsDashboardContent() {
                   ))}
                 </tbody>
               </table>
+            )}
+          </div>
+        </div>
+
+        {/* ── Testimonials ─────────────────────────────── */}
+        <div className="bg-slate-950 border border-emerald-500/20 rounded-2xl overflow-hidden">
+          <div className="p-5 border-b border-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <h2 className="text-sm font-bold text-slate-200">⭐ Testimonials</h2>
+              <span className="text-[10px] text-slate-500 font-mono bg-slate-900 px-2 py-0.5 rounded-full">
+                {testimonials.length} submissions
+              </span>
+              <span className="text-[10px] text-slate-500 font-mono bg-emerald-900/30 px-2 py-0.5 rounded-full">
+                {testimonials.filter((t: FeedbackRow) => t.testimonial_approved).length} approved
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Search testimonials..."
+                value={testimonialSearch}
+                onChange={(e) => setTestimonialSearch(e.target.value)}
+                className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-[11px] text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500/50 w-48"
+              />
+              <button
+                onClick={() =>
+                  csvDownload(
+                    testimonials.map((t) => ({
+                      Email: t.user_email || 'anonymous',
+                      Rating: extractRating(t).toString(),
+                      Quote: extractQuote(t).replace(/\n/g, ' '),
+                      Approved: (t as any).testimonial_approved ? 'Yes' : 'No',
+                      Date: new Date(t.created_at).toLocaleDateString('en-SG'),
+                    })),
+                    'testimonials',
+                  )
+                }
+                className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-3 py-2 rounded-lg hover:bg-emerald-500/20 transition whitespace-nowrap"
+              >
+                ⬇ CSV
+              </button>
+            </div>
+          </div>
+
+          {/* KPI mini row */}
+          <div className="px-5 py-3 border-b border-slate-900 grid grid-cols-3 gap-4">
+            <div>
+              <div className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Avg Rating</div>
+              <div className="text-lg font-black text-amber-400 mt-0.5">
+                {testimonials.length > 0
+                  ? (testimonials.reduce((sum, t) => sum + extractRating(t), 0) / testimonials.length).toFixed(1)
+                  : '—'}
+              </div>
+            </div>
+            <div>
+              <div className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Total Stars</div>
+              <div className="text-lg font-black text-indigo-400 mt-0.5">
+                {testimonials.reduce((sum, t) => sum + extractRating(t), 0)}
+              </div>
+            </div>
+            <div>
+              <div className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Approved Rate</div>
+              <div className="text-lg font-black text-emerald-400 mt-0.5">
+                {testimonials.length > 0
+                  ? `${Math.round((testimonials.filter((t: FeedbackRow) => t.testimonial_approved).length / testimonials.length) * 100)}%`
+                  : '—'}
+              </div>
+            </div>
+          </div>
+
+          {/* Testimonial cards */}
+          <div className="p-4 sm:p-5">
+            {loadingTestimonials ? (
+              <div className="py-8 flex items-center justify-center">
+                <LoadingSpinner size="sm" label="Loading testimonials..." color="emerald" />
+              </div>
+            ) : filteredTestimonials.length === 0 ? (
+              <div className="py-8 text-center text-xs text-slate-500 font-mono">
+                {testimonialSearch
+                  ? 'No testimonials match your search.'
+                  : 'No testimonials collected yet. Ask users to rate after their scans!'}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                {filteredTestimonials.map((t: FeedbackRow) => {
+                  const rating = extractRating(t);
+                  const name = extractName(t);
+                  const label = extractRatingLabel(t);
+                  const feedbackText = extractFeedback(t);
+                  const hasFeedback = feedbackText.length > 0;
+                  const isApproved = t.testimonial_approved === true;
+                  return (
+                    <div
+                      key={t.id}
+                      className={`rounded-xl border p-4 flex flex-col transition-all ${
+                        isApproved
+                          ? 'bg-emerald-950/20 border-emerald-800/40'
+                          : 'bg-slate-950/50 border-slate-800 hover:border-slate-700'
+                      }`}
+                    >
+                      {/* Header row */}
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-black shrink-0 ${
+                            isApproved
+                              ? 'bg-emerald-600/30 text-emerald-400 border border-emerald-500/30'
+                              : 'bg-slate-800 text-slate-400 border border-slate-700'
+                          }`}>
+                            {(name || '?').charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <p className={`text-xs font-bold truncate ${isApproved ? 'text-slate-200' : 'text-slate-400'}`}>
+                              {name || 'Anonymous'}
+                            </p>
+                            <p className="text-[9px] text-slate-600 font-mono truncate">
+                              {t.user_email || ''}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-0.5 shrink-0">
+                          {renderStars(rating)}
+                        </div>
+                      </div>
+
+                      {/* Rating label */}
+                      {label && (
+                        <p className={`text-[10px] font-bold italic mb-2 ${
+                          isApproved ? 'text-amber-400/80' : 'text-slate-500'
+                        }`}>
+                          &ldquo;{label}&rdquo;
+                        </p>
+                      )}
+
+                      {/* Feedback text */}
+                      {hasFeedback && (
+                        <div className={`flex-1 rounded-lg p-2.5 text-[10px] leading-relaxed ${
+                          isApproved
+                            ? 'bg-slate-900/50 text-slate-400 border border-slate-800/60'
+                            : 'bg-slate-900/30 text-slate-500 border border-slate-800/40'
+                        }`}>
+                          <p className="text-[8px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                            💬 Feedback
+                          </p>
+                          <p className="whitespace-pre-wrap leading-relaxed">{feedbackText}</p>
+                        </div>
+                      )}
+
+                      {/* No feedback placeholder */}
+                      {!hasFeedback && (
+                        <div className="flex-1 flex items-center justify-center">
+                          <p className="text-[9px] text-slate-700 italic">No written feedback</p>
+                        </div>
+                      )}
+
+                      {/* Footer actions */}
+                      <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-900">
+                        <div className="flex items-center gap-1.5">
+                          {/* Approve toggle */}
+                          <button
+                            onClick={() => handleToggleApproval(t.id, isApproved)}
+                            disabled={approvingId === t.id}
+                            className={`text-[9px] font-bold px-2 py-1 rounded-lg transition flex items-center gap-1 ${
+                              isApproved
+                                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25'
+                                : 'bg-slate-800 text-slate-500 border border-slate-700 hover:text-slate-300 hover:border-slate-600'
+                            }`}
+                          >
+                            {approvingId === t.id ? (
+                              <div className="w-2.5 h-2.5 border-2 border-current border-t-transparent rounded-full animate-spin-fast" />
+                            ) : isApproved ? (
+                              '✓ Approved'
+                            ) : (
+                              'Approve'
+                            )}
+                          </button>
+                          {/* Date */}
+                          <span className="text-[8px] text-slate-700 font-mono">
+                            {new Date(t.created_at).toLocaleDateString('en-SG', {
+                              day: 'numeric',
+                              month: 'short',
+                            })}
+                          </span>
+                        </div>
+                        {/* Copy feedback */}
+                        <button
+                          onClick={() => handleCopyQuote(feedbackText || label || '', t.id)}
+                          className="text-[9px] text-slate-600 hover:text-indigo-400 transition"
+                        >
+                          {copiedId === t.id ? '✓ Copied' : '📋 Copy'}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         </div>

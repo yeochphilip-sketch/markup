@@ -4,9 +4,29 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
+/** PATCH: toggle testimonial_approved flag */
+export async function PATCH(req: Request) {
+  try {
+    const { id, approved } = await req.json();
+    if (!id) {
+      return NextResponse.json({ error: 'Missing feedback id' }, { status: 400 });
+    }
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const { error } = await supabase
+      .from('user_feedback')
+      .update({ testimonial_approved: approved === true })
+      .eq('id', id);
+    if (error) throw error;
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error('Failed to toggle testimonial approval:', error);
+    return NextResponse.json({ error: 'Could not update approval status' }, { status: 500 });
+  }
+}
+
 export async function POST(req: Request) {
   try {
-    const { userId, userEmail, feedbackType, description } = await req.json();
+    const { userId, userEmail, feedbackType, description, testimonialRating } = await req.json();
 
     if (!description) {
       return NextResponse.json({ error: 'Feedback description is blank' }, { status: 400 });
@@ -20,7 +40,8 @@ export async function POST(req: Request) {
         user_id: userId || null,
         user_email: userEmail || 'anonymous@markup.edu',
         feedback_type: feedbackType || 'General',
-        description: description
+        description: description,
+        testimonial_rating: testimonialRating ?? null
       }]);
 
     if (dbError) throw dbError;

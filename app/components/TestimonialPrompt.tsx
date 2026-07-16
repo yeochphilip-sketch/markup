@@ -99,6 +99,7 @@ export default function TestimonialPrompt({
           userEmail: userEmail || '',
           feedbackType: 'Testimonial',
           description: `⭐ ${rating}/5 — ${STAR_LABELS[rating]}${feedback ? `\n\n${feedback}` : ''}${userName ? `\n\n— ${userName}` : ''}`,
+          testimonialRating: rating,
         }),
       });
       if (!res.ok) throw new Error('Failed to submit');

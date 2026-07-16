@@ -638,6 +638,12 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- ============================================================
 
 -- ============================================================
+-- 14. Testimonial columns on user_feedback
+-- ============================================================
+ALTER TABLE public.user_feedback ADD COLUMN IF NOT EXISTS testimonial_rating   INTEGER;
+ALTER TABLE public.user_feedback ADD COLUMN IF NOT EXISTS testimonial_approved BOOLEAN DEFAULT FALSE;
+
+-- ============================================================
 -- Done.
 -- ════════════════════════════════════════════════════════════
 -- 
