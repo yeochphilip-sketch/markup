@@ -132,36 +132,37 @@ export default function PricingPage() {
   return (
     <div className="min-h-screen bg-[#07090e] text-slate-100 py-16 px-6 font-sans">
       <div className="max-w-6xl mx-auto space-y-12">
-        {/* Coming Soon Banner */}
+        {/* Free During Beta Banner */}
         <div className="bg-gradient-to-r from-indigo-950/80 via-slate-950/80 to-purple-950/80 border border-indigo-500/30 rounded-3xl p-8 md:p-12 text-center relative overflow-hidden">
           {/* Background glow */}
           <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-80 h-80 bg-indigo-500/5 rounded-full blur-3xl" />
           
           <div className="relative z-10 space-y-4">
-            <span className="inline-flex items-center gap-2 text-[10px] font-black text-indigo-400 tracking-widest uppercase bg-indigo-950/50 border border-indigo-900/50 px-3 py-1 rounded-full">
-              🚧 Payments — Coming Soon
+            <span className="inline-flex items-center gap-2 text-[10px] font-black text-emerald-400 tracking-widest uppercase bg-emerald-950/50 border border-emerald-900/50 px-3 py-1 rounded-full">
+              🎓 Free for Students During Beta
             </span>
             <h2 className="text-3xl md:text-5xl font-black tracking-tight text-white">
-              We are building something{' '}
-              <span className="text-indigo-400">better</span>.
+              Everything is{' '}
+              <span className="text-emerald-400">free</span> right now.
             </h2>
             <p className="text-sm text-slate-400 max-w-xl mx-auto leading-relaxed">
-              Full payment plans and checkout are being wired up. In the meantime,
-              all features are <strong className="text-emerald-400">free to use</strong> during beta.
-              Join the waitlist to lock in early-bird pricing when we launch.
+              No credit card needed. No payment setup. Every single feature on MARKUP
+              is <strong className="text-emerald-400">completely free</strong> during beta.{' '}
+              These planned pricing tiers are for reference — you only pay when we launch
+              (and beta users get lifetime discounts).
             </p>
             <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
               <button
-                onClick={() => router.push('/#pricing')}
+                onClick={() => router.push('/auth')}
                 className="bg-indigo-600 hover:bg-indigo-500 text-white font-black px-8 py-3 rounded-xl text-sm transition shadow-lg shadow-indigo-500/20"
               >
-                ← Back to Waitlist
+                Start Free Practice →
               </button>
               <button
                 onClick={() => router.push('/dashboard')}
                 className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-8 py-3 rounded-xl text-sm transition border border-slate-700"
               >
-                Go to Dashboard
+                Already have an account? Go to Dashboard
               </button>
             </div>
           </div>

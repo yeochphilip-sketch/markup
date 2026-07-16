@@ -7,6 +7,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/utils/supabase';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import FeedbackModal from '@/app/components/FeedbackModal';
 import NotificationBell from '@/app/components/NotificationBell';
 import StudyGroupPanel from '@/app/components/StudyGroupPanel';
@@ -22,6 +23,7 @@ import AchievementsDrawer from '@/app/components/AchievementsDrawer';
 import AchievementBanner from '@/app/components/AchievementBanner';
 import LoadingSpinner from '@/app/components/LoadingSpinner';
 import MobileSidebar from '@/app/components/MobileSidebar';
+import TestimonialPrompt, { recordCompletedScan, shouldShowTestimonial } from '@/app/components/TestimonialPrompt';
 import { getLevelConfig, getLevelTitle, getNextLevelXp, getPrevLevelXp, LEVEL_THRESHOLDS, playGradeCompleteSound, playLevelUpSound, playAchievementSound, isDailyGoalMet, ACHIEVEMENT_DEFS, calculateXpDecay, getDecayWarning } from '@/lib/gamification';
 
 interface Segment {
@@ -104,6 +106,7 @@ export default function DashboardPage() {
   const [userEmail, setUserEmail] = useState('');
   const [userId, setUserId] = useState<string | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [showGuestBanner, setShowGuestBanner] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGrading, setIsGrading] = useState(false);
   const [scanProgress, setScanProgress] = useState<string | null>(null);
@@ -116,6 +119,7 @@ export default function DashboardPage() {
   const [currentChallengeId, setCurrentChallengeId] = useState<string | null>(null);
   const [isExemplarOpen, setIsExemplarOpen] = useState(false);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [isTestimonialOpen, setIsTestimonialOpen] = useState(false);
 
   const [selectedType, setSelectedType] = useState('General');
   const [textInput, setTextInput] = useState('');
@@ -788,7 +792,13 @@ export default function DashboardPage() {
         setStreakData(prev => ({ ...prev, current: prev.current + 1 }));
       }
 
-      setHasScanned(true);      } catch (err) {
+      setHasScanned(true);
+      // Track scan for testimonial prompt
+      recordCompletedScan();
+      if (shouldShowTestimonial()) {
+        setIsTestimonialOpen(true);
+      }
+      } catch (err) {
         console.error(err);
         showErrorToast(
           err instanceof Error ? err.message : 'Grading failed. Please try again.'
@@ -939,7 +949,8 @@ export default function DashboardPage() {
     }
   };
 
-  const emailInitial = userEmail ? userEmail.charAt(0).toUpperCase() : 'S';
+  const emailInitial = userEmail ? userEmail.charAt(0).toUpperCase() : 'G';
+  const isGuest = !isAuthLoading && !userId;
   const isQuestionPromptInactive = (challenge.backgroundContext ?? '').includes('Click Generate Practice');
 
   if (isAuthLoading) {
@@ -964,6 +975,31 @@ export default function DashboardPage() {
         .animate-pulse-soft { animation: pulse-soft 2s ease-in-out infinite; }
       `}</style>
       
+      {/* Guest Mode Banner */}
+      {isGuest && showGuestBanner && (
+        <div className="bg-gradient-to-r from-indigo-950/80 via-purple-950/80 to-slate-950/80 border-b border-indigo-500/30 px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 text-xs text-slate-300">
+            <span className="text-lg">🔓</span>
+            <span><strong className="text-indigo-400">Guest Mode</strong> — generate &amp; grade instantly. Sign up to save your progress.</span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Link
+              href="/auth"
+              className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-1.5 rounded-lg text-[10px] transition whitespace-nowrap"
+            >
+              Sign Up Free
+            </Link>
+            <button
+              onClick={() => setShowGuestBanner(false)}
+              className="text-slate-500 hover:text-slate-300 text-sm transition p-1"
+              aria-label="Dismiss"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Navigation Header */}
       <header className="border-b border-slate-900 px-4 sm:px-6 py-4 flex items-center justify-between bg-slate-950/60 backdrop-blur-md relative z-40">
         <div className="flex items-center gap-4">
@@ -1043,7 +1079,7 @@ export default function DashboardPage() {
               <div className="absolute right-0 mt-3 w-64 bg-slate-950/95 border border-slate-900 p-4 rounded-2xl shadow-2xl backdrop-blur-xl flex flex-col space-y-3">
                 <div>
                   <h3 className="text-[10px] font-black tracking-widest text-slate-500 uppercase">Account Profile</h3>
-                  <p className="text-xs text-slate-200 font-semibold truncate mt-1 bg-slate-900 px-2.5 py-1.5 rounded-xl border border-slate-900">{userEmail || 'Active Student'}</p>
+                  <p className="text-xs text-slate-200 font-semibold truncate mt-1 bg-slate-900 px-2.5 py-1.5 rounded-xl border border-slate-900">{isGuest ? 'Guest Mode' : (userEmail || 'Active Student')}</p>
                 </div>
                 <div className="pt-2 border-t border-slate-900 flex flex-col space-y-1">
                   <button onClick={() => { router.push('/dashboard/settings'); setIsSettingsOpen(false); }} className="w-full text-left text-slate-400 hover:text-indigo-400 text-xs font-bold py-2 px-1 transition">
@@ -1052,7 +1088,15 @@ export default function DashboardPage() {
                   <button onClick={() => { setIsFeedbackOpen(true); setIsSettingsOpen(false); }} className="w-full text-left text-slate-400 hover:text-indigo-400 text-xs font-bold py-2 px-1 transition">
                     🐛 Submit Bug / Feedback
                   </button>
-                  <button onClick={async () => { await supabase.auth.signOut(); router.push('/auth'); }} className="w-full bg-red-950/30 hover:bg-red-900/50 text-red-400 border border-red-900/30 font-bold py-2 rounded-xl text-xs transition mt-2">Sign Out</button>
+                  {isGuest ? (
+                    <Link href="/auth" className="block w-full text-center bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-xl text-xs transition mt-2">
+                      Sign Up Free
+                    </Link>
+                  ) : (
+                    <button onClick={async () => { await supabase.auth.signOut(); router.push('/auth'); }} className="w-full bg-red-950/30 hover:bg-red-900/50 text-red-400 border border-red-900/30 font-bold py-2 rounded-xl text-xs transition mt-2">
+                      Sign Out
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -1685,6 +1729,15 @@ export default function DashboardPage() {
         textInput={textInput}
         setTextInput={setTextInput}
         onSubmit={handleSubmitFeedback}
+      />
+
+      {/* Testimonial Prompt — appears after 2nd+ successful scan */}
+      <TestimonialPrompt
+        isOpen={isTestimonialOpen}
+        isGuest={isGuest}
+        userName={userEmail ? userEmail.split('@')[0] : undefined}
+        userEmail={userEmail || undefined}
+        onClose={() => setIsTestimonialOpen(false)}
       />
 
     </div>

@@ -74,9 +74,9 @@ export default function AuthPage() {
           }]);
         }
         
-        setMessage('Registration successful! Sending to plans...');
+        setMessage('Welcome to MARKUP! Taking you to your dashboard...');
         setTimeout(() => {
-          router.push('/pricing');
+          router.push('/dashboard');
           router.refresh();
         }, 1000);
       } else {

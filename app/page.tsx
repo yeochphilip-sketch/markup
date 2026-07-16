@@ -4,127 +4,25 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 
 
-function WaitlistForm() {
-  const [email, setEmail] = useState('');
-  const [name, setName] = useState('');
-  const [subject, setSubject] = useState('Both');
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [message, setMessage] = useState('');
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email.trim()) return;
-
-    setStatus('loading');
-    try {
-      const res = await fetch('/api/waitlist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), name: name.trim(), subject }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setStatus('success');
-        setMessage(data.message || 'You are on the waitlist!');
-
-      } else {
-        setStatus('error');
-        setMessage(data.error || 'Something went wrong.');
-      }
-    } catch {
-      setStatus('error');
-      setMessage('Network error. Please try again.');
-    }
-  };
-
-  if (status === 'success') {
-    return (
-      <div className="text-center py-8">
-        <div className="text-5xl mb-4">🎉</div>
-        <h3 className="text-xl font-black text-emerald-400 mb-2">You are on the waitlist!</h3>
-        <p className="text-slate-400 text-sm max-w-md mx-auto">{message}</p>
-        <p className="text-slate-500 text-xs mt-4">
-          Share with your friends — the earlier they join, the lower the beta price for everyone.
-        </p>
-        <div className="mt-4 bg-slate-900/50 border border-slate-800 rounded-xl p-3">
-          <p className="text-[9px] text-slate-500 font-bold uppercase mb-1.5">Your referral link</p>
-          <div className="flex gap-2">
-            <input
-              readOnly
-              value={typeof window !== 'undefined' ? `${window.location.origin}/?ref=${btoa(email).slice(0, 8)}` : ''}
-              className="flex-1 bg-slate-900 border border-slate-800 p-2 rounded-xl text-[10px] text-indigo-400 font-mono text-center focus:outline-none"
-            />
-            <button
-              onClick={() => {
-                const link = typeof window !== 'undefined' ? `${window.location.origin}/?ref=${btoa(email).slice(0, 8)}` : '';
-                navigator.clipboard.writeText(link);
-                setMessage('Link copied!');
-              }}
-              className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs px-3 rounded-xl transition"
-            >
-              📋
-            </button>
-          </div>
-          <p className="text-[8px] text-slate-600 mt-1.5">
-            Send this link to your classmates. When they sign up using it, you both get priority beta access.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
+function HeroCTA() {
   return (
-    <form onSubmit={handleSubmit} className="max-w-md mx-auto space-y-3">
-      <div className="flex gap-2">
-        <input
-          type="text"
-          placeholder="Your name (optional)"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="flex-1 bg-slate-900/80 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition"
-        />
+    <div className="flex flex-col items-center gap-4">
+      <Link
+        href="/dashboard"
+        className="bg-indigo-600 hover:bg-indigo-500 text-white font-black px-10 py-4 rounded-xl text-lg transition-all shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/40 hover:scale-[1.02] active:scale-[0.98] inline-flex items-center gap-2"
+      >
+        Start Practicing Now
+        <span className="text-xl">→</span>
+      </Link>
+      <p className="text-[11px] text-slate-500">
+        No account needed. No credit card. Just click and practice.
+      </p>
+      <div className="flex items-center gap-6 text-xs text-slate-600">
+        <span>🧠 AI-generated O-Level papers</span>
+        <span>📊 Instant LORMS grading</span>
+        <span>⚡ Takes 30 seconds</span>
       </div>
-      <div className="flex gap-2">
-        <input
-          type="email"
-          required
-          placeholder="Your email (preferably .edu.sg)"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="flex-1 bg-slate-900/80 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition"
-        />
-        <button
-          type="submit"
-          disabled={status === 'loading' || !email.trim()}
-          className="bg-indigo-600 hover:bg-indigo-500 text-white font-black px-6 py-3 rounded-xl text-sm transition disabled:opacity-50 whitespace-nowrap"
-        >
-          {status === 'loading' ? 'Joining...' : 'Join Waitlist'}
-        </button>
-      </div>
-      {email.includes('@') && !email.endsWith('.edu.sg') && email !== '' && (
-        <p className="text-[10px] text-amber-400/70 text-left">
-          💡 School emails (&lt;name&gt;@&lt;school&gt;.edu.sg) get priority access when we launch.
-        </p>
-      )}
-      <div className="flex gap-3 text-xs">
-        {['Social Studies', 'History', 'Both'].map((s) => (
-          <label key={s} className="flex items-center gap-1.5 cursor-pointer">
-            <input
-              type="radio"
-              name="subject"
-              value={s}
-              checked={subject === s}
-              onChange={(e) => setSubject(e.target.value)}
-              className="accent-indigo-500"
-            />
-            <span className="text-slate-400">{s}</span>
-          </label>
-        ))}
-      </div>
-      {status === 'error' && (
-        <p className="text-red-400 text-xs text-center">{message}</p>
-      )}
-    </form>
+    </div>
   );
 }
 
@@ -211,7 +109,7 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="px-4 sm:px-6 py-16 sm:py-24 text-center max-w-4xl mx-auto">
         <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-black px-3 py-1 rounded-full mb-6 uppercase tracking-wider">
-          🚧 Beta — Limited Spots Available
+          🎓 Beta — Free for All Students
         </div>
         <h2 className="text-5xl md:text-7xl font-black tracking-tight leading-[1.1] mb-6">
           Master the <span className="text-indigo-500">O-Level</span> Humanities with AI.
@@ -220,19 +118,18 @@ export default function LandingPage() {
           The only Source-Based Case Study simulator designed specifically for the Singapore SEAB Social Studies and History syllabus. Scan essays, get LORMS grades, and climb to A1.
         </p>
 
-        {/* Waitlist CTA */}          <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-4 sm:p-6 max-w-lg mx-auto">
-          <h3 className="text-sm font-black text-white mb-1">Join the Beta Waitlist</h3>
-          <p className="text-xs text-slate-500 mb-4">
-            Get early access and lock in beta pricing. First 100 signups get 40% off lifetime.
-          </p>
-          <WaitlistForm />
-        </div>
-
-        <div className="mt-6 flex items-center justify-center gap-6 text-[11px] text-slate-500">
-          <span>🔒 No spam, unsubscribe anytime</span>
-          <span>⚡ First 100 get 40% off</span>
-        </div>
+        {/* Direct CTA — no auth required */}
+        <HeroCTA />
       </section>
+
+      {/* Moved waitlist count into a subtle inline */}
+      <div className="-mt-8 mb-8 text-center">
+        {waitlistCount !== null && (
+          <p className="text-[10px] text-slate-600 font-mono">
+            {waitlistCount.toLocaleString()} students already onboard
+          </p>
+        )}
+      </div>
 
       {/* How It Works Section */}
       <section id="how-it-works" className="px-6 py-20 bg-slate-950/30">
@@ -445,96 +342,116 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Pricing Section — disabled until Stripe is ready */}
+      {/* Pricing Section — free for students during beta */}
       <section id="pricing" className="px-6 py-20 bg-slate-950/30">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <span className="inline-flex items-center gap-2 text-[10px] font-black text-indigo-400 tracking-widest uppercase bg-indigo-950/50 border border-indigo-900/50 px-3 py-1 rounded-full">
-              🚧 Payments — Coming Soon
+            <span className="inline-flex items-center gap-2 text-[10px] font-black text-emerald-400 tracking-widest uppercase bg-emerald-950/50 border border-emerald-900/50 px-3 py-1 rounded-full">
+              🎓 Free for Students During Beta
             </span>
             <h3 className="text-3xl md:text-5xl font-black tracking-tight mt-4">
-              Everything is <span className="text-emerald-400">free</span> during beta.
+              Everything is <span className="text-emerald-400">free</span> right now.
             </h3>
             <p className="text-sm text-slate-400 max-w-xl mx-auto mt-3">
-              We are building the payment system. In the meantime, every feature on MARKUP
-              is completely free.{' '}
+              No credit card needed. No payment required. Just sign up and start climbing to A1.{' '}
               {waitlistCount !== null && (
                 <span className="text-indigo-400 font-bold">
-                  {waitlistCount.toLocaleString()} students already on the waitlist.
+                  {waitlistCount.toLocaleString()} students already onboard.
                 </span>
               )}
             </p>
+            <Link
+              href="/auth"
+              className="inline-block mt-6 bg-indigo-600 hover:bg-indigo-500 text-white font-black px-8 py-3.5 rounded-xl text-sm transition shadow-lg shadow-indigo-500/20"
+            >
+              Start Practicing Now — Free
+            </Link>
           </div>
 
-          {/* Planned tiers — purely informational, no CTAs */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left opacity-60 select-none">
+          {/* What students get */}
+          <div className="max-w-3xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
+            <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-center">
+              <div className="text-2xl mb-2">🧠</div>
+              <h4 className="text-sm font-black text-white">Unlimited Practice</h4>
+              <p className="text-[10px] text-slate-500 mt-1">Generate as many O-Level papers as you want, on any topic</p>
+            </div>
+            <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-center">
+              <div className="text-2xl mb-2">📊</div>
+              <h4 className="text-sm font-black text-white">Full LORMS Grading</h4>
+              <p className="text-[10px] text-slate-500 mt-1">AI scans SBCS + SEQ + SRQ with SEAB rubric feedback</p>
+            </div>
+            <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-center">
+              <div className="text-2xl mb-2">🏆</div>
+              <h4 className="text-sm font-black text-white">Gamified Progress</h4>
+              <p className="text-[10px] text-slate-500 mt-1">XP, streaks, achievements and leaderboards keep you going</p>
+            </div>
+          </div>
+
+          {/* Planned tiers — purely informational */}
+          <div className="text-center mb-8">
+            <span className="text-[9px] font-black text-slate-600 tracking-widest uppercase">
+              Post-Beta Plans (not required to use today)
+            </span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left opacity-40 select-none">
             {/* Student Monthly */}
-            <div className="bg-slate-950/80 border border-indigo-500/40 rounded-2xl p-6 flex flex-col justify-between shadow-xl shadow-indigo-950/30">
-              <div className="space-y-4">
-                <div>
-                  <h4 className="text-base font-black text-white uppercase tracking-wide">Student Monthly</h4>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Individual Students</p>
-                </div>
+            <div className="bg-slate-950/80 border border-indigo-500/30 rounded-2xl p-5 flex flex-col justify-between shadow-xl shadow-indigo-950/20">
+              <div className="space-y-3">
+                <h4 className="text-sm font-black text-white uppercase tracking-wide">Student Monthly</h4>
                 <div className="space-y-1">
-                  <span className="inline-flex items-center gap-1 bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 text-[9px] font-black tracking-widest uppercase px-2 py-0.5 rounded-full">Planned · S$</span>
+                  <span className="inline-flex items-center gap-1 bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 text-[8px] font-black tracking-widest uppercase px-2 py-0.5 rounded-full">Planned · S$</span>
                   <div className="flex items-baseline text-slate-100 font-mono">
-                    <span className="text-3xl font-black tracking-tight">12</span>
-                    <span className="text-slate-500 text-[11px] ml-1 font-bold">/ month</span>
+                    <span className="text-2xl font-black tracking-tight">12</span>
+                    <span className="text-slate-500 text-[10px] ml-1 font-bold">/ month</span>
                   </div>
                 </div>
               </div>
-              <div className="mt-6 pt-4 border-t border-slate-900/60 text-center">
-                <span className="text-[10px] text-slate-600 font-mono italic">Available after beta launch</span>
+              <div className="mt-4 pt-3 border-t border-slate-900/60 text-center">
+                <span className="text-[9px] text-slate-600 font-mono italic">After beta</span>
               </div>
             </div>
 
             {/* Student Academic Pass */}
-            <div className="bg-slate-950/80 border border-emerald-500/40 rounded-2xl p-6 flex flex-col justify-between shadow-xl shadow-emerald-950/30 relative">
-              <span className="absolute -top-2.5 right-4 bg-emerald-500 text-white text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">Best Value</span>
-              <div className="space-y-4">
-                <div>
-                  <h4 className="text-base font-black text-white uppercase tracking-wide">Student Academic Pass</h4>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Individual Students</p>
-                </div>
+            <div className="bg-slate-950/80 border border-emerald-500/30 rounded-2xl p-5 flex flex-col justify-between shadow-xl shadow-emerald-950/20 relative">
+              <span className="absolute -top-2.5 right-4 bg-emerald-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">Best Value</span>
+              <div className="space-y-3">
+                <h4 className="text-sm font-black text-white uppercase tracking-wide">Academic Pass</h4>
                 <div className="space-y-1">
-                  <span className="inline-flex items-center gap-1 bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-[9px] font-black tracking-widest uppercase px-2 py-0.5 rounded-full">Planned · S$</span>
+                  <span className="inline-flex items-center gap-1 bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-[8px] font-black tracking-widest uppercase px-2 py-0.5 rounded-full">Planned · S$</span>
                   <div className="flex items-baseline text-slate-100 font-mono">
-                    <span className="text-3xl font-black tracking-tight">48</span>
-                    <span className="text-slate-500 text-[11px] ml-1 font-bold">flat</span>
+                    <span className="text-2xl font-black tracking-tight">48</span>
+                    <span className="text-slate-500 text-[10px] ml-1 font-bold">flat</span>
                   </div>
                 </div>
               </div>
-              <div className="mt-6 pt-4 border-t border-slate-900/60 text-center">
-                <span className="text-[10px] text-slate-600 font-mono italic">Available after beta launch</span>
+              <div className="mt-4 pt-3 border-t border-slate-900/60 text-center">
+                <span className="text-[9px] text-slate-600 font-mono italic">After beta</span>
               </div>
             </div>
 
             {/* Tuition Cohort Pass */}
-            <div className="bg-slate-950/80 border border-amber-500/40 rounded-2xl p-6 flex flex-col justify-between shadow-xl shadow-amber-950/30 relative">
-              <span className="absolute -top-2.5 right-4 bg-amber-500 text-white text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">For Centres</span>
-              <div className="space-y-4">
-                <div>
-                  <h4 className="text-base font-black text-white uppercase tracking-wide">Tuition Cohort Pass</h4>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Centres / Tutors · up to 15 students</p>
-                </div>
+            <div className="bg-slate-950/80 border border-amber-500/30 rounded-2xl p-5 flex flex-col justify-between shadow-xl shadow-amber-950/20 relative">
+              <span className="absolute -top-2.5 right-4 bg-amber-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">For Centres</span>
+              <div className="space-y-3">
+                <h4 className="text-sm font-black text-white uppercase tracking-wide">Cohort Pass</h4>
                 <div className="space-y-1">
-                  <span className="inline-flex items-center gap-1 bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[9px] font-black tracking-widest uppercase px-2 py-0.5 rounded-full">Planned · S$</span>
+                  <span className="inline-flex items-center gap-1 bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[8px] font-black tracking-widest uppercase px-2 py-0.5 rounded-full">Planned · S$</span>
                   <div className="flex items-baseline text-slate-100 font-mono">
-                    <span className="text-3xl font-black tracking-tight">89</span>
-                    <span className="text-slate-500 text-[11px] ml-1 font-bold">/ month</span>
+                    <span className="text-2xl font-black tracking-tight">89</span>
+                    <span className="text-slate-500 text-[10px] ml-1 font-bold">/ month</span>
                   </div>
                 </div>
               </div>
-              <div className="mt-6 pt-4 border-t border-slate-900/60 text-center">
-                <span className="text-[10px] text-slate-600 font-mono italic">Available after beta launch</span>
+              <div className="mt-4 pt-3 border-t border-slate-900/60 text-center">
+                <span className="text-[9px] text-slate-600 font-mono italic">After beta</span>
               </div>
             </div>
           </div>
 
-          <div className="text-center mt-10">
-            <Link href="/pricing" className="inline-block text-xs font-bold text-slate-500 hover:text-indigo-400 underline underline-offset-4 transition">
-              Full comparison →
-            </Link>
+          <div className="text-center mt-8">
+            <p className="text-[10px] text-slate-600 italic">
+              All features free during beta. No payment info required. Sign up and start in 30 seconds.
+            </p>
           </div>
         </div>
       </section>
