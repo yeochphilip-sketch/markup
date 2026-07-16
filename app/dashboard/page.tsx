@@ -838,7 +838,8 @@ export default function DashboardPage() {
           setHistoryGoalLevel(goalLevel);
         }
       } else {
-        showErrorToast('Failed to save exam goal');
+        const errData = await res.json().catch(() => ({ error: 'Failed to save exam goal' }));
+        showErrorToast(errData.error || 'Failed to save exam goal');
       }
     } catch (err) {
       console.warn('Failed to save exam goal:', err);
@@ -858,7 +859,8 @@ export default function DashboardPage() {
         setTakesHistory(takes);
         if (!takes) setHistoryGoalLevel(null);
       } else {
-        showErrorToast('Failed to update History setting');
+        const errData = await res.json().catch(() => ({ error: 'Failed to update History setting' }));
+        showErrorToast(errData.error || 'Failed to update History setting');
       }
     } catch (err) {
       console.warn('Failed to update History setting:', err);

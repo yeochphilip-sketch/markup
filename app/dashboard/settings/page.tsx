@@ -108,10 +108,11 @@ export default function SettingsPage() {
       if (res.ok) {
         showToast('Setting updated', 'success');
       } else {
-        showToast('Failed to save', 'error');
+        const errData = await res.json().catch(() => ({ error: 'Failed to save' }));
+        showToast(errData.error || 'Failed to save', 'error');
       }
-    } catch {
-      showToast('Network error', 'error');
+    } catch (err) {
+      showToast('Network error. Check your connection.', 'error');
     } finally {
       setSaving(null);
     }

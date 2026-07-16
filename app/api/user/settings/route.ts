@@ -134,14 +134,22 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
     }
 
+    // Always bump updated_at so we know when settings last changed
+    updateData.updated_at = new Date().toISOString();
+
+    // Use upsert (onConflict: 'user_id') so the row is CREATED if it doesn't exist yet —
+    // e.g. for users whose signup predated the user_skill_metrics trigger.
+    // If the row already exists, only the fields in updateData are touched.
     const { error } = await supabaseAdmin
       .from('user_skill_metrics')
-      .update(updateData as never)
-      .eq('user_id', userId);
+      .upsert(
+        { user_id: userId, ...updateData } as never,
+        { onConflict: 'user_id' }
+      );
 
     if (error) {
-      console.warn('settings PATCH error:', error);
-      return NextResponse.json({ error: 'Update failed' }, { status: 500 });
+      console.warn('settings PATCH error:', error.message);
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
