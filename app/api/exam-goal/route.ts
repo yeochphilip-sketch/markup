@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getServerSupabase } from '@/lib/supabase-server';
 
 /**
  * @deprecated Use PATCH /api/user/settings instead.
@@ -19,12 +20,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'userId and subject required' }, { status: 400 });
     }
 
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+      return NextResponse.json({ success: true });
+    }
+
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !key) return NextResponse.json({ success: true });
 
     try {
-      const supabaseAdmin = createClient(url, key);
+      // Try service role key first, fall back to session auth
+      const client = key
+        ? createClient(url, key)
+        : await getServerSupabase();
 
       // Map subject to the correct columns
       const updateData: Record<string, any> = {};
@@ -35,7 +42,7 @@ export async function POST(request: Request) {
         updateData.takes_history = !!goalLevel;
       }
 
-      const { error } = await supabaseAdmin
+      const { error } = await client
         .from('user_skill_metrics')
         .update(updateData)
         .eq('user_id', userId);

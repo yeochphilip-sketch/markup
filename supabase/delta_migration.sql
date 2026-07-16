@@ -186,6 +186,45 @@ ALTER TABLE public.practice_history ALTER COLUMN question_prompt SET NOT NULL;
 CREATE INDEX IF NOT EXISTS practice_history_user_idx
     ON public.practice_history (user_id, created_at DESC);
 
+-- ============================================================
+-- Additional indexes for query performance
+-- ============================================================
+CREATE INDEX IF NOT EXISTS essay_evaluations_user_idx
+    ON public.essay_evaluations (user_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS essay_evaluations_subject_idx
+    ON public.essay_evaluations (subject) WHERE subject IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS user_skill_metrics_xp_idx
+    ON public.user_skill_metrics (total_xp DESC);
+
+CREATE INDEX IF NOT EXISTS user_skill_metrics_level_idx
+    ON public.user_skill_metrics (level_title) WHERE level_title IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS user_profiles_email_idx
+    ON public.user_profiles (email_address) WHERE email_address IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS user_profiles_referral_code_idx
+    ON public.user_profiles (referral_code) WHERE referral_code IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS study_group_members_group_idx
+    ON public.study_group_members (group_id);
+
+CREATE INDEX IF NOT EXISTS study_group_members_user_idx
+    ON public.study_group_members (user_id);
+
+CREATE INDEX IF NOT EXISTS generated_questions_user_idx
+    ON public.generated_questions (user_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS user_notifications_unread_idx
+    ON public.user_notifications (user_id, is_read) WHERE is_read = false;
+
+CREATE INDEX IF NOT EXISTS waitlist_signups_created_idx
+    ON public.waitlist_signups (created_at DESC);
+
+CREATE INDEX IF NOT EXISTS user_feedback_created_idx
+    ON public.user_feedback (created_at DESC);
+
 DO $$ BEGIN
     IF NOT EXISTS (
         SELECT 1 FROM pg_constraint WHERE conname = 'practice_history_user_id_fkey'

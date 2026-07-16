@@ -1,20 +1,23 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getServerSupabase } from '@/lib/supabase-server';
 import { getLevelTitle } from '@/lib/gamification';
 
 export const runtime = 'nodejs';
 export const maxDuration = 20;
 
-type SupabaseAdmin = ReturnType<typeof createClient>;
-
-let supabaseAdminInstance: SupabaseAdmin | null = null;
-function getSupabaseAdmin(): SupabaseAdmin | null {
-  if (supabaseAdminInstance) return supabaseAdminInstance;
+/**
+ * Resolve a Supabase client: try service role key first, fall back to session auth.
+ * The leaderboard needs admin-level access (reads ALL users), but gracefully degrades
+ * to showing just the user's own stats when the service role key isn't available.
+ */
+async function getClientForLeaderboard() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return null;
-  supabaseAdminInstance = createClient(url, key);
-  return supabaseAdminInstance;
+  if (url && key) {
+    return createClient(url, key);
+  }
+  return getServerSupabase();
 }
 
 function getDecileLabel(percentile: number): string {
@@ -35,15 +38,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'userId required' }, { status: 400 });
     }
 
-    const supabaseAdmin = getSupabaseAdmin();
-    if (!supabaseAdmin) {
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
-    }
+    // Resolve client: try service role key first, fall back to session auth
+    const isServiceRole = !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+    const supabase = await getClientForLeaderboard();
 
     // ── 1. Fetch current user's gamification state ──
     let myMetrics: any = null;
     try {
-      const { data, error: myErr } = await (supabaseAdmin
+      const { data, error: myErr } = await (supabase
         .from('user_skill_metrics')
         .select('total_xp, level_title, current_streak, longest_streak, last_practice_date, updated_at, sbq_inference_score, sbq_comparison_score, sbq_reliability_score, seq_essay_score, seq_conclusion_score')
         .eq('user_id', userId)
@@ -58,15 +60,42 @@ export async function POST(request: Request) {
     }
 
     const myXp = myMetrics.total_xp ?? 0;
+    const myLevel = getLevelTitle(myXp);
+
+    // ── When service role key is missing, return bare-minimum stats ──
+    if (!isServiceRole) {
+      return NextResponse.json({
+        myRank: 1,
+        totalUsers: 1,
+        percentile: 100,
+        decileLabel: 'Leaderboard — anonymous mode',
+        myXp,
+        myLevel,
+        myStreak: myMetrics.current_streak ?? 0,
+        myLongestStreak: myMetrics.longest_streak ?? 0,
+        lastPracticeDate: myMetrics.last_practice_date,
+        recentEvalCount: 0,
+        avgXp: 0,
+        avgStreak: 0,
+        topXp: myXp,
+        xpToNextLevel: myLevel === 'Master' ? 0 : 500,
+        isInTopTwenty: true,
+        sameLevelPeersCount: 0,
+        sameLevelPeers: [],
+        mostImproved: [],
+        leaderboard: [{ rank: 1, userId, isMe: true, xp: myXp, level: myLevel }],
+        trendDirection: 'steady',
+      });
+    }
 
     // ── 2. Count total active users and my rank ──
-    const { count: totalUsers } = await (supabaseAdmin
+    const { count: totalUsers } = await (supabase
       .from('user_skill_metrics')
       .select('*', { count: 'exact', head: true }) as any);
 
     const userCount = totalUsers ?? 1;
 
-    const { data: higherThanMe } = await (supabaseAdmin
+    const { data: higherThanMe } = await (supabase
       .from('user_skill_metrics')
       .select('id')
       .gt('total_xp', myXp) as any);
@@ -79,14 +108,14 @@ export async function POST(request: Request) {
     weekAgo.setDate(weekAgo.getDate() - 7);
     const weekAgoStr = weekAgo.toISOString();
 
-    const { count: recentEvaluations } = await (supabaseAdmin
+    const { count: recentEvaluations } = await (supabase
       .from('essay_evaluations')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .gte('created_at', weekAgoStr) as any);
 
     // ── 4. Most improved this week ──
-    const { data: recentActiveUsers } = await (supabaseAdmin
+    const { data: recentActiveUsers } = await (supabase
       .from('essay_evaluations')
       .select('user_id')
       .gte('created_at', weekAgoStr) as any);
@@ -104,7 +133,7 @@ export async function POST(request: Request) {
     let mostImproved: { userId: string; xpGained: number }[] = [];
 
     if (activeUserIds.length > 0) {
-      const { data: improverMetrics } = await (supabaseAdmin
+      const { data: improverMetrics } = await (supabase
         .from('user_skill_metrics')
         .select('user_id, total_xp')
         .in('user_id', activeUserIds) as any);
@@ -121,8 +150,7 @@ export async function POST(request: Request) {
     }
 
     // ── 5. Peers at similar level ──
-    const myLevel = getLevelTitle(myXp);
-    const { data: sameLevelPeers } = await (supabaseAdmin
+    const { data: sameLevelPeers } = await (supabase
       .from('user_skill_metrics')
       .select('user_id, total_xp, current_streak')
       .eq('level_title', myLevel)
@@ -131,7 +159,7 @@ export async function POST(request: Request) {
       .limit(5) as any);
 
     // ── 6. Average stats for reference ──
-    const { data: avgStats } = await (supabaseAdmin
+    const { data: avgStats } = await (supabase
       .from('user_skill_metrics')
       .select('total_xp, current_streak') as any);
 
@@ -149,7 +177,7 @@ export async function POST(request: Request) {
       : 0;
 
     // ── 7. Leaderboard top 20 ──
-    const { data: topTwenty } = await (supabaseAdmin
+    const { data: topTwenty } = await (supabase
       .from('user_skill_metrics')
       .select('user_id, total_xp, level_title')
       .order('total_xp', { ascending: false })

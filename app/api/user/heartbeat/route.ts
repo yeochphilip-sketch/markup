@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getServerSupabase, getAuthUserId } from '@/lib/supabase-server';
 
 export const runtime = 'nodejs';
 export const maxDuration = 10;
@@ -18,22 +19,42 @@ export const maxDuration = 10;
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { userId } = body as { userId?: string };
+    const { userId: bodyUserId } = body as { userId?: string };
 
+    // Resolve userId: try request body first (for backward compat), then session
+    let userId = bodyUserId ?? null;
     if (!userId) {
-      return NextResponse.json({ error: 'userId is required' }, { status: 400 });
+      userId = await getAuthUserId();
+    }
+    if (!userId) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!supabaseUrl || !supabaseKey) {
-      return NextResponse.json({ error: 'Server not configured' }, { status: 500 });
-    }
-
-    const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
     const now = new Date();
 
-    const { error } = await supabaseAdmin
+    // Try service role key first
+    if (supabaseUrl && supabaseKey) {
+      const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
+      const { error } = await supabaseAdmin
+        .from('user_skill_metrics')
+        .update({
+          last_active_at: now.toISOString(),
+        } as never)
+        .eq('user_id', userId);
+
+      if (error) {
+        console.warn('heartbeat: failed to update last_active_at:', error);
+        return NextResponse.json({ error: 'Update failed' }, { status: 500 });
+      }
+
+      return NextResponse.json({ ok: true, timestamp: now.toISOString() });
+    }
+
+    // Fallback: use cookie-based session auth (respects RLS)
+    const supabase = await getServerSupabase();
+    const { error } = await supabase
       .from('user_skill_metrics')
       .update({
         last_active_at: now.toISOString(),
@@ -41,7 +62,7 @@ export async function POST(request: Request) {
       .eq('user_id', userId);
 
     if (error) {
-      console.warn('heartbeat: failed to update last_active_at:', error);
+      console.warn('heartbeat (fallback): failed to update last_active_at:', error);
       return NextResponse.json({ error: 'Update failed' }, { status: 500 });
     }
 

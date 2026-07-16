@@ -1,14 +1,17 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getServerSupabase } from '@/lib/supabase-server';
 
-let supabaseAdminInstance: ReturnType<typeof createClient> | null = null;
-function getSupabaseAdmin() {
-  if (supabaseAdminInstance) return supabaseAdminInstance;
+/**
+ * Resolve a Supabase client: try service role key first, fall back to session auth.
+ */
+async function getClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return null;
-  supabaseAdminInstance = createClient(url, key);
-  return supabaseAdminInstance;
+  if (url && key) {
+    return createClient(url, key);
+  }
+  return getServerSupabase();
 }
 
 export async function POST(request: Request) {
@@ -25,15 +28,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'action and userId required' }, { status: 400 });
     }
 
-    const supabaseAdmin = getSupabaseAdmin();
-    if (!supabaseAdmin) return NextResponse.json({ success: true });
+    const supabase = await getClient();
 
     if (action === 'create') {
       if (!groupName) return NextResponse.json({ error: 'groupName required' }, { status: 400 });
 
       const code = Math.random().toString(36).substring(2, 8).toUpperCase();
 
-      const { data: group, error: createErr } = await (supabaseAdmin
+      const { data: group, error: createErr } = await (supabase
         .from('study_groups')
         .insert({ name: groupName, join_code: code, owner_id: userId } as never)
         .select()
@@ -44,7 +46,7 @@ export async function POST(request: Request) {
       }
 
       // Add creator as owner member
-      await supabaseAdmin
+      await supabase
         .from('study_group_members')
         .insert({ group_id: group.id, user_id: userId, is_owner: true } as never);
 
@@ -54,7 +56,7 @@ export async function POST(request: Request) {
     if (action === 'join') {
       if (!joinCode) return NextResponse.json({ error: 'joinCode required' }, { status: 400 });
 
-      const { data: group } = await supabaseAdmin
+      const { data: group } = await supabase
         .from('study_groups')
         .select('id, name')
         .eq('join_code', joinCode.toUpperCase())
@@ -63,7 +65,7 @@ export async function POST(request: Request) {
       if (!group) return NextResponse.json({ error: 'Invalid join code' }, { status: 404 });
 
       // Check if already a member
-      const { data: existingMember } = await supabaseAdmin
+      const { data: existingMember } = await supabase
         .from('study_group_members')
         .select('id')
         .eq('group_id', group.id)
@@ -74,7 +76,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ group: { id: group.id, name: group.name }, alreadyMember: true });
       }
 
-      await supabaseAdmin
+      await supabase
         .from('study_group_members')
         .insert({ group_id: group.id, user_id: userId } as never);
 
@@ -83,7 +85,7 @@ export async function POST(request: Request) {
 
     if (action === 'info') {
       // Get user's groups
-      const { data: memberships } = await supabaseAdmin
+      const { data: memberships } = await supabase
         .from('study_group_members')
         .select('group_id')
         .eq('user_id', userId) as any;
@@ -94,7 +96,7 @@ export async function POST(request: Request) {
 
       const groupIds = memberships.map((m: any) => m.group_id);
 
-      const { data: groups } = await supabaseAdmin
+      const { data: groups } = await supabase
         .from('study_groups')
         .select('id, name, join_code')
         .in('id', groupIds) as any;
@@ -118,11 +120,10 @@ export async function GET(request: Request) {
 
     if (!groupId) return NextResponse.json({ error: 'groupId required' }, { status: 400 });
 
-    const supabaseAdmin = getSupabaseAdmin();
-    if (!supabaseAdmin) return NextResponse.json({ group: null, leaderboard: [] });
+    const supabase = await getClient();
 
     // Get group info
-    const { data: group } = await supabaseAdmin
+    const { data: group } = await supabase
       .from('study_groups')
       .select('id, name, join_code')
       .eq('id', groupId)
@@ -131,7 +132,7 @@ export async function GET(request: Request) {
     if (!group) return NextResponse.json({ error: 'Group not found' }, { status: 404 });
 
     // Get all members with their XP and streak
-    const { data: members } = await supabaseAdmin
+    const { data: members } = await supabase
       .from('study_group_members')
       .select('user_id')
       .eq('group_id', groupId) as any;
@@ -142,7 +143,7 @@ export async function GET(request: Request) {
 
     const userIds = members.map((m: any) => m.user_id);
 
-    const { data: metrics } = await supabaseAdmin
+    const { data: metrics } = await supabase
       .from('user_skill_metrics')
       .select('user_id, total_xp, current_streak, level_title')
       .in('user_id', userIds) as any;

@@ -4,6 +4,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
+import { getServerSupabase } from '@/lib/supabase-server';
 import { getGenerateSystemPrompt } from '@/lib/prompts';
 
 const groq = createOpenAI({
@@ -250,14 +251,13 @@ The sources must be designed specifically to test the ${resolvedQuestionType} sk
       );
     }
 
-    // Persist for sidebar history
-    if (userId && process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    // Persist for sidebar history — try service role key first, fall back to session auth
+    if (userId && process.env.NEXT_PUBLIC_SUPABASE_URL) {
       try {
-        const supabaseAdmin = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL,
-          process.env.SUPABASE_SERVICE_ROLE_KEY,
-        );
-        await supabaseAdmin.from('generated_questions').insert({
+        const client = process.env.SUPABASE_SERVICE_ROLE_KEY
+          ? createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+          : await getServerSupabase();
+        await client.from('generated_questions').insert({
           user_id: userId,
           subject: resolvedSubject,
           topic: resolvedTopic,

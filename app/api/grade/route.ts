@@ -4,6 +4,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
+import { getServerSupabase } from '@/lib/supabase-server';
 import { getGradeSystemPrompt, getGradeUserPrompt } from '@/lib/prompts';
 import { getXpForLevel, getLevelTitle, DAILY_GOAL_BONUS_XP, getStreakBonus, calculateXpDecay, checkNewAchievements } from '@/lib/gamification';
 
@@ -137,16 +138,18 @@ const evaluationSchema = z.object({
   modelAnswerConfidence: z.number().min(0).max(1),
 });
 
-type SupabaseAdmin = ReturnType<typeof createClient>;
-
-let supabaseAdminInstance: SupabaseAdmin | null = null;
-function getSupabaseAdmin(): SupabaseAdmin | null {
-  if (supabaseAdminInstance) return supabaseAdminInstance;
+/**
+ * Resolve a Supabase client: try service role key first (admin-level, bypasses RLS),
+ * fall back to cookie-based session auth (user-level, respects RLS).
+ * The caller must authenticate via the outer auth check.
+ */
+async function getClientForUser() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return null;
-  supabaseAdminInstance = createClient(url, key);
-  return supabaseAdminInstance;
+  if (url && key) {
+    return createClient(url, key);
+  }
+  return getServerSupabase();
 }
 
 export async function POST(request: Request) {
@@ -245,15 +248,15 @@ export async function POST(request: Request) {
     };
 
     // ── Persist evaluation ──
-    const supabaseAdmin = getSupabaseAdmin();
+    const supabase = userId ? await getClientForUser() : null;
 
     // We write the evaluation + optionally update skill metrics in parallel
     const dbWrites: Promise<unknown>[] = [];
 
-    if (userId && supabaseAdmin) {
+    if (userId && supabase) {
       dbWrites.push(
         (async () => {
-          const { error: insertErr } = await supabaseAdmin!
+          const { error: insertErr } = await supabase
             .from('essay_evaluations')
             .insert({
               user_id: userId,
@@ -284,7 +287,7 @@ export async function POST(request: Request) {
       if (skillColumn && newLevel > 0) {
         dbWrites.push(
           (async () => {
-            const { error: updateErr } = await supabaseAdmin!
+            const { error: updateErr } = await supabase
               .from('user_skill_metrics')
               .update({ [skillColumn]: newLevel } as never)
               .eq('user_id', userId);
@@ -302,7 +305,7 @@ export async function POST(request: Request) {
       dbWrites.push(
         (async () => {
           // Fetch current gamification state
-          const { data: metrics, error: fetchErr } = await supabaseAdmin!
+          const { data: metrics, error: fetchErr } = await supabase
             .from('user_skill_metrics')
             .select('total_xp, last_practice_date, current_streak, longest_streak, level_title, total_xp_decayed')
             .eq('user_id', userId)
@@ -365,7 +368,7 @@ export async function POST(request: Request) {
           });
           const allAchievements = [...existingAchievements, ...newAchievements.map(a => a.id)];
 
-          const { error: gamErr } = await supabaseAdmin!
+          const { error: gamErr } = await supabase
             .from('user_skill_metrics')
             .update({
               total_xp: currentXp,
@@ -402,9 +405,6 @@ export async function POST(request: Request) {
             console.warn('Non-fatal: failed to update gamification state', gamErr);
             return;
           }
-
-          // Attach gamification info to the response (hack: we'll merge it into the response below)
-          // Actually we store it on the response directly in the outer scope
         })(),
       );
     }
@@ -412,10 +412,10 @@ export async function POST(request: Request) {
     await Promise.allSettled(dbWrites);
 
     // ── Send practice receipt email (respects user preference) ──
-    if (userId && supabaseAdmin) {
+    if (userId && supabase) {
       try {
         // Check if user has practice receipts enabled
-        const { data: metrics } = await supabaseAdmin
+        const { data: metrics } = await supabase
           .from('user_skill_metrics')
           .select('practice_receipt_enabled')
           .eq('user_id', userId)
@@ -424,7 +424,7 @@ export async function POST(request: Request) {
         const receiptEnabled = metrics?.practice_receipt_enabled !== false;
         
         if (receiptEnabled) {
-          const { data: profile } = await supabaseAdmin
+          const { data: profile } = await supabase
             .from('user_profiles')
             .select('email, display_name')
             .eq('id', userId)

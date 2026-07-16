@@ -21,6 +21,7 @@ import LeaderboardDrawer from '@/app/components/LeaderboardDrawer';
 import AchievementsDrawer from '@/app/components/AchievementsDrawer';
 import AchievementBanner from '@/app/components/AchievementBanner';
 import LoadingSpinner from '@/app/components/LoadingSpinner';
+import MobileSidebar from '@/app/components/MobileSidebar';
 import { getLevelConfig, getLevelTitle, getNextLevelXp, getPrevLevelXp, LEVEL_THRESHOLDS, playGradeCompleteSound, playLevelUpSound, playAchievementSound, isDailyGoalMet, ACHIEVEMENT_DEFS, calculateXpDecay, getDecayWarning } from '@/lib/gamification';
 
 interface Segment {
@@ -154,6 +155,7 @@ export default function DashboardPage() {
   const dailyGoalToastRemainingRef = useRef(12000);
   // (Timer refs for modals are now managed inside their respective components)
   const [hoveredNotif, setHoveredNotif] = useState<string | null>(null);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   // ── Pause / resume helpers (for toast/daily-goal only) ──
   const pauseTimer = useCallback((timerRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>, startRef: React.MutableRefObject<number>, remainingRef: React.MutableRefObject<number>) => {
@@ -894,7 +896,20 @@ export default function DashboardPage() {
       `}</style>
       
       {/* Navigation Header */}
-      <header className="border-b border-slate-900 px-6 py-4 flex items-center justify-between bg-slate-950/60 backdrop-blur-md relative z-40">          <div className="flex items-center gap-4">
+      <header className="border-b border-slate-900 px-4 sm:px-6 py-4 flex items-center justify-between bg-slate-950/60 backdrop-blur-md relative z-40">
+        <div className="flex items-center gap-4">
+            {/* Mobile hamburger */}
+            <button
+              onClick={() => setIsMobileSidebarOpen(true)}
+              className="sm:hidden w-9 h-9 flex items-center justify-center rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition"
+              aria-label="Open menu"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
             <h1 className="text-xl font-black text-indigo-500 tracking-wider">MARKUP</h1>
             <button
               onClick={() => router.push('/dashboard/settings')}
@@ -904,7 +919,7 @@ export default function DashboardPage() {
             </button>
           </div>
         
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-1 sm:gap-3">
           {/* Notification Bell */}
           {userId && <NotificationBell userId={userId} />}
 
@@ -1511,6 +1526,23 @@ export default function DashboardPage() {
         achievements={achievements}
       />
 
+      {/* Mobile sidebar navigation */}
+      <MobileSidebar
+        isOpen={isMobileSidebarOpen}
+        onClose={() => setIsMobileSidebarOpen(false)}
+        userId={userId}
+        userEmail={userEmail}
+        isAdmin={isAdmin}
+        achievementsCount={achievements.length}
+        totalAchievements={ACHIEVEMENT_DEFS.length}
+        isSoundEnabled={isSoundEnabled}
+        onToggleSound={() => setIsSoundEnabled(!isSoundEnabled)}
+        onOpenStudyGroups={() => setIsStudyGroupOpen(true)}
+        onOpenAchievements={() => setIsAchievementsOpen(true)}
+        onOpenFeedback={() => setIsFeedbackOpen(true)}
+        onSignOut={async () => { await supabase.auth.signOut(); router.push('/auth'); }}
+      />
+
       {/* Study Group Panel */}
       {userId && (
         <StudyGroupPanel
@@ -1527,8 +1559,8 @@ export default function DashboardPage() {
       />
 
       <FeedbackModal 
-        isOpen={isFeedbackOpen} 
-        onClose={() => setIsFeedbackOpen(false)} 
+        isOpen={isFeedbackOpen}
+        onClose={() => setIsFeedbackOpen(false)}
         selectedType={selectedType}
         setSelectedType={setSelectedType}
         textInput={textInput}

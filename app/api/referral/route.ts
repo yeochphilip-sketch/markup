@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getServerSupabase } from '@/lib/supabase-server';
 
-let supabaseAdminInstance: ReturnType<typeof createClient> | null = null;
-function getSupabaseAdmin() {
-  if (supabaseAdminInstance) return supabaseAdminInstance;
+async function getClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return null;
-  supabaseAdminInstance = createClient(url, key);
-  return supabaseAdminInstance;
+  if (url && key) {
+    return createClient(url, key);
+  }
+  return getServerSupabase();
 }
 
 export async function POST(request: Request) {
@@ -24,8 +24,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'action and userId required' }, { status: 400 });
     }
 
-    const supabaseAdmin = getSupabaseAdmin();
-    if (!supabaseAdmin) return NextResponse.json({ success: true });
+    const supabaseAdmin = await getClient();
 
     if (action === 'claim') {
       if (!referralCode) {
@@ -142,8 +141,8 @@ export async function GET(request: Request) {
 
     if (!userId) {
       return NextResponse.json({ error: 'userId required' }, { status: 400 });
-    }      const supabaseAdmin = getSupabaseAdmin();
-    if (!supabaseAdmin) return NextResponse.json({ referralCode: 'ERROR', referredBy: null, referralCount: 0, referralLink: '' });
+    }
+    const supabaseAdmin = await getClient();
 
     // Get user's referral info
     const { data: profile } = await supabaseAdmin
