@@ -9,8 +9,31 @@ export default function AuthPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+    const _start = Date.now();
+    setIsLoading(true);
+    setMessage('');
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+      if (error) throw error;
+      setMessage('Check your email for a password reset link. It may take a few minutes.');
+      setIsForgotPassword(false);
+    } catch (err: any) {
+      setMessage(err.message || 'Failed to send reset email. Try again.');
+    } finally {
+      const _elapsed = Date.now() - _start;
+      if (_elapsed < 1500) await new Promise(r => setTimeout(r, 1500 - _elapsed));
+      setIsLoading(false);
+    }
+  };
 
   const handleGoogleLogin = async () => {
     try {
@@ -27,6 +50,7 @@ export default function AuthPage() {
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password.trim()) return;
+    const _start = Date.now();
     setIsLoading(true);
     setMessage('');
 
@@ -70,13 +94,15 @@ export default function AuthPage() {
     } catch (err: any) {
       setMessage(err.message || 'An error occurred during authentication.');
     } finally {
+      const _elapsed = Date.now() - _start;
+      if (_elapsed < 1500) await new Promise(r => setTimeout(r, 1500 - _elapsed));
       setIsLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-[#07090e] text-slate-100 flex items-center justify-center p-6 font-sans">
-      <div className="w-full max-w-sm bg-slate-950 border border-slate-900 rounded-3xl p-8 shadow-2xl flex flex-col space-y-6">
+      <div className="w-full max-w-sm bg-slate-950 border border-slate-900 rounded-3xl p-6 sm:p-8 shadow-2xl flex flex-col space-y-5 sm:space-y-6">
         
         <div className="text-center">
           <h1 className="text-2xl font-black text-indigo-500 tracking-wider">MARKUP</h1>
@@ -99,44 +125,98 @@ export default function AuthPage() {
         </button>
 
         <div className="flex flex-col space-y-4 pt-2 border-t border-slate-900">
-          <form onSubmit={handleEmailAuth} className="flex flex-col space-y-3">
-            <input 
-              type="email" 
-              placeholder="Enter your email address" 
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-800 p-3 rounded-xl text-xs text-slate-200 focus:outline-none placeholder-slate-500"
-              required 
-            />
-            <input 
-              type="password" 
-              placeholder="Choose a secure password" 
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-800 p-3 rounded-xl text-xs text-slate-200 focus:outline-none placeholder-slate-500"
-              required 
-            />
-            <button 
-              type="submit" 
-              disabled={isLoading}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl text-xs transition disabled:opacity-50"
-            >
-              {isLoading ? 'Processing security layer...' : isSignUp ? 'Continue with Email' : 'Log In'}
-            </button>
-          </form>
+          {isForgotPassword ? (
+            <>
+              <p className="text-[10px] text-slate-500 text-center">
+                Enter your email and we&apos;ll send you a password reset link.
+              </p>
+              <form onSubmit={handleForgotPassword} className="flex flex-col space-y-3">
+                <input
+                  type="email"
+                  placeholder="Your email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-800 p-3 rounded-xl text-xs text-slate-200 focus:outline-none placeholder-slate-500"
+                  required
+                />
+                <button
+                  type="submit"
+                  disabled={isLoading || !email.trim()}
+                  className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl text-xs transition disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isLoading ? (
+                    <span className="inline-flex items-center gap-2">
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin-fast" />
+                      Sending...
+                    </span>
+                  ) : 'Send Reset Link'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setIsForgotPassword(false); setMessage(''); }}
+                  className="text-xs text-slate-500 hover:text-indigo-400 underline underline-offset-4 transition"
+                >
+                  ← Back to Sign In
+                </button>
+              </form>
 
-          {message && (
-            <p className="text-[11px] text-center text-indigo-400 font-mono bg-indigo-950/20 py-2 rounded-lg border border-indigo-900/20">{message}</p>
+              {message && (
+                <p className="text-[11px] text-center text-indigo-400 font-mono bg-indigo-950/20 py-2 rounded-lg border border-indigo-900/20">{message}</p>
+              )}
+            </>
+          ) : (
+            <>
+              <form onSubmit={handleEmailAuth} className="flex flex-col space-y-3">
+                <input 
+                  type="email" 
+                  placeholder="Enter your email address" 
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-800 p-3 rounded-xl text-xs text-slate-200 focus:outline-none placeholder-slate-500"
+                  required 
+                />
+                <input 
+                  type="password" 
+                  placeholder="Choose a secure password" 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-800 p-3 rounded-xl text-xs text-slate-200 focus:outline-none placeholder-slate-500"
+                  required 
+                />
+                <button 
+                  type="submit" 
+                  disabled={isLoading}
+                  className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl text-xs transition disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isLoading ? (
+                    <span className="inline-flex items-center gap-2">
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin-fast" />
+                      {isSignUp ? 'Creating account...' : 'Signing in...'}
+                    </span>
+                  ) : isSignUp ? 'Continue with Email' : 'Log In'}
+                </button>
+              </form>
+
+              {message && (
+                <p className="text-[11px] text-center text-indigo-400 font-mono bg-indigo-950/20 py-2 rounded-lg border border-indigo-900/20">{message}</p>
+              )}
+
+              <div className="text-center space-y-2 pt-2">
+                <button 
+                  onClick={() => { setIsSignUp(!isSignUp); setMessage(''); }}
+                  className="text-xs text-slate-400 hover:text-indigo-400 underline underline-offset-4 transition block w-full"
+                >
+                  {isSignUp ? 'If you have an account, log in' : "Don't have an account? Sign up here"}
+                </button>
+                <button
+                  onClick={() => { setIsForgotPassword(true); setMessage(''); }}
+                  className="block w-full text-xs text-slate-500 hover:text-indigo-400 underline underline-offset-4 transition"
+                >
+                  Forgot password?
+                </button>
+              </div>
+            </>
           )}
-
-          <div className="text-center pt-2">
-            <button 
-              onClick={() => { setIsSignUp(!isSignUp); setMessage(''); }}
-              className="text-xs text-slate-400 hover:text-indigo-400 underline underline-offset-4 transition"
-            >
-              {isSignUp ? 'If you have an account, log in' : "Don't have an account? Sign up here"}
-            </button>
-          </div>
         </div>
 
       </div>

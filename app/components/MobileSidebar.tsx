@@ -4,6 +4,25 @@ import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+interface SkillRatings {
+  inference: number;
+  comparison: number;
+  reliability: number;
+  essay: number;
+  conclusion: number;
+}
+
+interface DecayWarning {
+  show: boolean;
+  message: string;
+  severity: 'warning' | 'danger';
+}
+
+interface XpProgress {
+  current: number;
+  nextLevel: number;
+}
+
 interface MobileSidebarProps {
   isOpen: boolean;
   onClose: () => void;
@@ -18,6 +37,15 @@ interface MobileSidebarProps {
   onOpenAchievements: () => void;
   onOpenFeedback: () => void;
   onSignOut: () => void;
+  // Game stats (passed down from dashboard)
+  levelTitle?: string;
+  masteryPoints?: number;
+  xpProgress?: XpProgress;
+  streakData?: { current: number; longest: number };
+  skillRatings?: SkillRatings;
+  dailyGoalMet?: boolean;
+  decayWarning?: DecayWarning;
+  onOpenLeaderboard?: () => void;
 }
 
 export default function MobileSidebar({
@@ -34,6 +62,14 @@ export default function MobileSidebar({
   onOpenAchievements,
   onOpenFeedback,
   onSignOut,
+  levelTitle,
+  masteryPoints,
+  xpProgress,
+  streakData,
+  skillRatings,
+  dailyGoalMet,
+  decayWarning,
+  onOpenLeaderboard,
 }: MobileSidebarProps) {
   const router = useRouter();
   const sidebarRef = useRef<HTMLDivElement>(null);
@@ -76,7 +112,7 @@ export default function MobileSidebar({
       {/* Sidebar panel */}
       <div
         ref={sidebarRef}
-        className="fixed right-0 top-0 bottom-0 w-72 bg-slate-950/98 border-l border-slate-900 shadow-2xl flex flex-col animate-in slide-in-from-right duration-200"
+        className="fixed right-0 top-0 bottom-0 w-72 bg-slate-950/98 border-l border-slate-900 shadow-2xl flex flex-col animate-in slide-in-from-right duration-200 pt-safe"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-900">
@@ -94,6 +130,64 @@ export default function MobileSidebar({
           <p className="text-xs font-semibold text-slate-200 truncate">{userEmail || 'Student'}</p>
           <p className="text-[10px] text-slate-500 mt-0.5">Account</p>
         </div>
+
+        {/* Game stats summary (shown only on mobile through the drawer) */}
+        {levelTitle && (
+          <div className="px-4 py-3 border-b border-slate-900/50 bg-slate-950/40">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[9px] font-black tracking-widest text-slate-500 uppercase">Game Stats</span>
+              <button
+                onClick={() => { onOpenLeaderboard?.(); onClose(); }}
+                className="text-[9px] text-indigo-400 hover:text-indigo-300 font-bold p-1.5 rounded-lg hover:bg-indigo-950/30"
+              >
+                🏆 Leaderboard
+              </button>
+            </div>
+            
+            {/* Level + XP */}
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-lg">{'🎯'}</span>
+              <div className="flex-1">
+                <span className="text-[10px] font-bold text-indigo-400">{levelTitle}</span>
+                <span className="text-sm font-black text-white font-mono ml-1">{masteryPoints ?? 0} <span className="text-[9px] text-slate-500 font-normal">XP</span></span>
+              </div>
+            </div>
+            
+            {/* XP progress bar — hidden for Masters (max level) */}
+            {xpProgress && xpProgress.nextLevel > 0 && levelTitle !== 'Master' && (
+              <div className="mb-2">
+                <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all"
+                    style={{ width: `${Math.min((xpProgress.current / Math.max(xpProgress.nextLevel, 1)) * 100, 100)}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Streak + Daily goal row */}
+            <div className="flex gap-3 text-[10px]">
+              <div className="flex items-center gap-1">
+                <span>{streakData && streakData.current > 0 ? '🔥' : '📅'}</span>
+                <span className="text-slate-300 font-bold font-mono">{streakData?.current ?? 0}d</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span>{dailyGoalMet ? '✅' : '📋'}</span>
+                <span className={`font-bold ${dailyGoalMet ? 'text-emerald-400' : 'text-slate-500'}`}>
+                  {dailyGoalMet ? 'Done' : 'Goal'}
+                </span>
+              </div>
+              {decayWarning?.show && (
+                <div className="flex items-center gap-1">
+                  <span>⚠️</span>
+                  <span className={`font-bold ${decayWarning.severity === 'danger' ? 'text-rose-400' : 'text-amber-400'}`}>
+                    Decay
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Navigation items */}
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1">

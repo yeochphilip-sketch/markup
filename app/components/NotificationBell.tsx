@@ -130,7 +130,7 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAllRead}
-                className="text-[9px] font-bold text-indigo-400 hover:text-indigo-300 transition"
+                className="text-[9px] font-bold text-indigo-400 hover:text-indigo-300 transition p-1.5 rounded-lg hover:bg-indigo-950/30"
               >
                 Mark all read
               </button>

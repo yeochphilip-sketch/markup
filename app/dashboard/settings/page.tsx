@@ -149,7 +149,7 @@ export default function SettingsPage() {
     <div className="min-h-screen bg-[#07090e] text-slate-100 font-sans selection:bg-indigo-500/30">
       {/* Toast notification */}
       {toast && (
-        <div className={`fixed top-4 right-4 z-50 px-4 py-2.5 rounded-xl text-xs font-bold shadow-2xl border transition-all duration-300 animate-in slide-in-from-right ${
+        <div className={`fixed top-4 right-4 left-4 sm:left-auto mx-auto max-w-xs z-50 px-4 py-2.5 rounded-xl text-xs font-bold shadow-2xl border transition-all duration-300 animate-in slide-in-from-right ${
           toast.type === 'success'
             ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
             : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
@@ -159,17 +159,17 @@ export default function SettingsPage() {
       )}
 
       {/* Header */}
-      <header className="border-b border-slate-900 px-6 py-4 flex items-center justify-between bg-slate-950/60 backdrop-blur-md sticky top-0 z-40">
-        <div className="flex items-center gap-4">
+      <header className="border-b border-slate-900 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between bg-slate-950/60 backdrop-blur-md sticky top-0 z-40">
+        <div className="flex items-center gap-2 sm:gap-4">
           <Link
             href="/dashboard"
-            className="text-[11px] text-slate-500 hover:text-slate-300 transition font-bold"
+            className="text-[11px] text-slate-500 hover:text-slate-300 transition font-bold whitespace-nowrap"
           >
             ← Dashboard
           </Link>
-          <h1 className="text-xl font-black text-indigo-500 tracking-wider">MARKUP</h1>
+          <h1 className="text-lg sm:text-xl font-black text-indigo-500 tracking-wider">MARKUP</h1>
         </div>
-        <div className="text-[11px] text-slate-500 font-mono">
+        <div className="text-[10px] sm:text-[11px] text-slate-500 font-mono truncate max-w-[120px] sm:max-w-none text-right">
           {userEmail}
         </div>
       </header>

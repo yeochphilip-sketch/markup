@@ -68,7 +68,7 @@ export default function LeaderboardDrawer({
                 e.stopPropagation();
                 dismiss();
               }}
-              className="text-slate-500 hover:text-white text-sm"
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-white hover:bg-slate-900 transition text-sm font-bold"
             >
               ✕
             </button>

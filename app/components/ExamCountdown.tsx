@@ -194,7 +194,7 @@ export default function ExamCountdown({
               <h3 className="text-sm font-black tracking-widest text-slate-300 uppercase">
                 🎯 {goalSubject} Goal
               </h3>
-              <button onClick={() => setShowGoalModal(null)} className="text-slate-500 hover:text-white text-sm">✕</button>
+              <button onClick={() => setShowGoalModal(null)} className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-white hover:bg-slate-900 transition text-sm font-bold">✕</button>
             </div>
 
             <div className="space-y-4">

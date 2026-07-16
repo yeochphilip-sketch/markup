@@ -80,7 +80,7 @@ export default function AnalyticsPanel({
           </div>
           <button
             onClick={onFetchLeaderboard}
-            className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[9px] font-bold px-2 py-1.5 rounded-lg transition text-slate-400 hover:text-slate-200"
+            className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[9px] font-bold px-2.5 py-2 rounded-lg transition text-slate-400 hover:text-slate-200"
           >
             🏆 Rank
           </button>

@@ -106,6 +106,10 @@ export default function DashboardPage() {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGrading, setIsGrading] = useState(false);
+  const [scanProgress, setScanProgress] = useState<string | null>(null);
+  const scanProgressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [generateProgress, setGenerateProgress] = useState<string | null>(null);
+  const generateProgressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [hasScanned, setHasScanned] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -475,6 +479,65 @@ export default function DashboardPage() {
     };
   }, []);
 
+  // ── Simulated generate progress steps (Sources → Questions → Formatting) ──
+  useEffect(() => {
+    if (isGenerating) {
+      const STEPS = ['sources', 'questions', 'formatting'];
+      let stepIndex = 0;
+      setGenerateProgress(STEPS[0]);
+      const tick = () => {
+        stepIndex++;
+        if (stepIndex < STEPS.length) {
+          setGenerateProgress(STEPS[stepIndex]);
+          generateProgressIntervalRef.current = setTimeout(tick, 1500);
+        }
+      };
+      generateProgressIntervalRef.current = setTimeout(tick, 700);
+    } else {
+      if (generateProgressIntervalRef.current) {
+        clearTimeout(generateProgressIntervalRef.current);
+        generateProgressIntervalRef.current = null;
+      }
+      setGenerateProgress(null);
+    }
+    return () => {
+      if (generateProgressIntervalRef.current) {
+        clearTimeout(generateProgressIntervalRef.current);
+        generateProgressIntervalRef.current = null;
+      }
+    };
+  }, [isGenerating]);
+
+  // ── Simulated scan progress steps (SBCS → SEQ → SRQ → Feedback) ──
+  useEffect(() => {
+    if (isGrading) {
+      const STEPS = ['sbcs', 'seq', 'srq', 'feedback'];
+      let stepIndex = 0;
+      setScanProgress(STEPS[0]);
+      // Quick first tick to get past SBCS fast, then steady 1.5s per subsequent step
+      const tick = () => {
+        stepIndex++;
+        if (stepIndex < STEPS.length) {
+          setScanProgress(STEPS[stepIndex]);
+          scanProgressIntervalRef.current = setTimeout(tick, stepIndex === 1 ? 1500 : 1500);
+        }
+      };
+      scanProgressIntervalRef.current = setTimeout(tick, 700);
+    } else {
+      if (scanProgressIntervalRef.current) {
+        clearTimeout(scanProgressIntervalRef.current);
+        scanProgressIntervalRef.current = null;
+      }
+      setScanProgress(null);
+    }
+    return () => {
+      if (scanProgressIntervalRef.current) {
+        clearTimeout(scanProgressIntervalRef.current);
+        scanProgressIntervalRef.current = null;
+      }
+    };
+  }, [isGrading]);
+
   // ── Heartbeat: ping every 5 min while dashboard is open ──
   const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -504,6 +567,7 @@ export default function DashboardPage() {
   }, [userId, sendHeartbeat]);
 
   const handleGenerateChallenge = async () => {
+    const _startGen = Date.now();
     setIsGenerating(true);
     setHasScanned(false);
     setIsExemplarOpen(false);
@@ -612,12 +676,15 @@ export default function DashboardPage() {
         err instanceof Error ? err.message : 'Generation failed. Check your API key and try again.'
       );
     } finally {
+      const _elapsed = Date.now() - _startGen;
+      if (_elapsed < 1500) await new Promise(r => setTimeout(r, 1500 - _elapsed));
       setIsGenerating(false);
     }
   };
 
   const handleScanStructure = async () => {
     if (!sbcsAnswer.trim() && !seqAnswer.trim() && !srqAnswer.trim()) return;
+    const _startGrade = Date.now();
     setIsGrading(true);
     // Reset ephemeral gamification states
     setStreakBonus(0);
@@ -728,6 +795,8 @@ export default function DashboardPage() {
         );
         setHasScanned(false);
       } finally {
+        const _elapsed = Date.now() - _startGrade;
+        if (_elapsed < 1500) await new Promise(r => setTimeout(r, 1500 - _elapsed));
         setIsGrading(false);
       }
   };
@@ -901,7 +970,7 @@ export default function DashboardPage() {
             {/* Mobile hamburger */}
             <button
               onClick={() => setIsMobileSidebarOpen(true)}
-              className="sm:hidden w-9 h-9 flex items-center justify-center rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition"
+              className="sm:hidden w-10 h-10 flex items-center justify-center rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition"
               aria-label="Open menu"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -913,7 +982,7 @@ export default function DashboardPage() {
             <h1 className="text-xl font-black text-indigo-500 tracking-wider">MARKUP</h1>
             <button
               onClick={() => router.push('/dashboard/settings')}
-              className="hidden sm:inline-flex bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[9px] font-bold px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-slate-200 items-center gap-1.5"
+              className="hidden sm:inline-flex bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[9px] font-bold px-3 py-2 rounded-lg transition text-slate-400 hover:text-slate-200 items-center gap-1.5"
             >
               ⚙️ Settings
             </button>
@@ -926,7 +995,7 @@ export default function DashboardPage() {
           {/* Study Groups */}
           <button
             onClick={() => setIsStudyGroupOpen(true)}
-            className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[9px] font-bold px-2 py-1.5 rounded-lg transition text-slate-400 hover:text-slate-200"
+            className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[9px] font-bold px-2.5 py-2 rounded-lg transition text-slate-400 hover:text-slate-200"
             title="Study Groups"
           >
             👥
@@ -935,7 +1004,7 @@ export default function DashboardPage() {
           {/* Sound toggle */}
           <button
             onClick={() => setIsSoundEnabled(!isSoundEnabled)}
-            className="text-[11px] text-slate-500 hover:text-slate-300 transition"
+            className="text-sm p-2 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-slate-900 transition"
             title={isSoundEnabled ? 'Mute sounds' : 'Enable sounds'}
           >
             {isSoundEnabled ? '🔊' : '🔇'}
@@ -944,7 +1013,7 @@ export default function DashboardPage() {
           {/* Achievements button */}
           <button
             onClick={() => setIsAchievementsOpen(true)}
-            className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[9px] font-bold px-2 py-1.5 rounded-lg transition text-slate-400 hover:text-slate-200"
+            className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[9px] font-bold px-2.5 py-2 rounded-lg transition text-slate-400 hover:text-slate-200"
           >
             🏅 {achievements.length}/{ACHIEVEMENT_DEFS.length}
           </button>
@@ -952,7 +1021,7 @@ export default function DashboardPage() {
           {(isAdmin) && (
             <a 
               href="/admin/analytics" 
-              className="hidden sm:inline-flex bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 text-[11px] font-bold px-3 py-1.5 rounded-xl transition items-center gap-1.5"
+              className="hidden sm:inline-flex bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 text-[11px] font-bold px-3 py-2 rounded-xl transition items-center gap-1.5"
             >
               📊 Platform Insights
             </a>
@@ -961,7 +1030,7 @@ export default function DashboardPage() {
           <div className="relative" ref={dropdownRef}>
             <button 
               onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-              className="w-9 h-9 rounded-full flex items-center justify-center border border-slate-800 hover:border-indigo-500 focus:outline-none transition relative overflow-hidden bg-gradient-to-br from-indigo-600 to-purple-700 shadow-lg"
+              className="w-10 h-10 rounded-full flex items-center justify-center border border-slate-800 hover:border-indigo-500 focus:outline-none transition relative overflow-hidden bg-gradient-to-br from-indigo-600 to-purple-700 shadow-lg"
             >
               {userAvatar ? (
                 <Image src={userAvatar} alt="Profile" fill sizes="36px" className="object-cover" referrerPolicy="no-referrer" />
@@ -991,28 +1060,30 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {/* Analytics Matrix Panel — extracted component */}
-      <AnalyticsPanel
-        userId={userId}
-        levelTitle={levelTitle}
-        masteryPoints={masteryPoints}
-        xpProgress={xpProgress}
-        streakData={streakData}
-        streakBonus={streakBonus}
-        dailyGoalMet={dailyGoalMet}
-        decayWarning={decayWarning}
-        skillRatings={skillRatings}
-        achievements={achievements}
-        ssGoalLevel={ssGoalLevel}
-        historyGoalLevel={historyGoalLevel}
-        takesHistory={takesHistory}
-        onFetchLeaderboard={fetchLeaderboard}
-        onSetExamGoal={handleSetExamGoal}
-        onSetTakesHistory={handleSetTakesHistory}
-      />
+      {/* Analytics Matrix Panel — hidden on phones (< 768px), visible on tablets+ */}
+      <div className="hidden md:block">
+        <AnalyticsPanel
+          userId={userId}
+          levelTitle={levelTitle}
+          masteryPoints={masteryPoints}
+          xpProgress={xpProgress}
+          streakData={streakData}
+          streakBonus={streakBonus}
+          dailyGoalMet={dailyGoalMet}
+          decayWarning={decayWarning}
+          skillRatings={skillRatings}
+          achievements={achievements}
+          ssGoalLevel={ssGoalLevel}
+          historyGoalLevel={historyGoalLevel}
+          takesHistory={takesHistory}
+          onFetchLeaderboard={fetchLeaderboard}
+          onSetExamGoal={handleSetExamGoal}
+          onSetTakesHistory={handleSetTakesHistory}
+        />
+      </div>
 
       {/* Main Grid Framework Layout */}
-      <div className="flex-1 grid grid-cols-1 xl:grid-cols-6 p-6 gap-6 overflow-hidden max-h-[78vh]">
+      <div className="flex-1 grid grid-cols-1 xl:grid-cols-6 p-4 sm:p-6 gap-4 sm:gap-6 overflow-y-auto max-h-[78vh]">
         
         {/* Configurator Sidebar — extracted component */}
         <ConfiguratorSidebar
@@ -1021,6 +1092,7 @@ export default function DashboardPage() {
           selectedSkill={selectedSkill}
           isCustomMode={isCustomMode}
           isGenerating={isGenerating}
+          generateProgress={generateProgress}
           history={history}
           hasMoreHistory={hasMoreHistory}
           isLoadingMore={isLoadingMore}
@@ -1131,7 +1203,7 @@ export default function DashboardPage() {
               {challenge.suggestedAnswer && !isCustomMode && (
                 <button 
                   onClick={() => setIsExemplarOpen(true)}
-                  className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold px-3 py-1 rounded-full transition"
+                  className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold px-3 py-2 rounded-full transition"
           >
             💡 View Model Essay {evaluation.confidence > 0 ? `(${(evaluation.confidence * 100).toFixed(0)}% confident)` : ''}
           </button>
@@ -1151,8 +1223,8 @@ export default function DashboardPage() {
                     <div className="flex items-center justify-between">
                       <label className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase font-mono">Section A: Source-Based Case Study (SBCS) — 35 marks</label>
                       <div className="flex gap-2">
-                        <button onClick={() => handlePasteFromClipboard('sbcs')} type="button" className="text-[10px] text-indigo-400 hover:underline">📋 Paste</button>
-                        <button onClick={() => handleInjectPeelFrame('sbcs')} type="button" className="text-[10px] text-slate-400 hover:underline">💡 PEEL</button>
+                        <button onClick={() => handlePasteFromClipboard('sbcs')} type="button" className="text-[10px] text-indigo-400 hover:underline p-1.5 sm:p-1 rounded-lg">📋 Paste</button>
+                        <button onClick={() => handleInjectPeelFrame('sbcs')} type="button" className="text-[10px] text-slate-400 hover:underline p-1.5 sm:p-1 rounded-lg">💡 PEEL</button>
                       </div>
                     </div>
 
@@ -1259,8 +1331,8 @@ export default function DashboardPage() {
                         <div className="flex items-center justify-between">
                           <label className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase font-mono">Section B: Structured Essay Question (SEQ)</label>
                           <div className="flex gap-2">
-                            <button onClick={() => handlePasteFromClipboard('seq')} type="button" className="text-[10px] text-indigo-400 hover:underline">📋 Paste</button>
-                            <button onClick={() => handleInjectPeelFrame('seq')} type="button" className="text-[10px] text-slate-400 hover:underline">💡 PEEL</button>
+                            <button onClick={() => handlePasteFromClipboard('seq')} type="button" className="text-[10px] text-indigo-400 hover:underline p-1.5 sm:p-1 rounded-lg">📋 Paste</button>
+                            <button onClick={() => handleInjectPeelFrame('seq')} type="button" className="text-[10px] text-slate-400 hover:underline p-1.5 sm:p-1 rounded-lg">💡 PEEL</button>
                           </div>
                         </div>
                         <p className="text-xs font-medium text-slate-300 bg-slate-900/40 p-2.5 rounded-lg border border-slate-800">{challenge.seqPrompt}</p>
@@ -1276,8 +1348,8 @@ export default function DashboardPage() {
                         <div className="flex items-center justify-between">
                           <label className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase font-mono">Section C: Structured Response Question (SRQ)</label>
                           <div className="flex gap-2">
-                            <button onClick={() => handlePasteFromClipboard('srq')} type="button" className="text-[10px] text-indigo-400 hover:underline">📋 Paste</button>
-                            <button onClick={() => handleInjectPeelFrame('srq')} type="button" className="text-[10px] text-slate-400 hover:underline">💡 PEEL</button>
+                            <button onClick={() => handlePasteFromClipboard('srq')} type="button" className="text-[10px] text-indigo-400 hover:underline p-1.5 sm:p-1 rounded-lg">📋 Paste</button>
+                            <button onClick={() => handleInjectPeelFrame('srq')} type="button" className="text-[10px] text-slate-400 hover:underline p-1.5 sm:p-1 rounded-lg">💡 PEEL</button>
                           </div>
                         </div>
                         <p className="text-xs font-medium text-slate-300 bg-slate-900/40 p-2.5 rounded-lg border border-slate-800">{challenge.srqPrompt}</p>
@@ -1297,7 +1369,7 @@ export default function DashboardPage() {
                   <span key={idx} className={seg.type === 'error' ? 'underline decoration-red-500 bg-red-500/10' : seg.type === 'weak' ? 'bg-yellow-500/20 text-yellow-300' : ''}>{seg.text}</span>
                 ))}
                 <div className="mt-4 pt-4 border-t border-slate-900">
-                  <button onClick={() => setHasScanned(false)} className="text-[10px] bg-slate-900 text-slate-400 font-bold px-3 py-1.5 rounded-lg border border-slate-800">✏️ Resume Editing</button>
+                  <button onClick={() => setHasScanned(false)} className="text-[10px] bg-slate-900 text-slate-400 font-bold px-3 py-2 rounded-lg border border-slate-800">✏️ Resume Editing</button>
                 </div>
               </div>
             )}
@@ -1329,7 +1401,45 @@ export default function DashboardPage() {
               disabled={isGrading || (!sbcsAnswer && !seqAnswer && !srqAnswer) || (isCustomMode && !customPrompt.trim())} 
               className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-xl text-xs transition uppercase font-mono tracking-wider disabled:opacity-40"
             >
-              {isGrading ? 'Processing All Content Streams...' : '⚡ Scan All Answers Simultaneously'}
+              {isGrading ? (
+                <span className="inline-flex flex-col items-center gap-1 w-full">
+                  <span className="inline-flex items-center gap-2 text-[10px]">
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin-fast shrink-0" />
+                    Grading…
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 text-[9px] opacity-80">
+                    <span className={`px-1.5 py-0.5 rounded transition-all duration-300 ${
+                      scanProgress === 'sbcs' 
+                        ? 'bg-white/20 text-white font-bold shadow-lg shadow-white/10 animate-pulse' 
+                        : ['seq', 'srq', 'feedback'].includes(scanProgress || '') 
+                          ? 'text-slate-300/60' 
+                          : 'text-slate-500'
+                    }`}>SBCS</span>
+                    <span className="text-slate-600">→</span>
+                    <span className={`px-1.5 py-0.5 rounded transition-all duration-300 ${
+                      scanProgress === 'seq' 
+                        ? 'bg-white/20 text-white font-bold shadow-lg shadow-white/10 animate-pulse' 
+                        : scanProgress === 'srq' || scanProgress === 'feedback' 
+                          ? 'text-slate-300/60' 
+                          : 'text-slate-500'
+                    }`}>SEQ</span>
+                    <span className="text-slate-600">→</span>
+                    <span className={`px-1.5 py-0.5 rounded transition-all duration-300 ${
+                      scanProgress === 'srq' 
+                        ? 'bg-white/20 text-white font-bold shadow-lg shadow-white/10 animate-pulse' 
+                        : scanProgress === 'feedback' 
+                          ? 'text-slate-300/60' 
+                          : 'text-slate-500'
+                    }`}>SRQ</span>
+                    <span className="text-slate-600">→</span>
+                    <span className={`px-1.5 py-0.5 rounded transition-all duration-300 ${
+                      scanProgress === 'feedback' 
+                        ? 'bg-emerald-500/20 text-emerald-200 font-bold shadow-lg shadow-emerald-500/20 animate-pulse' 
+                        : 'text-slate-500'
+                    }`}>Feedback</span>
+                  </span>
+                </span>
+              ) : '⚡ Scan All Answers Simultaneously'}
             </button>
           </div>
         </div>
@@ -1469,7 +1579,7 @@ export default function DashboardPage() {
               }}
             >
               <div className="bg-gradient-to-r from-emerald-950/95 to-slate-950/95 border border-emerald-500/30 rounded-xl shadow-2xl shadow-emerald-500/5 backdrop-blur-xl relative overflow-hidden">
-                <button onClick={(e) => { e.stopPropagation(); dismissDailyGoalToast(); }} className="absolute top-2 right-2.5 text-slate-500 hover:text-white transition text-sm font-bold z-10">✕</button>
+                <button onClick={(e) => { e.stopPropagation(); dismissDailyGoalToast(); }} className="absolute top-2 right-2.5 w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-white hover:bg-slate-900 transition text-sm font-bold z-10">✕</button>
                 <div className="p-4 pr-8">
                   <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">✅ Daily Goal Complete!</p>
                   <p className="text-xs text-slate-300 mt-1 font-semibold">+{dailyGoalBonus} XP Bonus Earned</p>
@@ -1507,8 +1617,8 @@ export default function DashboardPage() {
                   <p className="text-xs text-slate-300 mt-0.5 leading-relaxed break-words">{errorToast.message}</p>
                 </div>
                 <div className="flex items-center gap-2 mt-2">
-                  <button onClick={(e) => { e.stopPropagation(); if (errorToast.message) reportError(errorToast.message); }} className="text-[9px] font-bold bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 px-2.5 py-1 rounded-lg transition">📮 Report to Developer</button>
-                  <button onClick={(e) => { e.stopPropagation(); dismissErrorToast(); }} className="text-slate-500 hover:text-white transition ml-auto shrink-0 text-sm font-bold">✕</button>
+                  <button onClick={(e) => { e.stopPropagation(); if (errorToast.message) reportError(errorToast.message); }} className="text-[9px] font-bold bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 px-3 py-2 rounded-lg transition">📮 Report to Developer</button>
+                  <button onClick={(e) => { e.stopPropagation(); dismissErrorToast(); }} className="text-slate-500 hover:text-white transition ml-auto shrink-0 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-900 text-sm font-bold">✕</button>
                 </div>
               </div>
               <div className="h-0.5 bg-slate-800/50 rounded-full mt-1 overflow-hidden">
@@ -1541,6 +1651,15 @@ export default function DashboardPage() {
         onOpenAchievements={() => setIsAchievementsOpen(true)}
         onOpenFeedback={() => setIsFeedbackOpen(true)}
         onSignOut={async () => { await supabase.auth.signOut(); router.push('/auth'); }}
+        // Game stats for mobile view
+        levelTitle={levelTitle}
+        masteryPoints={masteryPoints}
+        xpProgress={xpProgress}
+        streakData={streakData}
+        skillRatings={skillRatings}
+        dailyGoalMet={dailyGoalMet}
+        decayWarning={decayWarning}
+        onOpenLeaderboard={fetchLeaderboard}
       />
 
       {/* Study Group Panel */}

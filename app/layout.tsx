@@ -12,6 +12,12 @@ export const metadata: Metadata = {
   description: "LORMS-aligned diagnostic essay suite for Social Studies and Elective History.",
 };
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+} as const;
+
 export default function RootLayout({
   children,
 }: {

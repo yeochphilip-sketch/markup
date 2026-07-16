@@ -199,7 +199,7 @@ export default function ShareResultCard({
               </button>
               <button
                 onClick={() => setShowPreview(false)}
-                className="px-4 bg-slate-800 hover:bg-slate-700 text-slate-400 font-bold text-xs py-2.5 rounded-xl transition"
+                className="w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-400 font-bold text-xs rounded-xl transition"
               >
                 ✕
               </button>

@@ -162,24 +162,22 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-[#07090e] text-slate-100 font-sans">
       {/* Header */}
-      <header className="border-b border-slate-900 px-6 py-4 flex items-center justify-between bg-slate-950/60 backdrop-blur-md">
-        <div className="flex items-center gap-4">
+      <header className="border-b border-slate-900 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between bg-slate-950/60 backdrop-blur-md">
+        <div className="flex items-center gap-2 sm:gap-4">
           <button
             onClick={() => router.push('/dashboard')}
-            className="text-[11px] text-slate-500 hover:text-slate-300 transition font-bold"
+            className="text-[11px] text-slate-500 hover:text-slate-300 transition font-bold px-2 py-1.5 rounded-lg hover:bg-slate-900"
           >
             ← Back
           </button>
-          <h1 className="text-xl font-black text-indigo-500 tracking-wider">MARKUP</h1>
+          <h1 className="text-lg sm:text-xl font-black text-indigo-500 tracking-wider">MARKUP</h1>
         </div>
-        <div className="text-[11px] text-slate-500 font-mono">
+        <div className="text-[10px] sm:text-[11px] text-slate-500 font-mono truncate max-w-[120px] sm:max-w-none text-right">
           {userEmail}
         </div>
-      </header>
-
-      <div className="max-w-4xl mx-auto p-6 space-y-6">
+      </header>          <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-5 sm:space-y-6">
         {/* ── Overview Card ── */}
-        <div className="bg-gradient-to-br from-indigo-600/5 to-purple-600/5 border border-indigo-500/20 rounded-3xl p-6">
+        <div className="bg-gradient-to-br from-indigo-600/5 to-purple-600/5 border border-indigo-500/20 rounded-3xl p-4 sm:p-6">
           <div className="flex items-center gap-5">
             <div className="text-5xl">{getLevelConfig(levelTitle).icon}</div>
             <div className="flex-1">
@@ -245,7 +243,7 @@ export default function ProfilePage() {
         {/* ── Skill Radar ── */}
         <div className="bg-slate-950/80 border border-slate-900 rounded-2xl p-5">
           <h3 className="text-[10px] font-black tracking-widest text-slate-400 uppercase mb-4">Skill Radar</h3>
-          <div className="grid grid-cols-5 gap-4">
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-4">
             {[
               { key: 'inference', label: 'Inference', max: 5 },
               { key: 'comparison', label: 'Comparison', max: 6 },
@@ -257,8 +255,8 @@ export default function ProfilePage() {
               const pct = Math.min((val / skill.max) * 100, 100);
               return (
                 <div key={skill.key} className="text-center">
-                  <p className="text-[9px] font-bold text-slate-500 uppercase mb-2">{skill.label}</p>
-                  <div className="h-24 bg-slate-800 rounded-lg overflow-hidden relative flex items-end">
+                  <p className="text-[8px] sm:text-[9px] font-bold text-slate-500 uppercase mb-2 truncate">{skill.label}</p>
+                  <div className="h-20 sm:h-24 bg-slate-800 rounded-lg overflow-hidden relative flex items-end">
                     <div
                       className={`w-full rounded-t transition-all duration-700 ${
                         val >= Math.ceil(skill.max / 2) ? 'bg-gradient-to-t from-indigo-500 to-purple-500' : 'bg-gradient-to-t from-rose-500 to-orange-500'

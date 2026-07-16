@@ -22,6 +22,7 @@ interface ConfiguratorSidebarProps {
   selectedSkill: string;
   isCustomMode: boolean;
   isGenerating: boolean;
+  generateProgress: string | null;
   history: HistoryItem[];
   hasMoreHistory: boolean;
   isLoadingMore: boolean;
@@ -44,6 +45,7 @@ export default function ConfiguratorSidebar({
   selectedSkill,
   isCustomMode,
   isGenerating,
+  generateProgress,
   history,
   hasMoreHistory,
   isLoadingMore,
@@ -71,7 +73,7 @@ export default function ConfiguratorSidebar({
           <div className="grid grid-cols-2 bg-slate-900 p-1 rounded-xl border border-slate-800">
             <button
               onClick={() => onSetActiveSubject('Social Studies')}
-              className={`text-[10px] font-bold py-1.5 rounded-lg transition ${
+              className={`text-[10px] font-bold py-2 rounded-lg transition ${
                 activeSubject === 'Social Studies' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -79,7 +81,7 @@ export default function ConfiguratorSidebar({
             </button>
             <button
               onClick={() => onSetActiveSubject('Elective History')}
-              className={`text-[10px] font-bold py-1.5 rounded-lg transition ${
+              className={`text-[10px] font-bold py-2 rounded-lg transition ${
                 activeSubject === 'Elective History' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -141,9 +143,39 @@ export default function ConfiguratorSidebar({
             <button
               onClick={onGenerate}
               disabled={isGenerating}
-              className="w-full bg-indigo-600 text-white text-xs font-bold py-2.5 rounded-xl transition disabled:opacity-50 mt-1"
+              className="w-full bg-indigo-600 text-white text-xs font-bold py-2.5 rounded-xl transition disabled:opacity-50 mt-1 flex items-center justify-center gap-2"
             >
-              {isGenerating ? 'Drafting Sheet...' : '⚡ Generate Practice'}
+              {isGenerating ? (
+                <span className="inline-flex flex-col items-center gap-1 w-full">
+                  <span className="inline-flex items-center gap-2 text-[10px]">
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin-fast shrink-0" />
+                    Generating…
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 text-[8px] sm:text-[9px] opacity-80">
+                    <span className={`px-1.5 py-0.5 rounded transition-all duration-300 text-[8px] sm:text-[9px] ${
+                      generateProgress === 'sources' 
+                        ? 'bg-indigo-500/20 text-indigo-200 font-bold shadow-lg shadow-indigo-500/20 animate-pulse' 
+                        : ['questions', 'formatting'].includes(generateProgress || '') 
+                          ? 'text-indigo-400/60' 
+                          : 'text-slate-500'
+                    }`}>SRC</span>
+                    <span className="text-slate-600 text-[8px] sm:text-[9px]">→</span>
+                    <span className={`px-1.5 py-0.5 rounded transition-all duration-300 text-[8px] sm:text-[9px] ${
+                      generateProgress === 'questions' 
+                        ? 'bg-indigo-500/20 text-indigo-200 font-bold shadow-lg shadow-indigo-500/20 animate-pulse' 
+                        : generateProgress === 'formatting' 
+                          ? 'text-indigo-400/60' 
+                          : 'text-slate-500'
+                    }`}>QST</span>
+                    <span className="text-slate-600 text-[8px] sm:text-[9px]">→</span>
+                    <span className={`px-1.5 py-0.5 rounded transition-all duration-300 text-[8px] sm:text-[9px] ${
+                      generateProgress === 'formatting' 
+                        ? 'bg-emerald-500/20 text-emerald-200 font-bold shadow-lg shadow-emerald-500/20 animate-pulse' 
+                        : 'text-slate-500'
+                    }`}>FMT</span>
+                  </span>
+                </span>
+              ) : '⚡ Generate Practice'}
             </button>
           )}
         </div>

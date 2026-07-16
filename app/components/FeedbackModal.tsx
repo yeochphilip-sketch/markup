@@ -26,7 +26,7 @@ export default function FeedbackModal({
       <div className="bg-slate-950 border border-slate-900 w-full max-w-md p-6 rounded-2xl shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
         <div className="flex justify-between items-center border-b border-slate-900 pb-3">
           <h3 className="text-sm font-black tracking-wider text-indigo-400 uppercase">Submit Testing Notes</h3>
-          <button onClick={onClose} className="text-slate-500 hover:text-slate-300 text-xs">✕</button>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-300 hover:bg-slate-900 transition text-xs">✕</button>
         </div>
 
         <div className="space-y-3">

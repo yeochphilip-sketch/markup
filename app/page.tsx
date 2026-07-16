@@ -195,18 +195,21 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#07090e] text-slate-100 font-sans selection:bg-indigo-500/30">
       {/* Navigation */}
-      <nav className="px-8 py-6 flex justify-between items-center border-b border-slate-900 bg-slate-950/50 backdrop-blur-md sticky top-0 z-50">
-        <h1 className="text-2xl font-black text-indigo-500 tracking-tighter">MARKUP</h1>
-        <div className="flex items-center gap-8 text-sm font-bold text-slate-400">
-          <Link href="#how-it-works" className="hover:text-white transition">How It Works</Link>
-          <Link href="#testimonials" className="hover:text-white transition">Testimonials</Link>
-          <Link href="#pricing" className="hover:text-white transition">Pricing</Link>
-          <Link href="/auth" className="bg-indigo-600 text-white px-6 py-2.5 rounded-xl hover:bg-indigo-500 transition shadow-lg shadow-indigo-500/20">Sign In</Link>
+      <nav className="px-4 sm:px-8 py-4 sm:py-6 flex justify-between items-center border-b border-slate-900 bg-slate-950/50 backdrop-blur-md sticky top-0 z-50">
+        <h1 className="text-xl sm:text-2xl font-black text-indigo-500 tracking-tighter">MARKUP</h1>
+        <div className="flex items-center gap-3 sm:gap-8 text-sm font-bold text-slate-400">
+          {/* Desktop nav links - hidden on mobile */}
+          <div className="hidden sm:flex items-center gap-4 sm:gap-6">
+            <Link href="#how-it-works" className="hover:text-white transition">How It Works</Link>
+            <Link href="#testimonials" className="hover:text-white transition">Testimonials</Link>
+            <Link href="#pricing" className="hover:text-white transition">Pricing</Link>
+          </div>
+          <Link href="/auth" className="bg-indigo-600 text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl hover:bg-indigo-500 transition shadow-lg shadow-indigo-500/20 whitespace-nowrap text-xs sm:text-sm">Sign In</Link>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="px-6 py-24 text-center max-w-4xl mx-auto">
+      <section className="px-4 sm:px-6 py-16 sm:py-24 text-center max-w-4xl mx-auto">
         <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-black px-3 py-1 rounded-full mb-6 uppercase tracking-wider">
           🚧 Beta — Limited Spots Available
         </div>
@@ -217,8 +220,7 @@ export default function LandingPage() {
           The only Source-Based Case Study simulator designed specifically for the Singapore SEAB Social Studies and History syllabus. Scan essays, get LORMS grades, and climb to A1.
         </p>
 
-        {/* Waitlist CTA */}
-        <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-6 max-w-lg mx-auto">
+        {/* Waitlist CTA */}          <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-4 sm:p-6 max-w-lg mx-auto">
           <h3 className="text-sm font-black text-white mb-1">Join the Beta Waitlist</h3>
           <p className="text-xs text-slate-500 mb-4">
             Get early access and lock in beta pricing. First 100 signups get 40% off lifetime.
@@ -537,8 +539,19 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <footer className="py-12 border-t border-slate-900 text-center text-[10px] font-bold text-slate-600 tracking-widest uppercase">
-        © 2026 Markup Analytics • Singapore GCE O-Level Prep
+      <footer className="py-12 border-t border-slate-900 text-center space-y-4">
+        <p className="text-[10px] font-bold text-slate-600 tracking-widest uppercase">
+          © 2026 Markup Analytics • Singapore GCE O-Level Prep
+        </p>
+        <div className="flex items-center justify-center gap-4 text-[10px] font-bold text-slate-500">
+          <Link href="/privacy" className="hover:text-indigo-400 transition underline underline-offset-4">
+            Privacy Policy
+          </Link>
+          <span className="text-slate-800">·</span>
+          <Link href="/terms" className="hover:text-indigo-400 transition underline underline-offset-4">
+            Terms of Service
+          </Link>
+        </div>
       </footer>
     </div>
   );

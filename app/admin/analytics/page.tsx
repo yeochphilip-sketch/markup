@@ -284,8 +284,11 @@ function AnalyticsDashboardContent() {
   }, [router, fetchAllData]);
 
   const handleRefresh = async () => {
+    const _start = Date.now();
     setIsRefreshing(true);
     await fetchAllData();
+    const _elapsed = Date.now() - _start;
+    if (_elapsed < 1500) await new Promise(r => setTimeout(r, 1500 - _elapsed));
     setIsRefreshing(false);
   };
 
@@ -463,7 +466,7 @@ function AnalyticsDashboardContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#07090e] text-slate-100 p-8 font-sans">
+    <div className="min-h-screen bg-[#07090e] text-slate-100 p-4 sm:p-8 font-sans">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex justify-between items-center border-b border-slate-900 pb-5">
@@ -479,9 +482,9 @@ function AnalyticsDashboardContent() {
             <button
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 disabled:opacity-50"
+              className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 px-3 py-2 rounded-lg transition flex items-center gap-1.5 disabled:opacity-50"
             >
-              <span className={`${isRefreshing ? 'animate-spin' : ''}`}>⟳</span>
+              <span className={`${isRefreshing ? 'animate-spin-fast' : ''}`}>⟳</span>
               {isRefreshing ? 'Refreshing...' : 'Refresh'}
             </button>
             <button
@@ -489,7 +492,7 @@ function AnalyticsDashboardContent() {
                 await supabase.auth.signOut();
                 router.push('/auth');
               }}
-              className="text-[11px] font-bold text-slate-400 bg-slate-900 hover:bg-slate-800 border border-slate-800 px-3 py-1.5 rounded-lg transition"
+              className="text-[11px] font-bold text-slate-400 bg-slate-900 hover:bg-slate-800 border border-slate-800 px-3 py-2 rounded-lg transition"
             >
               Sign Out
           </button>
@@ -810,7 +813,7 @@ function AnalyticsDashboardContent() {
                     'waitlist-signups',
                   )
                 }
-                className="text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-lg hover:bg-amber-500/20 transition whitespace-nowrap"
+                className="text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 px-3 py-2 rounded-lg hover:bg-amber-500/20 transition whitespace-nowrap"
               >
                 ⬇ CSV
               </button>
@@ -901,7 +904,7 @@ function AnalyticsDashboardContent() {
                     'user-feedback',
                   )
                 }
-                className="text-[10px] font-bold text-rose-400 bg-rose-500/10 border border-rose-500/30 px-3 py-1.5 rounded-lg hover:bg-rose-500/20 transition whitespace-nowrap"
+                className="text-[10px] font-bold text-rose-400 bg-rose-500/10 border border-rose-500/30 px-3 py-2 rounded-lg hover:bg-rose-500/20 transition whitespace-nowrap"
               >
                 ⬇ CSV
               </button>
@@ -999,7 +1002,7 @@ function AnalyticsDashboardContent() {
                     'essay-evaluations',
                   )
                 }
-                className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-lg hover:bg-emerald-500/20 transition whitespace-nowrap"
+                className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-3 py-2 rounded-lg hover:bg-emerald-500/20 transition whitespace-nowrap"
                 title="Export evaluations CSV"
               >
                 📝 Essays CSV
@@ -1018,7 +1021,7 @@ function AnalyticsDashboardContent() {
                     'user-registry',
                   )
                 }
-                className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/30 px-3 py-1.5 rounded-lg hover:bg-indigo-500/20 transition whitespace-nowrap"
+                className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/30 px-3 py-2 rounded-lg hover:bg-indigo-500/20 transition whitespace-nowrap"
               >
                 ⬇ CSV
               </button>

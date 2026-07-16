@@ -139,7 +139,7 @@ export default function StudyGroupPanel({ userId, isOpen, onClose }: StudyGroupP
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-sm font-black tracking-widest text-slate-300 uppercase">👥 Study Groups</h2>
-          <button onClick={onClose} className="text-slate-500 hover:text-white text-sm">✕</button>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-white hover:bg-slate-900 transition text-sm font-bold">✕</button>
         </div>
 
         {/* Tabs */}

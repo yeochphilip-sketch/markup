@@ -26,7 +26,10 @@ body {
   background: #07090e;
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
-  min-height: 100vh;
+  min-height: 100dvh;
+  /* Global notch/Dynamic Island clearance — applies to all pages automatically */
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* ── Page transition animations ── */
@@ -76,6 +79,15 @@ body {
 .animate-spin-slow {
   animation: spin-slow 1.5s linear infinite;
 }
+
+/* Fast spinner for button loading states (0.7s per rotation = snappy feel) */
+@keyframes spin-fast {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-spin-fast {
+  animation: spin-fast 0.7s linear infinite;
+}
 .animate-spin-slow-reverse {
   animation: spin-slow-reverse 2s linear infinite;
 }
@@ -108,4 +120,63 @@ body {
 }
 .animate-fall {
   animation: fall 2s ease-in forwards;
+}
+
+/* ── Safe-area-inset utilities for notch phones (iPhone Dynamic Island, etc.) ── */
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.pl-safe {
+  padding-left: env(safe-area-inset-left, 0px);
+}
+.pr-safe {
+  padding-right: env(safe-area-inset-right, 0px);
+}
+.px-safe {
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+.py-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.p-safe {
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+
+/* ── Combined safe-area + spacing utilities ── */
+.pt-safe-2 {
+  padding-top: calc(env(safe-area-inset-top, 0px) + 0.5rem);
+}
+.pb-safe-2 {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.5rem);
+}
+.pl-safe-2 {
+  padding-left: calc(env(safe-area-inset-left, 0px) + 0.5rem);
+}
+.pr-safe-2 {
+  padding-right: calc(env(safe-area-inset-right, 0px) + 0.5rem);
+}
+
+/* ── Safe-area for bottom-fixed elements (FAB, toasts) ── */
+.bottom-safe {
+  bottom: calc(env(safe-area-inset-bottom, 0px));
+}
+.bottom-safe-2 {
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 0.5rem);
+}
+.bottom-safe-4 {
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem);
+}
+.top-safe {
+  top: calc(env(safe-area-inset-top, 0px));
+}
+.top-safe-2 {
+  top: calc(env(safe-area-inset-top, 0px) + 0.5rem);
+}
+.top-safe-4 {
+  top: calc(env(safe-area-inset-top, 0px) + 1rem);
 }

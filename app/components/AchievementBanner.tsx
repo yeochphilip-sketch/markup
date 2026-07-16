@@ -39,7 +39,7 @@ export default function AchievementBanner({
   if (newlyUnlocked.length === 0) return null;
 
   return (
-    <div className="fixed top-0 left-1/2 -translate-x-1/2 z-[60] animate-in slide-in-from-top-3 fade-in duration-300 max-w-3xl w-full">
+    <div className="fixed top-safe left-1/2 -translate-x-1/2 z-[60] animate-in slide-in-from-top-3 fade-in duration-300 max-w-3xl w-full">
       <div className="bg-gradient-to-r from-emerald-950/95 via-slate-950/95 to-indigo-950/95 border border-emerald-500/30 rounded-b-2xl shadow-2xl shadow-emerald-500/10 relative overflow-hidden">
         {/* Countdown bar at bottom */}
         <div
@@ -52,7 +52,7 @@ export default function AchievementBanner({
         {/* Close button top right */}
         <button
           onClick={onDismiss}
-          className="absolute top-3 right-4 text-slate-400 hover:text-white transition text-sm font-bold z-10"
+          className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition text-sm font-bold z-10"
           aria-label="Dismiss achievement banner"
         >
           ✕

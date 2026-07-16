@@ -49,7 +49,7 @@ export default function AchievementsDrawer({
                 e.stopPropagation();
                 if (dismiss) dismiss();
               }}
-              className="text-slate-500 hover:text-white transition text-sm font-bold"
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-white hover:bg-slate-900 transition text-sm font-bold"
             >
               ✕
             </button>
