@@ -276,19 +276,19 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Testimonial 1 — Placeholder */}
+            {/* Testimonial 1 — Jun Sheng */}
             <div className="bg-slate-950/80 border border-slate-900 rounded-2xl p-6 flex flex-col">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-full bg-indigo-600/30 border border-indigo-500/30 flex items-center justify-center text-sm font-black text-indigo-400">
                   J
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-slate-200">Your Name Here</p>
-                  <p className="text-[10px] text-slate-500">Sec 4 Student · Social Studies</p>
+                  <p className="text-sm font-bold text-slate-200">Jun Sheng</p>
+                  <p className="text-[10px] text-slate-500">Sec 3 Student · SS/Geo</p>
                 </div>
               </div>
               <p className="text-sm text-slate-400 leading-relaxed flex-1 italic">
-                &ldquo;MARKUP helped me understand exactly where I was losing marks. The LORMS breakdown showed me I was weak on comparison questions — after two weeks of practice I jumped from a B to an A.&rdquo;
+                &ldquo;The good points have really helped me with Social Studies. The notes are filled with useful ideas and relevant examples, so I don&rsquo;t have to spend ages thinking of what to write. Everything is explained clearly, making the topics much easier to understand. I also like how the points flow naturally from one to the next, which makes it easier to build my answers in a logical way. Instead of struggling to come up with arguments, I can focus on explaining and evaluating them. This website has made answering both structured and essay questions much faster, and I feel much more confident when writing my answers.&rdquo;
               </p>
               <div className="mt-4 text-amber-400 text-sm">★★★★★</div>
             </div>

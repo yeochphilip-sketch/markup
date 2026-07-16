@@ -1,5 +1,7 @@
 'use client';
 
+import { SKILL_LABELS, TOPIC_SUMMARIES, detectSubTopic, isCustomTopic } from '@/lib/summary-utils';
+
 interface HistoryItem {
   id: string;
   subject: string;
@@ -39,6 +41,71 @@ interface ConfiguratorSidebarProps {
   onJumpToRecent: () => void;
 }
 
+/** Generate a short readable summary of what the practice was about.
+ *  Uses the stored summary from metadata first (most accurate), falls back to static mapping. */
+function getTopicSummary(item: HistoryItem): string {
+  const meta = item.metadata || {};
+  // Priority 1: Use stored summary from metadata (set at generation time)
+  if (meta.summary && typeof meta.summary === 'string') {
+    return meta.summary;
+  }
+
+  const isAllFormats = meta.isAllFormats === true;
+  const topic = item.topic || '';
+  const ctx = item.background_context || '';
+  const qType = item.question_type || '';
+
+  // Priority 2: Handle custom/off-syllabus topics
+  if (isCustomTopic(topic)) {
+    const source = ctx || topic || 'General practice';
+    return source.replace(/\s+/g, ' ').slice(0, 55).trim() + (source.length > 55 ? '…' : '');
+  }
+
+  let base = TOPIC_SUMMARIES[topic] || topic || 'General practice';
+
+  // For 'Any Topic (Random Mix)', append part of background context
+  if (topic === 'Any Topic (Random Mix)' && ctx) {
+    base = ctx.replace(/\s+/g, ' ').slice(0, 60).trim() + (ctx.length > 60 ? '…' : '');
+  }
+
+  // Try to detect a more specific sub-topic from background context
+  if (ctx) {
+    const subTopic = detectSubTopic(ctx);
+    if (subTopic && !base.includes(subTopic)) {
+      base = `${base} > ${subTopic}`;
+    }
+  }
+
+  // Use clean skill label
+  if (qType && !qType.startsWith('All Formats')) {
+    const skillLabel = SKILL_LABELS[qType];
+    if (skillLabel) {
+      return `${base} · ${skillLabel}`;
+    }
+    // Fall back to raw abbreviation
+    const skillBrief = qType
+      .replace(/^SBQ: /, '')
+      .replace(/^SRQ\/SEQ: /, '')
+      .replace(/^SEQ: /, '')
+      .replace(/\(AO[123]\/?AO?[12]?\)/g, '')
+      .trim();
+    if (skillBrief && skillBrief.length < 40) {
+      return `${base} · ${skillBrief}`;
+    }
+  }
+
+  // For All Formats, show a more specific summary from question_prompt if possible
+  if (isAllFormats) {
+    const prompt = item.question_prompt || '';
+    const cleaned = prompt.replace(/^.*?(Bundle|Comprehensive|Practice).*?[—–-]\s*/i, '').slice(0, 50).trim();
+    if (cleaned && cleaned.length > 5) {
+      return cleaned + (cleaned.length >= 50 ? '…' : '');
+    }
+  }
+
+  return base;
+}
+
 export default function ConfiguratorSidebar({
   activeSubject,
   selectedTopic,
@@ -62,7 +129,7 @@ export default function ConfiguratorSidebar({
   onJumpToRecent,
 }: ConfiguratorSidebarProps) {
   return (
-    <div className="xl:col-span-1 flex flex-col space-y-4 overflow-y-auto pr-1">
+    <div className="xl:col-span-1 flex flex-col space-y-4 overflow-y-auto pr-1" data-section="configurator">
       {/* Configurator Card */}
       <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-4 space-y-4 hover-lift">
         <h2 className="text-[10px] font-black tracking-widest text-slate-400 uppercase">Configurator</h2>
@@ -211,6 +278,10 @@ export default function ConfiguratorSidebar({
                         </span>
                       )}
                     </div>
+                    {/* Topic summary — what the practice is about */}
+                    <p className="text-[9px] text-emerald-500/70 font-medium leading-snug line-clamp-1">
+                      {getTopicSummary(item)}
+                    </p>
                     <p className="text-[11px] text-slate-400 line-clamp-2 font-medium group-hover:text-slate-200 transition">
                       {item.question_prompt}
                     </p>

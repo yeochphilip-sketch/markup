@@ -9,23 +9,6 @@ export async function middleware(req: NextRequest) {
   if (url.pathname.startsWith('/admin')) {
     let response = NextResponse.next({ request: { headers: req.headers } });
 
-    // ─────────────────────────────────────────────────────────────
-    // TEMP DEBUG – drop me once /admin/* auth flows correctly.
-    // Logs the cookie names Edge sees + the post-validation verdict
-    // so vercel logs --prod | grep 'admin-gate' shows everything
-    // needed to diagnose a redirect loop.
-    // ─────────────────────────────────────────────────────────────
-    const cookiesSeen = req.cookies.getAll();
-    console.log('[admin-gate]', {
-      pathname: url.pathname,
-      url: req.url,
-      cookieNames: cookiesSeen.map((c) => c.name),
-      hasSbAuthCookie: cookiesSeen.some(
-        (c) => c.name.startsWith('sb-') && c.name.includes('auth-token'),
-      ),
-      hasAuthCodeCookie: cookiesSeen.some((c) => c.name.includes('code-verifier')),
-    });
-
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -47,19 +30,7 @@ export async function middleware(req: NextRequest) {
 
     const {
       data: { user },
-      error: getUserError,
     } = await supabase.auth.getUser();
-
-    console.log('[admin-gate]', {
-      pathname: url.pathname,
-      userFound: !!user,
-      userEmail: user?.email ?? null,
-      hasAppMetaIsAdmin: user?.app_metadata?.is_admin === true,
-      hasUserMetaIsAdmin: user?.user_metadata?.is_admin === true,
-      supabaseError: getUserError?.message ?? null,
-      supabaseErrorStatus: getUserError?.status ?? null,
-    });
-    // ─────────────────────────────────────────────────────────────
 
     // Unauthenticated → bounce to auth screen.
     if (!user) {

@@ -112,7 +112,7 @@ export default function MobileSidebar({
       {/* Sidebar panel */}
       <div
         ref={sidebarRef}
-        className="fixed right-0 top-0 bottom-0 w-72 bg-slate-950/98 border-l border-slate-900 shadow-2xl flex flex-col animate-in slide-in-from-right duration-200 pt-safe"
+        className="fixed left-0 top-0 bottom-0 w-80 max-w-[85vw] bg-slate-950/98 border-r border-slate-900 shadow-2xl flex flex-col animate-in slide-in-from-left duration-200 pt-safe safe-area-left"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-900">

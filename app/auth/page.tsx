@@ -26,8 +26,8 @@ export default function AuthPage() {
       if (error) throw error;
       setMessage('Check your email for a password reset link. It may take a few minutes.');
       setIsForgotPassword(false);
-    } catch (err: any) {
-      setMessage(err.message || 'Failed to send reset email. Try again.');
+    } catch (err: unknown) {
+      setMessage(err instanceof Error ? err.message : 'Failed to send reset email. Try again.');
     } finally {
       const _elapsed = Date.now() - _start;
       if (_elapsed < 1500) await new Promise(r => setTimeout(r, 1500 - _elapsed));
@@ -91,8 +91,8 @@ export default function AuthPage() {
         router.push('/dashboard');
         router.refresh();
       }
-    } catch (err: any) {
-      setMessage(err.message || 'An error occurred during authentication.');
+    } catch (err: unknown) {
+      setMessage(err instanceof Error ? err.message : 'An error occurred during authentication.');
     } finally {
       const _elapsed = Date.now() - _start;
       if (_elapsed < 1500) await new Promise(r => setTimeout(r, 1500 - _elapsed));

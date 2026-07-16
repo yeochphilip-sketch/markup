@@ -25,6 +25,7 @@ import LoadingSpinner from '@/app/components/LoadingSpinner';
 import MobileSidebar from '@/app/components/MobileSidebar';
 import TestimonialPrompt, { recordCompletedScan, shouldShowTestimonial } from '@/app/components/TestimonialPrompt';
 import { getLevelConfig, getLevelTitle, getNextLevelXp, getPrevLevelXp, LEVEL_THRESHOLDS, playGradeCompleteSound, playLevelUpSound, playAchievementSound, isDailyGoalMet, ACHIEVEMENT_DEFS, calculateXpDecay, getDecayWarning } from '@/lib/gamification';
+import { SKILL_LABELS, TOPIC_SUMMARIES, detectSubTopic, isCustomTopic } from '@/lib/summary-utils';
 
 interface Segment {
   text: string;
@@ -570,6 +571,44 @@ export default function DashboardPage() {
     };
   }, [userId, sendHeartbeat]);
 
+  /** Generate a short summary of what this practice is about — stored in metadata for fast display */
+  const generateSummary = (topic: string, qType: string, bgContext: string, customPrompt?: string): string => {
+    // For custom / off-syllabus topics, use first portion of bgContext or customPrompt
+    if (isCustomTopic(topic)) {
+      const source = customPrompt || bgContext || topic;
+      return source.replace(/\s+/g, ' ').slice(0, 55).trim() + (source.length > 55 ? '…' : '');
+    }
+
+    let base = TOPIC_SUMMARIES[topic] || topic || 'General practice';
+
+    // For 'Any Topic (Random Mix)', append part of background context
+    if (topic === 'Any Topic (Random Mix)' && bgContext) {
+      base = bgContext.replace(/\s+/g, ' ').slice(0, 60).trim() + (bgContext.length > 60 ? '…' : '');
+    }
+
+    // Try to detect a more specific sub-topic from background context
+    const subTopic = bgContext ? detectSubTopic(bgContext) : null;
+    if (subTopic && !base.includes(subTopic)) {
+      base = `${base} > ${subTopic}`;
+    }
+
+    // Use clean skill label
+    if (qType && !qType.startsWith('All Formats')) {
+      const skillLabel = SKILL_LABELS[qType];
+      if (skillLabel) {
+        base = `${base} · ${skillLabel}`;
+      } else {
+        // Fall back to raw abbreviation
+        const skillBrief = qType
+          .replace(/^SBQ: /, '').replace(/^SRQ\/SEQ: /, '').replace(/^SEQ: /, '')
+          .replace(/\(AO[123]\/?AO?[12]?\)/g, '').trim();
+        if (skillBrief && skillBrief.length < 40) base = `${base} · ${skillBrief}`;
+      }
+    }
+
+    return base;
+  };
+
   const handleGenerateChallenge = async () => {
     const _startGen = Date.now();
     setIsGenerating(true);
@@ -630,6 +669,8 @@ export default function DashboardPage() {
         const metadata: Record<string, any> = {};
         if (data.isAllFormats) {
           metadata.isAllFormats = true;
+          // Store a concise summary for sidebar practice logs
+          metadata.summary = generateSummary(selectedTopic, selectedSkill, data.backgroundContext || '', isCustomMode ? customPrompt : undefined);
           metadata.sourceCProvenance = data.sourceCProvenance || '';
           metadata.sourceC = data.sourceC || '';
           metadata.sourceDProvenance = data.sourceDProvenance || '';
@@ -647,6 +688,9 @@ export default function DashboardPage() {
           metadata.seqQuestion1 = data.seqQuestion1 || '';
           metadata.seqQuestion2 = data.seqQuestion2 || '';
           metadata.seqQuestion3 = data.seqQuestion3 || '';
+        } else {
+          // Individual skill track — store summary too
+          metadata.summary = generateSummary(selectedTopic, selectedSkill, data.backgroundContext || '', isCustomMode ? customPrompt : undefined);
         }
 
         const { data: savedRecord } = await supabase
@@ -1231,6 +1275,8 @@ export default function DashboardPage() {
         {/* Workspace Textareas & Prompt Column Suite */}
         <div className="xl:col-span-2 flex flex-col space-y-4 max-h-[75vh]">
           
+          {/* Scroll anchor for mobile Practice tab */}
+          <div className="writing-canvas" />
           <div className="bg-indigo-950/20 border border-indigo-900/30 rounded-2xl p-4 shrink-0">
             <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Question Assignment Prompt</span>
             {isCustomMode ? (
@@ -1740,6 +1786,46 @@ export default function DashboardPage() {
         onClose={() => setIsTestimonialOpen(false)}
       />
 
+      {/* ── Mobile Bottom Tab Bar (app-style navigation) ── */}
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-slate-950/98 border-t border-slate-900 backdrop-blur-xl safe-area-bottom flex items-center justify-around px-2 py-1.5">
+        <button            onClick={() => {
+            const el = document.querySelector('.writing-canvas');
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }}
+          className="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl text-indigo-400 transition min-h-[44px] min-w-[64px]"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          <span className="text-[8px] font-bold tracking-wider">PRACTICE</span>
+        </button>
+        <button
+          onClick={() => {
+            const el = document.querySelector('[data-section="configurator"]');
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            else setIsMobileSidebarOpen(true);
+          }}
+          className="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl text-slate-500 hover:text-slate-300 transition min-h-[44px] min-w-[64px]"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span className="text-[8px] font-bold tracking-wider">HISTORY</span>
+        </button>
+        <button
+          onClick={() => setIsAchievementsOpen(true)}
+          className="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl text-slate-500 hover:text-slate-300 transition min-h-[44px] min-w-[64px]"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+          <span className="text-[8px] font-bold tracking-wider">STATS</span>
+        </button>
+        <button
+          onClick={() => setIsMobileSidebarOpen(true)}
+          className="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl text-slate-500 hover:text-slate-300 transition min-h-[44px] min-w-[64px]"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <span className="text-[8px] font-bold tracking-wider">MORE</span>
+        </button>
+      </nav>
+
+      {/* Spacer for bottom nav on mobile */}
+      <div className="sm:hidden h-16" />
     </div>
   );
 }
