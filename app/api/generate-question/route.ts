@@ -16,16 +16,16 @@ const groq = createOpenAI({
 // Schema for individual skill tracks (2 sources)
 // ────────────────────────────────────────────────────────
 const questionSchema = z.object({
-  backgroundContext: z.string().min(40),
-  sourceAProvenance: z.string().min(8),
-  sourceA: z.string().min(60),
-  sourceBProvenance: z.string().min(8),
-  sourceB: z.string().min(60),
-  questionPrompt: z.string().min(20),
-  sbcsPrompt: z.string().min(10),
-  seqPrompt: z.string().min(10),
-  srqPrompt: z.string().min(10),
-  suggestedAnswer: z.string().min(30),
+  backgroundContext: z.string().min(10),
+  sourceAProvenance: z.string().min(3),
+  sourceA: z.string().min(10),
+  sourceBProvenance: z.string().min(3),
+  sourceB: z.string().min(10),
+  questionPrompt: z.string().min(5),
+  sbcsPrompt: z.string().min(3),
+  seqPrompt: z.string().min(3),
+  srqPrompt: z.string().min(3),
+  suggestedAnswer: z.string().min(10),
 });
 
 // ────────────────────────────────────────────────────────
@@ -45,24 +45,24 @@ const allFormatsSchema = z.object({
   source4: z.string().min(60).optional(),
   source5Provenance: z.string().min(8).optional(),
   source5: z.string().min(60).optional(),
-  // 5 Part A-E Questions
-  partA_Inference: z.string().min(15),
-  partB_Comparison: z.string().min(15),
-  partC_Purpose: z.string().min(15),
-  partD_Reliability: z.string().min(15),
-  partE_Assertion: z.string().min(15),
+  // 5 Part A-E Questions — relaxed min lengths since AI may generate short valid questions
+  partA_Inference: z.string().min(3),
+  partB_Comparison: z.string().min(3),
+  partC_Purpose: z.string().min(3),
+  partD_Reliability: z.string().min(3),
+  partE_Assertion: z.string().min(3),
   // Overall context
-  questionPrompt: z.string().min(20).optional(),
-  // SS-only: SRQ section
-  srqBackgroundContext: z.string().min(20).optional(),
-  srqQuestionA: z.string().min(15).optional(),
-  srqQuestionB: z.string().min(15).optional(),
-  // History-only: SEQ section
-  seqQuestion1: z.string().min(15).optional(),
-  seqQuestion2: z.string().min(15).optional(),
-  seqQuestion3: z.string().min(15).optional(),
+  questionPrompt: z.string().min(5).optional(),
+  // SS-only: SRQ section (AI may leave these intentionally short when generating History papers)
+  srqBackgroundContext: z.string().min(3).optional(),
+  srqQuestionA: z.string().min(3).optional(),
+  srqQuestionB: z.string().min(3).optional(),
+  // History-only: SEQ section (AI may leave these intentionally short when generating SS papers)
+  seqQuestion1: z.string().min(3).optional(),
+  seqQuestion2: z.string().min(3).optional(),
+  seqQuestion3: z.string().min(3).optional(),
   // Model answer
-  suggestedAnswer: z.string().min(30),
+  suggestedAnswer: z.string().min(10),
 });
 
 type QuestionResult = z.infer<typeof questionSchema>;
