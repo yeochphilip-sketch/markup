@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
 import { getServerSupabase } from '@/lib/supabase-server';
 import { getGradeSystemPrompt, getGradeUserPrompt } from '@/lib/prompts';
+import { checkSupabaseRateLimit, GRADE_LIMIT, rateLimitResponse } from '@/lib/rate-limit-supabase';
 import { getXpForLevel, getLevelTitle, DAILY_GOAL_BONUS_XP, getStreakBonus, calculateXpDecay, checkNewAchievements } from '@/lib/gamification';
 
 const groq = createOpenAI({
@@ -154,6 +155,12 @@ async function getClientForUser() {
 
 export async function POST(request: Request) {
   try {
+    // ── Rate limit: 5 requests per 60s per IP ──
+    const rl = await checkSupabaseRateLimit(request, GRADE_LIMIT);
+    if (rl && !rl.allowed) {
+      return rateLimitResponse(rl.headers);
+    }
+
     const body = await request.json();
     const {
       sbcsAnswer = '',

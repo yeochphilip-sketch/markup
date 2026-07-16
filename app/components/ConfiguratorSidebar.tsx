@@ -22,6 +22,7 @@ interface ConfiguratorSidebarProps {
   activeSubject: string;
   selectedTopic: string;
   selectedSkill: string;
+  sourceCount: number;
   isCustomMode: boolean;
   isGenerating: boolean;
   generateProgress: string | null;
@@ -33,6 +34,7 @@ interface ConfiguratorSidebarProps {
   onSetActiveSubject: (subject: string) => void;
   onSetSelectedTopic: (topic: string) => void;
   onSetSelectedSkill: (skill: string) => void;
+  onSetSourceCount: (count: number) => void;
   onSetCustomMode: (mode: boolean) => void;
   onSetHasScanned: (scanned: boolean) => void;
   onGenerate: () => void;
@@ -110,6 +112,7 @@ export default function ConfiguratorSidebar({
   activeSubject,
   selectedTopic,
   selectedSkill,
+  sourceCount,
   isCustomMode,
   isGenerating,
   generateProgress,
@@ -121,6 +124,7 @@ export default function ConfiguratorSidebar({
   onSetActiveSubject,
   onSetSelectedTopic,
   onSetSelectedSkill,
+  onSetSourceCount,
   onSetCustomMode,
   onSetHasScanned,
   onGenerate,
@@ -205,6 +209,28 @@ export default function ConfiguratorSidebar({
               ))}
             </select>
           </div>
+
+          {/* Source count selector — shown only for All Formats */}
+          {!isCustomMode && selectedSkill.toLowerCase().includes('all formats') && (
+            <div className="space-y-1">
+              <label className="text-[9px] font-bold uppercase text-slate-500">Number of Sources</label>
+              <div className="grid grid-cols-4 bg-slate-900 p-1 rounded-xl border border-slate-800 gap-0.5">
+                {[2, 3, 4, 5].map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => onSetSourceCount(n)}
+                    className={`text-[10px] font-bold py-2 rounded-lg transition ${
+                      sourceCount === n
+                        ? 'bg-amber-600 text-white shadow-sm'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {!isCustomMode && (
             <button

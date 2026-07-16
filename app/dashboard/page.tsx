@@ -22,6 +22,8 @@ import LeaderboardDrawer from '@/app/components/LeaderboardDrawer';
 import AchievementsDrawer from '@/app/components/AchievementsDrawer';
 import AchievementBanner from '@/app/components/AchievementBanner';
 import LoadingSpinner from '@/app/components/LoadingSpinner';
+import DashboardSkeleton from '@/app/components/DashboardSkeleton';
+import GlobalErrorBanner from '@/app/components/GlobalErrorBanner';
 import MobileSidebar from '@/app/components/MobileSidebar';
 import TestimonialPrompt, { recordCompletedScan, shouldShowTestimonial } from '@/app/components/TestimonialPrompt';
 import { getLevelConfig, getLevelTitle, getNextLevelXp, getPrevLevelXp, LEVEL_THRESHOLDS, playGradeCompleteSound, playLevelUpSound, playAchievementSound, isDailyGoalMet, ACHIEVEMENT_DEFS, calculateXpDecay, getDecayWarning } from '@/lib/gamification';
@@ -94,6 +96,8 @@ export default function DashboardPage() {
   const [activeSubject, setActiveSubject] = useState('Social Studies');
   const [selectedTopic, setSelectedTopic] = useState('Any Topic (Random Mix)');
   const [selectedSkill, setSelectedSkill] = useState('All Formats (SBCS + SEQ + SRQ Bundle)');
+  
+  const [sourceCount, setSourceCount] = useState(5);
   
   const [isCustomMode, setIsCustomMode] = useState(false);
   const [customPrompt, setCustomPrompt] = useState('');
@@ -623,7 +627,8 @@ export default function DashboardPage() {
         body: JSON.stringify({ 
           subject: activeSubject, 
           topic: selectedTopic, 
-          questionType: selectedSkill 
+          questionType: selectedSkill,
+          sourceCount 
         }),
       });
       if (!res.ok) {
@@ -998,17 +1003,13 @@ export default function DashboardPage() {
   const isQuestionPromptInactive = (challenge.backgroundContext ?? '').includes('Click Generate Practice');
 
   if (isAuthLoading) {
-    return (
-      <div className="min-h-screen bg-[#07090e] flex flex-col items-center justify-center gap-8">
-        {/* Logo */}
-        <h1 className="text-2xl font-black text-indigo-500 tracking-wider">MARKUP</h1>
-        <LoadingSpinner size="lg" label="Loading your dashboard..." color="indigo" />
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (
     <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col font-sans relative selection:bg-indigo-500/30">
+      {/* Global error/offline banner */}
+      <GlobalErrorBanner />
       <style>{`
         /* Hover micro-interactions */
         .hover-lift { transition: transform 0.15s ease, box-shadow 0.15s ease; }
@@ -1189,7 +1190,9 @@ export default function DashboardPage() {
           onSetActiveSubject={setActiveSubject}
           onSetSelectedTopic={setSelectedTopic}
           onSetSelectedSkill={setSelectedSkill}
+          sourceCount={sourceCount}
           onSetCustomMode={setIsCustomMode}
+          onSetSourceCount={setSourceCount}
           onSetHasScanned={setHasScanned}
           onGenerate={handleGenerateChallenge}
           onLoadHistoricalItem={loadHistoricalItem}

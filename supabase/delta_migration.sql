@@ -644,6 +644,55 @@ ALTER TABLE public.user_feedback ADD COLUMN IF NOT EXISTS testimonial_rating   I
 ALTER TABLE public.user_feedback ADD COLUMN IF NOT EXISTS testimonial_approved BOOLEAN DEFAULT FALSE;
 
 -- ============================================================
+-- 15. rate_limits  (Supabase PostgreSQL-based rate limiter)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.rate_limits (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY
+);
+
+ALTER TABLE public.rate_limits ADD COLUMN IF NOT EXISTS ip_address       TEXT NOT NULL DEFAULT '';
+ALTER TABLE public.rate_limits ADD COLUMN IF NOT EXISTS endpoint         TEXT NOT NULL DEFAULT '';
+ALTER TABLE public.rate_limits ADD COLUMN IF NOT EXISTS request_count    INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE public.rate_limits ADD COLUMN IF NOT EXISTS window_expires_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT timezone('utc'::text, now());
+ALTER TABLE public.rate_limits ADD COLUMN IF NOT EXISTS created_at       TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now());
+
+ALTER TABLE public.rate_limits ALTER COLUMN ip_address SET NOT NULL;
+ALTER TABLE public.rate_limits ALTER COLUMN endpoint SET NOT NULL;
+ALTER TABLE public.rate_limits ALTER COLUMN request_count SET NOT NULL;
+ALTER TABLE public.rate_limits ALTER COLUMN window_expires_at SET NOT NULL;
+
+-- Composite index for fast lookups: find rate limit by (ip, endpoint, active window)
+CREATE INDEX IF NOT EXISTS rate_limits_lookup_idx
+    ON public.rate_limits (ip_address, endpoint, window_expires_at DESC);
+
+-- Index for cleanup queries (expired windows)
+CREATE INDEX IF NOT EXISTS rate_limits_expiry_idx
+    ON public.rate_limits (window_expires_at);
+
+ALTER TABLE public.rate_limits ENABLE ROW LEVEL SECURITY;
+
+-- Allow anyone (even anon) to insert rate limit records — needed for pre-auth rate limiting
+DROP POLICY IF EXISTS "Allow all insert rate_limits" ON public.rate_limits;
+CREATE POLICY "Allow all insert rate_limits"
+    ON public.rate_limits FOR INSERT
+    WITH CHECK (true);
+
+-- Allow anyone (even anon) to select rate limit records
+DROP POLICY IF EXISTS "Allow all select rate_limits" ON public.rate_limits;
+CREATE POLICY "Allow all select rate_limits"
+    ON public.rate_limits FOR SELECT
+    USING (true);
+
+-- Allow anyone to delete expired records
+DROP POLICY IF EXISTS "Allow all delete rate_limits" ON public.rate_limits;
+CREATE POLICY "Allow all delete rate_limits"
+    ON public.rate_limits FOR DELETE
+    USING (true);
+
+-- Periodically clean up stale entries (via pg_cron or manual)
+-- A cron job can run: DELETE FROM public.rate_limits WHERE window_expires_at < now() - interval '1 hour'
+
+-- ============================================================
 -- Done.
 -- ════════════════════════════════════════════════════════════
 -- 

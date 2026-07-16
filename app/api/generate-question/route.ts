@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
 import { getServerSupabase } from '@/lib/supabase-server';
 import { getGenerateSystemPrompt } from '@/lib/prompts';
+import { checkSupabaseRateLimit, GENERATE_QUESTION_LIMIT, rateLimitResponse } from '@/lib/rate-limit-supabase';
 
 const groq = createOpenAI({
   baseURL: 'https://api.groq.com/openai/v1',
@@ -28,45 +29,72 @@ const questionSchema = z.object({
   suggestedAnswer: z.string().min(10),
 });
 
-// ────────────────────────────────────────────────────────
-// Schema for All Formats mode (5 sources + 5 parts + extras)
-// ────────────────────────────────────────────────────────
-const allFormatsSchema = z.object({
-  // Overall background context
-  backgroundContext: z.string().min(40),
-  // 5 Sources with provenances (sources 1-2 required, 3-5 optional for resilience)
-  source1Provenance: z.string().min(8),
-  source1: z.string().min(60),
-  source2Provenance: z.string().min(8),
-  source2: z.string().min(60),
-  source3Provenance: z.string().min(8).optional(),
-  source3: z.string().min(60).optional(),
-  source4Provenance: z.string().min(8).optional(),
-  source4: z.string().min(60).optional(),
-  source5Provenance: z.string().min(8).optional(),
-  source5: z.string().min(60).optional(),
-  // 5 Part A-E Questions — relaxed min lengths since AI may generate short valid questions
-  partA_Inference: z.string().min(3),
-  partB_Comparison: z.string().min(3),
-  partC_Purpose: z.string().min(3),
-  partD_Reliability: z.string().min(3),
-  partE_Assertion: z.string().min(3),
-  // Overall context
-  questionPrompt: z.string().min(5).optional(),
-  // SS-only: SRQ section (AI may leave these intentionally short when generating History papers)
-  srqBackgroundContext: z.string().min(3).optional(),
-  srqQuestionA: z.string().min(3).optional(),
-  srqQuestionB: z.string().min(3).optional(),
-  // History-only: SEQ section (AI may leave these intentionally short when generating SS papers)
-  seqQuestion1: z.string().min(3).optional(),
-  seqQuestion2: z.string().min(3).optional(),
-  seqQuestion3: z.string().min(3).optional(),
-  // Model answer
-  suggestedAnswer: z.string().min(10),
-});
+/**
+ * Build the All Formats schema dynamically based on the requested source count.
+ * Sources 1–count are required; any beyond count are optional.
+ */
+function createAllFormatsSchema(sourceCount: number) {
+  const sourceFields: Record<string, z.ZodTypeAny> = {};
+  for (let i = 1; i <= 5; i++) {
+    const provenanceKey = `source${i}Provenance`;
+    const contentKey = `source${i}`;
+    if (i <= sourceCount) {
+      sourceFields[provenanceKey] = z.string().min(8);
+      sourceFields[contentKey] = z.string().min(60);
+    } else {
+      sourceFields[provenanceKey] = z.string().optional();
+      sourceFields[contentKey] = z.string().optional();
+    }
+  }
+
+  return z.object({
+    ...sourceFields,
+    backgroundContext: z.string().min(40),
+    partA_Inference: z.string().min(3),
+    partB_Comparison: z.string().min(3),
+    partC_Purpose: z.string().min(3),
+    partD_Reliability: z.string().min(3),
+    partE_Assertion: z.string().min(3),
+    questionPrompt: z.string().min(5).optional(),
+    srqBackgroundContext: z.string().min(3).optional(),
+    srqQuestionA: z.string().min(3).optional(),
+    srqQuestionB: z.string().min(3).optional(),
+    seqQuestion1: z.string().min(3).optional(),
+    seqQuestion2: z.string().min(3).optional(),
+    seqQuestion3: z.string().min(3).optional(),
+    suggestedAnswer: z.string().min(10),
+  });
+}
+
+/** Static interface for the All Formats parsed result — mirrors the schema shape */
+interface AllFormatsData {
+  backgroundContext: string;
+  source1Provenance: string;
+  source1: string;
+  source2Provenance: string;
+  source2: string;
+  source3Provenance?: string;
+  source3?: string;
+  source4Provenance?: string;
+  source4?: string;
+  source5Provenance?: string;
+  source5?: string;
+  partA_Inference: string;
+  partB_Comparison: string;
+  partC_Purpose: string;
+  partD_Reliability: string;
+  partE_Assertion: string;
+  questionPrompt?: string;
+  srqBackgroundContext?: string;
+  srqQuestionA?: string;
+  srqQuestionB?: string;
+  seqQuestion1?: string;
+  seqQuestion2?: string;
+  seqQuestion3?: string;
+  suggestedAnswer: string;
+}
 
 type QuestionResult = z.infer<typeof questionSchema>;
-type AllFormatsResult = z.infer<typeof allFormatsSchema>;
 
 /**
  * Try each model provider in sequence until one succeeds.
@@ -82,7 +110,6 @@ async function tryGenerateWithFallbacks<T>(
     { model: groq('llama-3.1-8b-instant'), label: 'Groq Llama 3.1 8B', temp: 0.4 },
   ];
 
-  // Only add Google fallback if the user has configured a key
   if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
     attempts.push({ model: google('gemini-2.5-flash'), label: 'Google Gemini 2.5 Flash', temp: 0.4 });
   }
@@ -126,51 +153,48 @@ const INDIVIDUAL_JSON_FIELDS = `{
   "suggestedAnswer": "string (A1-grade suggested answer, at least 30 chars)"
 }`;
 
-/** JSON field spec for All Formats mode */
-const ALL_FORMATS_JSON_FIELDS = `{
-  "backgroundContext": "string (overall background context for the case study, at least 40 chars)",
-  "source1Provenance": "string (provenance of Source 1, at least 8 chars)",
-  "source1": "string (content of Source 1, at least 60 chars)",
-  "source2Provenance": "string (provenance of Source 2, at least 8 chars)",
-  "source2": "string (content of Source 2, at least 60 chars)",
-  "source3Provenance": "string (optional: provenance of Source 3, at least 8 chars)",
-  "source3": "string (optional: content of Source 3, at least 60 chars)",
-  "source4Provenance": "string (optional: provenance of Source 4, at least 8 chars)",
-  "source4": "string (optional: content of Source 4, at least 60 chars)",
-  "source5Provenance": "string (optional: provenance of Source 5, at least 8 chars)",
-  "source5": "string (optional: content of Source 5, at least 60 chars)",
-  "partA_Inference": "string (Part (a) Inference question, at least 15 chars)",
-  "partB_Comparison": "string (Part (b) Comparison question, at least 15 chars)",
-  "partC_Purpose": "string (Part (c) Purpose question, at least 15 chars)",
-  "partD_Reliability": "string (Part (d) Reliability question, at least 15 chars)",
-  "partE_Assertion": "string (Part (e) Assertion question, at least 15 chars)",
-  "questionPrompt": "string (optional overall question prompt header)",
-  "srqBackgroundContext": "string (FOR SOCIAL STUDIES ONLY: SRQ background context, at least 20 chars. Set to empty if not SS.)",
-  "srqQuestionA": "string (FOR SS ONLY: SRQ 7-mark question, at least 15 chars. Set to empty if not SS.)",
-  "srqQuestionB": "string (FOR SS ONLY: SRQ 8-mark question, at least 15 chars. Set to empty if not SS.)",
-  "seqQuestion1": "string (FOR HISTORY ONLY: SEQ essay question 1, at least 15 chars. Set to empty if not History.)",
-  "seqQuestion2": "string (FOR HISTORY ONLY: SEQ essay question 2, at least 15 chars. Set to empty if not History.)",
-  "seqQuestion3": "string (FOR HISTORY ONLY: SEQ essay question 3, at least 15 chars. Set to empty if not History.)",
-  "suggestedAnswer": "string (A1-grade comprehensive model answer covering ALL parts, at least 30 chars)"
-}`;
+/**
+ * Build JSON field spec for All Formats mode based on source count.
+ */
+function buildAllFormatsJsonFields(sourceCount: number): string {
+  const lines: string[] = [];
+  lines.push(`  "backgroundContext": "string (overall background context for the case study, at least 40 chars)",`);
+  for (let i = 1; i <= 5; i++) {
+    if (i <= sourceCount) {
+      lines.push(`  "source${i}Provenance": "string (provenance of Source ${i}, at least 8 chars)",`);
+      lines.push(`  "source${i}": "string (content of Source ${i}, at least 60 chars)",`);
+    } else {
+      lines.push(`  "source${i}Provenance": "string (optional — set to empty string if not needed)",`);
+      lines.push(`  "source${i}": "string (optional — set to empty string if not needed)",`);
+    }
+  }
+  lines.push(`  "partA_Inference": "string (Part (a) Inference question, at least 15 chars)",`);
+  lines.push(`  "partB_Comparison": "string (Part (b) Comparison question, at least 15 chars)",`);
+  lines.push(`  "partC_Purpose": "string (Part (c) Purpose question, at least 15 chars)",`);
+  lines.push(`  "partD_Reliability": "string (Part (d) Reliability question, at least 15 chars)",`);
+  lines.push(`  "partE_Assertion": "string (Part (e) Assertion question, at least 15 chars)",`);
+  lines.push(`  "questionPrompt": "string (optional overall question prompt header)",`);
+  lines.push(`  "srqBackgroundContext": "string (FOR SOCIAL STUDIES ONLY: SRQ background context. Set to empty if not SS.)",`);
+  lines.push(`  "srqQuestionA": "string (FOR SS ONLY: SRQ 7-mark question. Set to empty if not SS.)",`);
+  lines.push(`  "srqQuestionB": "string (FOR SS ONLY: SRQ 8-mark question. Set to empty if not SS.)",`);
+  lines.push(`  "seqQuestion1": "string (FOR HISTORY ONLY: SEQ essay question 1. Set to empty if not History.)",`);
+  lines.push(`  "seqQuestion2": "string (FOR HISTORY ONLY: SEQ essay question 2. Set to empty if not History.)",`);
+  lines.push(`  "seqQuestion3": "string (FOR HISTORY ONLY: SEQ essay question 3. Set to empty if not History.)",`);
+  lines.push(`  "suggestedAnswer": "string (A1-grade comprehensive model answer covering ALL parts, at least 30 chars)"`);
+  return `{\n${lines.join('\n')}\n}`;
+}
 
 /**
- * Normalise All Formats response to include backward-compatible fields
- * so the frontend can still use sourceA, sourceB, sbcsPrompt, etc.
+ * Normalise All Formats response to include backward-compatible fields.
+ * Only exposes sources up to the requested sourceCount.
  */
-function normaliseAllFormatsResponse(data: AllFormatsResult) {
-  return {
-    // Expose all 5 sources with backward-compat aliases
+function normaliseAllFormatsResponse(data: AllFormatsData, sourceCount: number) {
+  const result: Record<string, any> = {
+    // Source A/B are always available (first 2)
     sourceAProvenance: data.source1Provenance,
     sourceA: data.source1,
     sourceBProvenance: data.source2Provenance,
     sourceB: data.source2,
-    sourceCProvenance: data.source3Provenance || '',
-    sourceC: data.source3 || '',
-    sourceDProvenance: data.source4Provenance || '',
-    sourceD: data.source4 || '',
-    sourceEProvenance: data.source5Provenance || '',
-    sourceE: data.source5 || '',
     // All 5 parts combined into a full SBCS prompt (backward compat)
     sbcsPrompt: `(a) ${data.partA_Inference}\n\n(b) ${data.partB_Comparison}\n\n(c) ${data.partC_Purpose}\n\n(d) ${data.partD_Reliability}\n\n(e) ${data.partE_Assertion}`,
     // Individual parts for fine-grained display
@@ -194,7 +218,24 @@ function normaliseAllFormatsResponse(data: AllFormatsResult) {
     suggestedAnswer: data.suggestedAnswer,
     // Flag for frontend
     isAllFormats: true,
+    sourceCount,
   };
+
+  // Add sources 3+ only if within the requested count
+  if (sourceCount >= 3) {
+    result.sourceCProvenance = data.source3Provenance || '';
+    result.sourceC = data.source3 || '';
+  }
+  if (sourceCount >= 4) {
+    result.sourceDProvenance = data.source4Provenance || '';
+    result.sourceD = data.source4 || '';
+  }
+  if (sourceCount >= 5) {
+    result.sourceEProvenance = data.source5Provenance || '';
+    result.sourceE = data.source5 || '';
+  }
+
+  return result;
 }
 
 export const runtime = 'nodejs';
@@ -202,12 +243,19 @@ export const maxDuration = 60;
 
 export async function POST(request: Request) {
   try {
+    // ── Rate limit: 5 requests per 60s per IP ──
+    const rl = await checkSupabaseRateLimit(request, GENERATE_QUESTION_LIMIT);
+    if (rl && !rl.allowed) {
+      return rateLimitResponse(rl.headers);
+    }
+
     const body = await request.json();
-    const { subject, topic, questionType, userId } = body as {
+    const { subject, topic, questionType, userId, sourceCount } = body as {
       subject: string;
       topic: string;
       questionType: string;
       userId?: string;
+      sourceCount?: number;
     };
 
     if (!process.env.GROQ_API_KEY && !process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
@@ -222,36 +270,44 @@ export async function POST(request: Request) {
     const resolvedQuestionType = questionType ?? 'All Formats';
     const isAllFormats = resolvedQuestionType.toLowerCase().includes('all formats') || 
                          resolvedQuestionType.toLowerCase().includes('bundle');
+    const resolvedSourceCount = isAllFormats
+      ? Math.max(2, Math.min(5, sourceCount ?? 5))
+      : 2; // Individual tracks always get 2 sources
 
-    // Skill-track-aware system prompt
     const systemPrompt = getGenerateSystemPrompt(resolvedSubject, resolvedTopic, resolvedQuestionType);
 
     let result;
 
     if (isAllFormats) {
+      const schema = createAllFormatsSchema(resolvedSourceCount);
+      const jsonFields = buildAllFormatsJsonFields(resolvedSourceCount);
+
+      const sourcePrompt = resolvedSourceCount < 5
+        ? `Sources 1-${resolvedSourceCount} are REQUIRED; sources ${resolvedSourceCount + 1}-5 should be set to empty strings.`
+        : 'All 5 sources are required.';
+
       const raw = await tryGenerateWithFallbacks(
         systemPrompt,
         `Generate one complete O-Level ${resolvedSubject} FULL EXAM PACKAGE on the topic "${resolvedTopic}".
-Skill track: All Formats — generate ALL components (5 sources, 5 SBQ questions part A-E, plus subject-specific SRQ/SEQ sections).
-
+Skill track: All Formats — generate ALL components (${resolvedSourceCount} sources, 5 SBQ questions part A-E, plus subject-specific SRQ/SEQ sections).
+${sourcePrompt}
 The sources must be designed to test a RANGE of skills (inference, comparison, purpose, reliability, assertion).`.trim(),
-        allFormatsSchema,
-        ALL_FORMATS_JSON_FIELDS,
+        schema,
+        jsonFields,
       );
-      result = normaliseAllFormatsResponse(raw);
+      result = normaliseAllFormatsResponse(raw as AllFormatsData, resolvedSourceCount);
     } else {
       result = await tryGenerateWithFallbacks(
         systemPrompt,
         `Generate one complete O-Level ${resolvedSubject} stimulus package on the topic "${resolvedTopic}".
 Skill track: ${resolvedQuestionType}.
-
 The sources must be designed specifically to test the ${resolvedQuestionType} skill.`.trim(),
         questionSchema,
         INDIVIDUAL_JSON_FIELDS,
       );
     }
 
-    // Persist for sidebar history — try service role key first, fall back to session auth
+    // Persist for sidebar history
     if (userId && process.env.NEXT_PUBLIC_SUPABASE_URL) {
       try {
         const client = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -267,6 +323,7 @@ The sources must be designed specifically to test the ${resolvedQuestionType} sk
           source_b: result.sourceB || '',
           question_prompt: result.questionPrompt || '',
           suggested_answer: result.suggestedAnswer || '',
+          metadata: { sourceCount: resolvedSourceCount },
         } as never);
       } catch (dbErr) {
         console.warn('Non-fatal: failed to persist generated_questions row', dbErr);

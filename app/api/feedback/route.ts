@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { checkSupabaseRateLimit, FEEDBACK_LIMIT, rateLimitResponse } from '@/lib/rate-limit-supabase';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -26,6 +27,12 @@ export async function PATCH(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    // ── Rate limit: 3 requests per 30s per IP ──
+    const rl = await checkSupabaseRateLimit(req, FEEDBACK_LIMIT);
+    if (rl && !rl.allowed) {
+      return rateLimitResponse(rl.headers);
+    }
+
     const { userId, userEmail, feedbackType, description, testimonialRating } = await req.json();
 
     if (!description) {
