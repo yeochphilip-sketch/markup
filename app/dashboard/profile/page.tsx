@@ -32,6 +32,15 @@ export default function ProfilePage() {
 
   const [recentEvaluations, setRecentEvaluations] = useState<any[]>([]);
 
+  // XP breakdown state
+  const [xpBreakdown, setXpBreakdown] = useState<Record<string, number>>({
+    fromGrades: 0,
+    fromAchievements: 0,
+    fromStreaks: 0,
+    fromDailyGoals: 0,
+    fromReferrals: 0,
+  });
+
   // Referral state
   const [referralCode, setReferralCode] = useState('');
   const [referralCount, setReferralCount] = useState(0);
@@ -60,7 +69,7 @@ export default function ProfilePage() {
         // Fetch metrics
         const { data: metrics } = await supabase
           .from('user_skill_metrics')
-          .select('sbq_inference_score, sbq_comparison_score, sbq_reliability_score, seq_essay_score, seq_conclusion_score, total_xp, level_title, current_streak, longest_streak, achievements, last_practice_date, total_evaluations, total_xp_decayed, ss_goal_level, history_goal_level, takes_history')
+          .select('sbq_inference_score, sbq_comparison_score, sbq_reliability_score, seq_essay_score, seq_conclusion_score, total_xp, level_title, current_streak, longest_streak, achievements, last_practice_date, total_evaluations, total_xp_decayed, ss_goal_level, history_goal_level, takes_history, xp_breakdown')
           .eq('user_id', uid)
           .single();
 
@@ -76,6 +85,16 @@ export default function ProfilePage() {
           setAchievements(metrics.achievements ?? []);
           setXpDecayed(metrics.total_xp_decayed ?? 0);
           setLastPracticeDate(metrics.last_practice_date);
+
+          // XP breakdown
+          const breakdown = metrics.xp_breakdown || {};
+          setXpBreakdown({
+            fromGrades: breakdown.fromGrades || 0,
+            fromAchievements: breakdown.fromAchievements || 0,
+            fromStreaks: breakdown.fromStreaks || 0,
+            fromDailyGoals: breakdown.fromDailyGoals || 0,
+            fromReferrals: breakdown.fromReferrals || 0,
+          });
 
           setSkillRatings({
             inference: metrics.sbq_inference_score || 1,
@@ -238,6 +257,94 @@ export default function ProfilePage() {
             <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">XP Decayed</p>
             <p className="text-2xl font-black text-rose-400 font-mono mt-1">{xpDecayed}</p>
           </div>
+        </div>
+
+        {/* ── XP Breakdown ── */}
+        <div className="bg-slate-950/80 border border-slate-900 rounded-2xl p-5">
+          <h3 className="text-[10px] font-black tracking-widest text-slate-400 uppercase mb-4 flex items-center gap-2">
+            📊 XP Breakdown
+          </h3>
+
+          {(() => {
+            const totalBreakdown =
+              xpBreakdown.fromGrades +
+              xpBreakdown.fromAchievements +
+              xpBreakdown.fromStreaks +
+              xpBreakdown.fromDailyGoals +
+              xpBreakdown.fromReferrals;
+
+            const sources = [
+              { key: 'fromGrades', label: 'Grading', xp: xpBreakdown.fromGrades, color: 'bg-indigo-500' },
+              { key: 'fromAchievements', label: 'Achievements', xp: xpBreakdown.fromAchievements, color: 'bg-emerald-500' },
+              { key: 'fromStreaks', label: 'Streaks', xp: xpBreakdown.fromStreaks, color: 'bg-amber-500' },
+              { key: 'fromDailyGoals', label: 'Daily Goals', xp: xpBreakdown.fromDailyGoals, color: 'bg-purple-500' },
+              { key: 'fromReferrals', label: 'Referrals', xp: xpBreakdown.fromReferrals, color: 'bg-rose-500' },
+            ].filter(s => s.xp > 0);
+
+            if (sources.length === 0 || totalBreakdown === 0) {
+              return (
+                <p className="text-[11px] text-slate-600 italic">
+                  Complete a practice session to see your XP breakdown!
+                </p>
+              );
+            }
+
+            return (
+              <div className="space-y-4">
+                {/* Stacked horizontal bar */}
+                <div className="h-6 bg-slate-800 rounded-full overflow-hidden flex">
+                  {sources.map((s) => {
+                    const pct = Math.max((s.xp / totalBreakdown) * 100, 0);
+                    if (pct < 1) return null;
+                    return (
+                      <div
+                        key={s.key}
+                        className={`${s.color} h-full transition-all duration-700 first:rounded-l-full last:rounded-r-full`}
+                        style={{ width: `${pct}%` }}
+                        title={`${s.label}: ${s.xp.toLocaleString()} XP (${pct.toFixed(1)}%)`}
+                      />
+                    );
+                  })}
+                </div>
+
+                {/* Legend with values */}
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
+                  {sources.map((s) => {
+                    const pct = ((s.xp / totalBreakdown) * 100).toFixed(1);
+                    const dotColor = s.color.replace('bg-', 'bg-').replace('-500', '');
+                    return (
+                      <div
+                        key={s.key}
+                        className="bg-slate-900/40 border border-slate-800/50 rounded-xl p-3 flex items-center gap-3"
+                      >
+                        <span className={`w-3 h-3 rounded-full ${s.color} shrink-0`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[9px] font-bold text-slate-500 uppercase truncate">{s.label}</p>
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="text-sm font-black font-mono text-white">{s.xp.toLocaleString()}</span>
+                            <span className="text-[9px] text-slate-500 font-mono">{pct}%</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Total */}
+                <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-xl p-3 text-center">
+                  <p className="text-[9px] text-slate-500 font-bold uppercase">Total Tracked XP</p>
+                  <p className="text-lg font-black font-mono text-indigo-400">{totalBreakdown.toLocaleString()}</p>
+                  <p className="text-[9px] text-slate-600 mt-0.5">
+                    {masteryPoints > totalBreakdown
+                      ? `+${(masteryPoints - totalBreakdown).toLocaleString()} XP unaccounted (legacy)`
+                      : totalBreakdown === masteryPoints
+                      ? 'All XP sources tracked ✓'
+                      : null}
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         {/* ── Skill Radar ── */}

@@ -314,7 +314,7 @@ export async function POST(request: Request) {
           // Fetch current gamification state
           const { data: metrics, error: fetchErr } = await supabase
             .from('user_skill_metrics')
-            .select('total_xp, last_practice_date, current_streak, longest_streak, level_title, total_xp_decayed')
+            .select('total_xp, last_practice_date, current_streak, longest_streak, level_title, total_xp_decayed, xp_breakdown')
             .eq('user_id', userId)
             .single() as unknown as { data: Record<string, any> | null; error: any };
 
@@ -362,9 +362,9 @@ export async function POST(request: Request) {
 
           const longestStreak = Math.max(newStreak, metrics.longest_streak ?? 0);
 
-          // ── Check achievements ──
+          // ── Check achievements (now includes XP rewards!) ──
           const existingAchievements = metrics.achievements ?? [];
-          const newAchievements = checkNewAchievements({
+          const { achievements: newAchievements, totalXpReward: achievementXp } = checkNewAchievements({
             newLevel,
             newXp: currentXp,
             totalEvalCount,
@@ -374,6 +374,19 @@ export async function POST(request: Request) {
             dailyGoalMet: dailyGoalJustMet,
           });
           const allAchievements = [...existingAchievements, ...newAchievements.map(a => a.id)];
+
+          // Add achievement XP into the total
+          currentXp += achievementXp;
+
+          // ── Build cumulative XP breakdown ──
+          const prevBreakdown = metrics.xp_breakdown || {};
+          const xpBreakdown = {
+            fromGrades: (prevBreakdown.fromGrades || 0) + earnedXp,
+            fromAchievements: (prevBreakdown.fromAchievements || 0) + achievementXp,
+            fromStreaks: (prevBreakdown.fromStreaks || 0) + streakBonus.bonus,
+            fromDailyGoals: (prevBreakdown.fromDailyGoals || 0) + dailyBonus,
+            fromReferrals: prevBreakdown.fromReferrals || 0,
+          };
 
           const { error: gamErr } = await supabase
             .from('user_skill_metrics')
@@ -386,17 +399,22 @@ export async function POST(request: Request) {
               achievements: allAchievements,
               total_evaluations: totalEvalCount,
               total_xp_decayed: totalDecayedXp,
+              xp_breakdown: xpBreakdown,
             } as never)
             .eq('user_id', userId);
 
-          // Attach new achievements to response so frontend can show them
+          // Attach new achievements (with XP) to response so frontend can show them
           if (newAchievements.length > 0 && response) {
             (response as any)._newAchievements = newAchievements.map(a => ({
               id: a.id,
               title: a.title,
               description: a.description,
               icon: a.icon,
+              xpReward: a.xpReward,
             }));
+          }
+          if (achievementXp > 0 && response) {
+            (response as any)._achievementXp = achievementXp;
           }
           if (dailyBonus > 0 && response) {
             (response as any)._dailyGoalBonus = dailyBonus;

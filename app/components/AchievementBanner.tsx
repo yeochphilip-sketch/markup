@@ -7,6 +7,7 @@ interface AchievementData {
   icon: string;
   title: string;
   description: string;
+  xpReward?: number;
 }
 
 interface AchievementBannerProps {
@@ -68,7 +69,14 @@ export default function AchievementBanner({
                 <span className="text-3xl">{ach.icon}</span>
                 <div>
                   <p className="text-sm font-bold text-white">{ach.title}</p>
-                  <p className="text-[11px] text-slate-400">{ach.description}</p>
+                  <p className="text-[11px] text-slate-400">
+                    {ach.description}
+                    {ach.xpReward ? (
+                      <span className="ml-2 inline-flex items-center gap-0.5 text-emerald-400 font-semibold">
+                        +{ach.xpReward} XP
+                      </span>
+                    ) : null}
+                  </p>
                 </div>
               </div>
             ))}

@@ -270,6 +270,17 @@ ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS total_xp_decayed 
 ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS last_decay_check_date  DATE;
 
 -- ════════════════════════════════════════════════════════════
+--  XP breakdown tracking (by source)
+-- ════════════════════════════════════════════════════════════
+ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS xp_breakdown JSONB DEFAULT '{
+  "fromGrades": 0,
+  "fromAchievements": 0,
+  "fromStreaks": 0,
+  "fromDailyGoals": 0,
+  "fromReferrals": 0
+}'::jsonb;
+
+-- ════════════════════════════════════════════════════════════
 --  Personalized reminder columns
 -- ════════════════════════════════════════════════════════════
 ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS last_active_at           TIMESTAMP WITH TIME ZONE;

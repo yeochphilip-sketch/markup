@@ -61,16 +61,26 @@ export async function POST(request: Request) {
       const REFERRAL_XP = 200;
       const { data: referrerMetrics } = await supabaseAdmin
         .from('user_skill_metrics')
-        .select('total_xp')
+        .select('total_xp, xp_breakdown')
         .eq('user_id', referrerProfile.id)
         .single() as any;
 
       const referrerXp = (referrerMetrics?.total_xp ?? 0) + REFERRAL_XP;
 
+      // Track referral XP in breakdown
+      const prevBreakdown = referrerMetrics?.xp_breakdown || {};
+      const newBreakdown = {
+        fromGrades: prevBreakdown.fromGrades || 0,
+        fromAchievements: prevBreakdown.fromAchievements || 0,
+        fromStreaks: prevBreakdown.fromStreaks || 0,
+        fromDailyGoals: prevBreakdown.fromDailyGoals || 0,
+        fromReferrals: (prevBreakdown.fromReferrals || 0) + REFERRAL_XP,
+      };
+
       // Update referrer
       await supabaseAdmin
         .from('user_skill_metrics')
-        .update({ total_xp: referrerXp } as never)
+        .update({ total_xp: referrerXp, xp_breakdown: newBreakdown } as never)
         .eq('user_id', referrerProfile.id);
 
       await supabaseAdmin
@@ -82,15 +92,25 @@ export async function POST(request: Request) {
       const NEW_USER_XP = 100;
       const { data: myMetrics } = await supabaseAdmin
         .from('user_skill_metrics')
-        .select('total_xp')
+        .select('total_xp, xp_breakdown')
         .eq('user_id', userId)
         .single() as any;
 
       const myNewXp = (myMetrics?.total_xp ?? 0) + NEW_USER_XP;
 
+      // Track referral XP in breakdown
+      const myPrevBreakdown = myMetrics?.xp_breakdown || {};
+      const myNewBreakdown = {
+        fromGrades: myPrevBreakdown.fromGrades || 0,
+        fromAchievements: myPrevBreakdown.fromAchievements || 0,
+        fromStreaks: myPrevBreakdown.fromStreaks || 0,
+        fromDailyGoals: myPrevBreakdown.fromDailyGoals || 0,
+        fromReferrals: (myPrevBreakdown.fromReferrals || 0) + NEW_USER_XP,
+      };
+
       await supabaseAdmin
         .from('user_skill_metrics')
-        .update({ total_xp: myNewXp } as never)
+        .update({ total_xp: myNewXp, xp_breakdown: myNewBreakdown } as never)
         .eq('user_id', userId);
 
       // Mark user as referred

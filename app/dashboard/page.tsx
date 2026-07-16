@@ -825,13 +825,19 @@ export default function DashboardPage() {
           setTimeout(() => setShowConfetti(false), 4000);
         }
 
-        // Achievement unlocks
+        // Achievement unlocks (with XP!)
         const newAchs = data._newAchievements;
         if (newAchs && newAchs.length > 0) {
           setNewlyUnlocked(newAchs);
           setShowAchievementUnlocked(true);
           setAchievements(prev => [...prev, ...newAchs.map((a: any) => a.id)]);
           if (isSoundEnabled) playAchievementSound();
+        }
+
+        // Achievement XP reward
+        const achievementXp = data._achievementXp ?? 0;
+        if (achievementXp > 0) {
+          totalXpGained += achievementXp;
         }
 
         // Play grade complete sound

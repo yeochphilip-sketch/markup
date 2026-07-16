@@ -166,6 +166,8 @@ export interface AchievementDef {
   title: string;
   description: string;
   icon: string;
+  /** XP awarded when this achievement is unlocked */
+  xpReward: number;
   /** Condition function — return true if the achievement should be granted */
   condition: (ctx: AchievementCtx) => boolean;
 }
@@ -187,6 +189,7 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
     title: 'First Steps',
     description: 'Submit your first essay for grading',
     icon: '🌟',
+    xpReward: 25,
     condition: () => true, // granted on first submission always
   },
   {
@@ -194,6 +197,7 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
     title: 'First A1',
     description: 'Achieve the highest LORMS level (L4)',
     icon: '🏅',
+    xpReward: 75,
     condition: (ctx) => ctx.newLevel >= 4,
   },
   {
@@ -201,6 +205,7 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
     title: 'Persistent',
     description: 'Submit 5 essays for grading',
     icon: '💪',
+    xpReward: 50,
     condition: (ctx) => ctx.totalEvalCount >= 5,
   },
   {
@@ -208,6 +213,7 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
     title: 'Dedicated',
     description: 'Submit 10 essays for grading',
     icon: '🔥',
+    xpReward: 100,
     condition: (ctx) => ctx.totalEvalCount >= 10,
   },
   {
@@ -215,6 +221,7 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
     title: 'Momentum',
     description: 'Maintain a 3-day practice streak',
     icon: '📅',
+    xpReward: 50,
     condition: (ctx) => ctx.currentStreak >= 3,
   },
   {
@@ -222,6 +229,7 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
     title: 'Unstoppable',
     description: 'Maintain a 7-day practice streak',
     icon: '⚡',
+    xpReward: 100,
     condition: (ctx) => ctx.currentStreak >= 7,
   },
   {
@@ -229,6 +237,7 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
     title: 'Rising Star',
     description: 'Reach Apprentice tier (500 XP)',
     icon: '🔥',
+    xpReward: 75,
     condition: (ctx) => ctx.newXp >= 500,
   },
   {
@@ -236,6 +245,7 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
     title: 'Scholar',
     description: 'Reach Scholar tier (1500 XP)',
     icon: '📚',
+    xpReward: 100,
     condition: (ctx) => ctx.newXp >= 1500,
   },
   {
@@ -243,6 +253,7 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
     title: 'Expert Analyst',
     description: 'Reach Expert tier (3000 XP)',
     icon: '⚡',
+    xpReward: 125,
     condition: (ctx) => ctx.newXp >= 3000,
   },
   {
@@ -250,6 +261,7 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
     title: 'Grand Master',
     description: 'Reach Master tier (5000 XP)',
     icon: '👑',
+    xpReward: 150,
     condition: (ctx) => ctx.newXp >= 5000,
   },
   {
@@ -257,6 +269,7 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
     title: 'History Buff',
     description: 'Complete 5 History papers',
     icon: '🏛️',
+    xpReward: 75,
     condition: (ctx) => ctx.subject === 'Elective History' && ctx.totalEvalCount >= 5,
   },
   {
@@ -264,14 +277,24 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
     title: 'On Track',
     description: 'Complete your first daily practice goal',
     icon: '✅',
+    xpReward: 25,
     condition: (ctx) => ctx.dailyGoalMet,
   },
 ];
 
-export function checkNewAchievements(ctx: AchievementCtx): AchievementDef[] {
-  return ACHIEVEMENT_DEFS.filter(
+/**
+ * Check which achievements have been newly unlocked.
+ * Returns both the achievement definitions and the total XP earned from them.
+ */
+export function checkNewAchievements(ctx: AchievementCtx): {
+  achievements: AchievementDef[];
+  totalXpReward: number;
+} {
+  const achievements = ACHIEVEMENT_DEFS.filter(
     (a) => !ctx.previousAchivements.includes(a.id) && a.condition(ctx),
   );
+  const totalXpReward = achievements.reduce((sum, a) => sum + a.xpReward, 0);
+  return { achievements, totalXpReward };
 }
 
 // ═══════════════════════════════════════════════════════════════
