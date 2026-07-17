@@ -10,8 +10,16 @@ export default function AuthPage() {
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [isMagicLink, setIsMagicLink] = useState(false);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  // MFA state
+  const [showMfaSetup, setShowMfaSetup] = useState(false);
+  const [mfaQrCode, setMfaQrCode] = useState('');
+  const [mfaSecret, setMfaSecret] = useState('');
+  const [mfaVerifyCode, setMfaVerifyCode] = useState('');
+  const [mfaFactorId, setMfaFactorId] = useState('');
+  const [mfaVerified, setMfaVerified] = useState(false);
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,6 +40,63 @@ export default function AuthPage() {
       const _elapsed = Date.now() - _start;
       if (_elapsed < 1500) await new Promise(r => setTimeout(r, 1500 - _elapsed));
       setIsLoading(false);
+    }
+  };
+
+  // ── Magic Link Login ──
+  const handleMagicLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+    const _start = Date.now();
+    setIsLoading(true);
+    setMessage('');
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.trim(),
+        options: { emailRedirectTo: `${window.location.origin}/dashboard` },
+      });
+      if (error) throw error;
+      setMessage('✅ Magic link sent! Check your email (and spam folder).');
+      setIsMagicLink(false);
+    } catch (err: unknown) {
+      setMessage(err instanceof Error ? err.message : 'Failed to send magic link.');
+    } finally {
+      const _elapsed = Date.now() - _start;
+      if (_elapsed < 1500) await new Promise(r => setTimeout(r, 1500 - _elapsed));
+      setIsLoading(false);
+    }
+  };
+
+  // ── MFA: Enroll TOTP ──
+  const handleSetupMfa = async () => {
+    try {
+      const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp' });
+      if (error) throw error;
+      setMfaFactorId(data.id);
+      // data.totp.qr_code is a data URI (SVG QR code)
+      setMfaQrCode(data.totp?.qr_code || '');
+      setMfaSecret(data.totp?.secret || '');
+      setShowMfaSetup(true);
+    } catch (err: unknown) {
+      setMessage(err instanceof Error ? err.message : 'Failed to start MFA setup.');
+    }
+  };
+
+  // ── MFA: Verify enrollment ──
+  const handleVerifyMfa = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mfaVerifyCode.trim() || !mfaFactorId) return;
+    try {
+      const { error } = await supabase.auth.mfa.challengeAndVerify({
+        factorId: mfaFactorId,
+        code: mfaVerifyCode.trim(),
+      });
+      if (error) throw error;
+      setMfaVerified(true);
+      setShowMfaSetup(false);
+      setMessage('✅ Two-factor authentication enabled successfully!');
+    } catch (err: unknown) {
+      setMessage(err instanceof Error ? err.message : 'Invalid code. Try again.');
     }
   };
 
@@ -124,8 +189,55 @@ export default function AuthPage() {
           Continue with Google
         </button>
 
+        {/* Magic Link Button */}
+        <button
+          onClick={() => { setIsMagicLink(true); setMessage(''); }}
+          className="w-full bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition text-xs"
+        >
+          ✉️ Send Magic Link
+        </button>
+
         <div className="flex flex-col space-y-4 pt-2 border-t border-slate-900">
-          {isForgotPassword ? (
+          {isMagicLink ? (
+            <>
+              <p className="text-[10px] text-slate-500 text-center">
+                Enter your email and we&apos;ll send you a one-click login link. No password needed!
+              </p>
+              <form onSubmit={handleMagicLink} className="flex flex-col space-y-3">
+                <input
+                  type="email"
+                  placeholder="Your email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-800 p-3 rounded-xl text-xs text-slate-200 focus:outline-none placeholder-slate-500"
+                  required
+                />
+                <button
+                  type="submit"
+                  disabled={isLoading || !email.trim()}
+                  className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl text-xs transition disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isLoading ? (
+                    <span className="inline-flex items-center gap-2">
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin-fast" />
+                      Sending...
+                    </span>
+                  ) : 'Send Magic Link'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setIsMagicLink(false); setMessage(''); }}
+                  className="text-xs text-slate-500 hover:text-indigo-400 underline underline-offset-4 transition"
+                >
+                  ← Back to Sign In
+                </button>
+              </form>
+
+              {message && (
+                <p className="text-[11px] text-center text-indigo-400 font-mono bg-indigo-950/20 py-2 rounded-lg border border-indigo-900/20">{message}</p>
+              )}
+            </>
+          ) : isForgotPassword ? (
             <>
               <p className="text-[10px] text-slate-500 text-center">
                 Enter your email and we&apos;ll send you a password reset link.
@@ -164,6 +276,48 @@ export default function AuthPage() {
                 <p className="text-[11px] text-center text-indigo-400 font-mono bg-indigo-950/20 py-2 rounded-lg border border-indigo-900/20">{message}</p>
               )}
             </>
+          ) : showMfaSetup ? (
+            <div className="space-y-4">
+              <h3 className="text-xs font-bold text-indigo-400 text-center">🔐 Set Up Two-Factor Authentication</h3>
+              {mfaQrCode ? (
+                <div className="flex flex-col items-center gap-3">
+                  <div className="bg-white p-4 rounded-xl" dangerouslySetInnerHTML={{ __html: mfaQrCode }} />
+                  <p className="text-[9px] text-slate-500 text-center max-w-xs">
+                    Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.),
+                    then enter the 6-digit code below.
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-slate-900 rounded-xl p-3 text-center">
+                  <p className="text-[10px] text-slate-400 font-mono break-all">{mfaSecret}</p>
+                  <p className="text-[9px] text-slate-500 mt-1">Or manually enter this secret in your authenticator app.</p>
+                </div>
+              )}
+              <form onSubmit={handleVerifyMfa} className="flex flex-col space-y-3">
+                <input
+                  type="text"
+                  placeholder="Enter 6-digit code"
+                  maxLength={6}
+                  value={mfaVerifyCode}
+                  onChange={(e) => setMfaVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  className="w-full bg-slate-900 border border-slate-800 p-3 rounded-xl text-xs text-slate-200 text-center tracking-[0.5em] font-mono font-bold focus:outline-none placeholder-slate-600"
+                />
+                <button
+                  type="submit"
+                  disabled={mfaVerifyCode.length !== 6}
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl text-xs transition disabled:opacity-50"
+                >
+                  Verify & Enable 2FA
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowMfaSetup(false); setMessage(''); }}
+                  className="text-xs text-slate-500 hover:text-indigo-400 underline underline-offset-4 transition"
+                >
+                  ← Cancel
+                </button>
+              </form>
+            </div>
           ) : (
             <>
               <form onSubmit={handleEmailAuth} className="flex flex-col space-y-3">
@@ -213,6 +367,23 @@ export default function AuthPage() {
                   className="block w-full text-xs text-slate-500 hover:text-indigo-400 underline underline-offset-4 transition"
                 >
                   Forgot password?
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      const { data: { user } } = await supabase.auth.getUser();
+                      if (!user) {
+                        setMessage('You need to sign in first before setting up 2FA.');
+                        return;
+                      }
+                      await handleSetupMfa();
+                    } catch {
+                      setMessage('Please sign in to enable two-factor authentication.');
+                    }
+                  }}
+                  className="block w-full text-xs text-slate-500 hover:text-emerald-400 underline underline-offset-4 transition"
+                >
+                  🔐 Enable Two-Factor Authentication (2FA)
                 </button>
               </div>
             </>

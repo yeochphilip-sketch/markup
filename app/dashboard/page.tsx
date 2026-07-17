@@ -211,6 +211,8 @@ export default function DashboardPage() {
 
   const [timeLeft, setTimeLeft] = useState(1200); 
   const [isTimerActive, setIsTimerActive] = useState(false);
+  const examTimerWasActiveRef = useRef(false);
+  const [examTimerPausedByHover, setExamTimerPausedByHover] = useState(false);
   
   const [skillRatings, setSkillRatings] = useState({
     inference: 1,
@@ -269,6 +271,23 @@ export default function DashboardPage() {
     }
     return () => clearInterval(interval);
   }, [isTimerActive, timeLeft]);
+
+  // ── Exam timer hover pause/resume ──
+  const handleTimerMouseEnter = useCallback(() => {
+    if (isTimerActive) {
+      examTimerWasActiveRef.current = true;
+      setIsTimerActive(false);
+      setExamTimerPausedByHover(true);
+    }
+  }, [isTimerActive]);
+
+  const handleTimerMouseLeave = useCallback(() => {
+    if (examTimerWasActiveRef.current) {
+      examTimerWasActiveRef.current = false;
+      setIsTimerActive(true);
+      setExamTimerPausedByHover(false);
+    }
+  }, []);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -1495,18 +1514,22 @@ export default function DashboardPage() {
             {(!isQuestionPromptInactive || isCustomMode) && (
               <button 
                 onClick={() => { setIsTimerActive(!isTimerActive); if(timeLeft === 0) setTimeLeft(1200); }}
-                className={`px-4 rounded-xl text-xs font-mono font-bold transition whitespace-nowrap border hover-glow ${
-                  isTimerActive
-                    ? timeLeft <= 60
-                      ? 'bg-rose-600 border-rose-500 text-white animate-pulse'
-                      : timeLeft <= 300
-                        ? 'bg-amber-600 border-amber-500 text-white'
-                        : 'bg-emerald-700 border-emerald-500 text-white'
-                    : 'bg-slate-950 border-slate-900 text-slate-400 hover:text-slate-200'
+                onMouseEnter={handleTimerMouseEnter}
+                onMouseLeave={handleTimerMouseLeave}
+                className={`px-4 rounded-xl text-xs font-mono font-bold transition whitespace-nowrap border ${
+                  examTimerPausedByHover
+                    ? 'bg-amber-500/20 border-amber-500/50 text-amber-400'
+                    : isTimerActive
+                      ? timeLeft <= 60
+                        ? 'bg-rose-600 border-rose-500 text-white animate-pulse'
+                        : timeLeft <= 300
+                          ? 'bg-amber-600 border-amber-500 text-white'
+                          : 'bg-emerald-700 border-emerald-500 text-white'
+                      : 'bg-slate-950 border-slate-900 text-slate-400 hover:text-slate-200'
                 }`}
               >
-                ⏱️ {isTimerActive ? formatTime(timeLeft) : 'Start Timer'}
-                {isTimerActive && timeLeft <= 300 && (
+                {examTimerPausedByHover ? '⏸️ Paused — Hover off to resume' : isTimerActive ? `⏱️ ${formatTime(timeLeft)}` : '⏱️ Start Timer'}
+                {isTimerActive && !examTimerPausedByHover && timeLeft <= 300 && (
                   <span className="ml-1 text-[9px]">{timeLeft <= 60 ? 'CRITICAL' : `${Math.ceil(timeLeft/60)}m left`}</span>
                 )}
               </button>

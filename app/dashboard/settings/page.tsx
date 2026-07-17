@@ -58,7 +58,10 @@ export default function SettingsPage() {
   const [copied, setCopied] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
-  // ── Initialize sound from localStorage after mount ──
+  // ── Theme state ──
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+
+  // ── Initialize sound + theme from localStorage after mount ──
   useEffect(() => {
     const stored = localStorage.getItem('sound_enabled');
     if (stored === 'false') {
@@ -66,7 +69,27 @@ export default function SettingsPage() {
     } else if (!stored) {
       localStorage.setItem('sound_enabled', 'true');
     }
+
+    const storedTheme = localStorage.getItem('theme');
+    if (storedTheme === 'light' || storedTheme === 'dark') {
+      setTheme(storedTheme);
+    }
   }, []);
+
+  // ── Apply theme to <html> element ──
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'light') {
+      root.classList.add('light');
+      root.style.backgroundColor = '#f8fafc';
+      root.style.color = '#0a0a0a';
+    } else {
+      root.classList.remove('light');
+      root.style.backgroundColor = '#07090e';
+      root.style.color = '#f1f5f9';
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
@@ -442,6 +465,34 @@ export default function SettingsPage() {
                     soundEnabled ? 'translate-x-5' : 'translate-x-0'
                   }`}
                 />
+              </button>
+            </div>
+
+            {/* Theme toggle */}
+            <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+              <div>
+                <p className="text-xs font-semibold text-slate-200">{theme === 'dark' ? '🌙' : '☀️'} Theme</p>
+                <p className="text-[9px] text-slate-500 mt-0.5">
+                  {theme === 'dark' ? 'Dark mode (default)' : 'Light mode'}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  const newTheme = theme === 'dark' ? 'light' : 'dark';
+                  setTheme(newTheme);
+                  showToast(newTheme === 'dark' ? 'Dark mode enabled' : 'Light mode enabled');
+                }}
+                className={`relative w-11 h-6 rounded-full transition-colors ${
+                  theme === 'dark' ? 'bg-indigo-600' : 'bg-amber-500'
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform flex items-center justify-center text-[10px] ${
+                    theme === 'dark' ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                >
+                  {theme === 'dark' ? '🌙' : '☀️'}
+                </span>
               </button>
             </div>
 
