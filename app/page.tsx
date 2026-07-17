@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { supabase } from '@/utils/supabase';
 
 
 function HeroCTA() {
@@ -69,6 +70,11 @@ const SAMPLE_CARDS = [
 export default function LandingPage() {
   const [waitlistCount, setWaitlistCount] = useState<number | null>(null);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentEmail, setCurrentEmail] = useState<string | null>(null);
+  const [waitlistDiscount, setWaitlistDiscount] = useState(0);
+  const [sessionLoaded, setSessionLoaded] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -77,6 +83,49 @@ export default function LandingPage() {
       .then(d => setWaitlistCount(d.count))
       .catch(() => {}); // Don't set count on error — null means "unknown"
   }, []);
+
+  // Load user session (for checkout buttons)
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setCurrentUserId(session.user.id);
+        setCurrentEmail(session.user.email || null);          supabase
+            .from('user_profiles')
+            .select('waitlist_discount')
+            .eq('id', session.user.id)
+            .single()
+            .then(({ data }) => {
+              if (data?.waitlist_discount) setWaitlistDiscount(data.waitlist_discount);
+            });
+      }
+      setSessionLoaded(true);
+    });
+  }, []);
+
+  const handleCheckout = async (tier: string) => {
+    if (!currentUserId) {
+      window.location.href = '/auth';
+      return;
+    }
+    setCheckoutLoading(tier);
+    try {
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tier, userId: currentUserId, email: currentEmail }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        console.error('Checkout failed:', data.error);
+        setCheckoutLoading(null);
+      }
+    } catch (err) {
+      console.error('Checkout error:', err);
+      setCheckoutLoading(null);
+    }
+  };
 
   // Auto-rotate sample cards every 4 seconds
   useEffect(() => {
@@ -393,57 +442,96 @@ export default function LandingPage() {
               Post-Beta Plans (not required to use today)
             </span>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left opacity-40 select-none">
-            {/* Student Monthly */}
-            <div className="bg-slate-950/80 border border-indigo-500/30 rounded-2xl p-5 flex flex-col justify-between shadow-xl shadow-indigo-950/20">
-              <div className="space-y-3">
-                <h4 className="text-sm font-black text-white uppercase tracking-wide">Student Monthly</h4>
-                <div className="space-y-1">
-                  <span className="inline-flex items-center gap-1 bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 text-[8px] font-black tracking-widest uppercase px-2 py-0.5 rounded-full">Planned · S$</span>
-                  <div className="flex items-baseline text-slate-100 font-mono">
-                    <span className="text-2xl font-black tracking-tight">12</span>
-                    <span className="text-slate-500 text-[10px] ml-1 font-bold">/ month</span>
-                  </div>
-                </div>
-              </div>
-              <div className="mt-4 pt-3 border-t border-slate-900/60 text-center">
-                <span className="text-[9px] text-slate-600 font-mono italic">After beta</span>
-              </div>
-            </div>
-
-            {/* Student Academic Pass */}
-            <div className="bg-slate-950/80 border border-emerald-500/30 rounded-2xl p-5 flex flex-col justify-between shadow-xl shadow-emerald-950/20 relative">
-              <span className="absolute -top-2.5 right-4 bg-emerald-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">Best Value</span>
-              <div className="space-y-3">
-                <h4 className="text-sm font-black text-white uppercase tracking-wide">Academic Pass</h4>
-                <div className="space-y-1">
-                  <span className="inline-flex items-center gap-1 bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-[8px] font-black tracking-widest uppercase px-2 py-0.5 rounded-full">Planned · S$</span>
-                  <div className="flex items-baseline text-slate-100 font-mono">
-                    <span className="text-2xl font-black tracking-tight">48</span>
-                    <span className="text-slate-500 text-[10px] ml-1 font-bold">flat</span>
-                  </div>
-                </div>
-              </div>
-              <div className="mt-4 pt-3 border-t border-slate-900/60 text-center">
-                <span className="text-[9px] text-slate-600 font-mono italic">After beta</span>
-              </div>
-            </div>
-
-            {/* Tuition Cohort Pass */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left opacity-60">
+            {/* Expert Pass */}
             <div className="bg-slate-950/80 border border-amber-500/30 rounded-2xl p-5 flex flex-col justify-between shadow-xl shadow-amber-950/20 relative">
-              <span className="absolute -top-2.5 right-4 bg-amber-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">For Centres</span>
+              <span className="absolute -top-2.5 right-4 bg-amber-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">Premium</span>
               <div className="space-y-3">
-                <h4 className="text-sm font-black text-white uppercase tracking-wide">Cohort Pass</h4>
+                <h4 className="text-sm font-black text-white uppercase tracking-wide">Expert Pass</h4>
+                <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Dedicated Students</p>
                 <div className="space-y-1">
-                  <span className="inline-flex items-center gap-1 bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[8px] font-black tracking-widest uppercase px-2 py-0.5 rounded-full">Planned · S$</span>
+                  <span className="inline-flex items-center gap-1 bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[8px] font-black tracking-widest uppercase px-2 py-0.5 rounded-full">S$</span>
                   <div className="flex items-baseline text-slate-100 font-mono">
-                    <span className="text-2xl font-black tracking-tight">89</span>
+                    <span className="text-2xl font-black tracking-tight">19.99</span>
                     <span className="text-slate-500 text-[10px] ml-1 font-bold">/ month</span>
                   </div>
                 </div>
+                <p className="text-[10px] text-slate-500 leading-relaxed">
+                  Priority grading, advanced diagnostics, early feature access — the full arsenal for A1.
+                </p>
               </div>
               <div className="mt-4 pt-3 border-t border-slate-900/60 text-center">
-                <span className="text-[9px] text-slate-600 font-mono italic">After beta</span>
+                <button
+                  onClick={() => handleCheckout('expert_pass')}
+                  disabled={checkoutLoading === 'expert_pass' || !sessionLoaded}
+                  className="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold py-2 rounded-xl text-xs transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {checkoutLoading === 'expert_pass' ? (
+                    <><div className="w-3 h-3 border-2 border-black border-t-transparent rounded-full animate-spin-fast" /> Redirecting...</>
+                  ) : !sessionLoaded ? 'Loading...' : !currentUserId ? 'Sign In to Subscribe' : 'Subscribe Now'}
+                </button>
+                {waitlistDiscount > 0 && (
+                  <p className="text-[9px] text-emerald-400 font-bold mt-2 text-center">🎉 {waitlistDiscount}% off applied</p>
+                )}
+              </div>
+            </div>
+
+            {/* Scholar Pass */}
+            <div className="bg-slate-950/80 border border-indigo-500/30 rounded-2xl p-5 flex flex-col justify-between shadow-xl shadow-indigo-950/20 relative ring-2 ring-indigo-500/20 scale-[1.02] z-10">
+              <span className="absolute -top-2.5 right-4 bg-indigo-600 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">Most Popular</span>
+              <div className="space-y-3">
+                <h4 className="text-sm font-black text-white uppercase tracking-wide">Scholar Pass</h4>
+                <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Serious Students</p>
+                <div className="space-y-1">
+                  <span className="inline-flex items-center gap-1 bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 text-[8px] font-black tracking-widest uppercase px-2 py-0.5 rounded-full">S$</span>
+                  <div className="flex items-baseline text-slate-100 font-mono">
+                    <span className="text-2xl font-black tracking-tight">9.99</span>
+                    <span className="text-slate-500 text-[10px] ml-1 font-bold">/ month</span>
+                  </div>
+                </div>
+                <p className="text-[10px] text-slate-500 leading-relaxed">
+                  Unlimited papers, full PEEL grading, essay bank, leaderboards — unlock everything for self-driven practice.
+                </p>
+              </div>
+              <div className="mt-4 pt-3 border-t border-slate-900/60 text-center">
+                <button
+                  onClick={() => handleCheckout('scholar_pass')}
+                  disabled={checkoutLoading === 'scholar_pass' || !sessionLoaded}
+                  className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-xl text-xs transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {checkoutLoading === 'scholar_pass' ? (
+                    <><div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin-fast" /> Redirecting...</>
+                  ) : !sessionLoaded ? 'Loading...' : !currentUserId ? 'Sign In to Subscribe' : 'Subscribe Now'}
+                </button>
+                {waitlistDiscount > 0 && (
+                  <p className="text-[9px] text-emerald-400 font-bold mt-2 text-center">🎉 {waitlistDiscount}% off applied</p>
+                )}
+              </div>
+            </div>
+
+            {/* Free */}
+            <div className="bg-slate-950/80 border border-slate-700/30 rounded-2xl p-5 flex flex-col justify-between shadow-xl shadow-slate-950/20">
+              <div className="space-y-3">
+                <h4 className="text-sm font-black text-white uppercase tracking-wide">Free</h4>
+                <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Getting Started</p>
+                <div className="space-y-1">
+                  <span className="inline-flex items-center gap-1 bg-slate-500/15 text-slate-300 border border-slate-600/30 text-[8px] font-black tracking-widest uppercase px-2 py-0.5 rounded-full">S$</span>
+                  <div className="flex items-baseline text-slate-100 font-mono">
+                    <span className="text-2xl font-black tracking-tight text-slate-300">0</span>
+                    <span className="text-slate-500 text-[10px] ml-1 font-bold">/ month</span>
+                  </div>
+                </div>
+                <p className="text-[10px] text-slate-500 leading-relaxed">
+                  AI practice papers, LORMS grading, and basic progress tracking — everything to get started.
+                </p>
+              </div>
+              <div className="mt-4 pt-3 border-t border-slate-900/60 text-center">
+                <a
+                  href="/auth"
+                  className="inline-block w-full bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 rounded-xl text-xs transition text-center"
+                >
+                  Start Free
+                </a>
               </div>
             </div>
           </div>

@@ -601,6 +601,17 @@ ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS referral_code  TEXT;
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS referred_by    TEXT;
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS referral_count INTEGER DEFAULT 0;
 
+-- ============================================================
+-- Stripe subscription columns for user_profiles
+-- ============================================================
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT;
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS stripe_price_id       TEXT;
+
+-- ============================================================
+-- Waitlist discount column for user_profiles
+-- ============================================================
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS waitlist_discount INTEGER DEFAULT 0;
+
 DO $$ BEGIN
     IF NOT EXISTS (
         SELECT 1 FROM pg_class WHERE relname = 'user_profiles_referral_code_key' AND relkind = 'i'

@@ -510,6 +510,50 @@ function AnalyticsDashboardContent() {
     return counts;
   }, [waitlist]);
 
+  // Waitlist subject percentages
+  const waitlistSubjectPercentages = useMemo(() => {
+    const total = waitlist.length || 1;
+    const pcts: Record<string, string> = {};
+    Object.entries(waitlistSubjectCounts).forEach(([s, c]) => {
+      pcts[s] = ((c / total) * 100).toFixed(1);
+    });
+    return pcts;
+  }, [waitlist, waitlistSubjectCounts]);
+
+  // Waitlist → user conversion
+  const waitlistConversionPct = useMemo(() => {
+    const totalWaitlist = waitlist.length;
+    const totalUsers = profiles.length;
+    if (totalWaitlist === 0) return '0.0';
+    return ((totalUsers / totalWaitlist) * 100).toFixed(1);
+  }, [waitlist, profiles]);
+
+  // Weekly waitlist growth rate
+  const waitlistGrowthRate = useMemo(() => {
+    const now = new Date();
+    const thisWeek = new Date(now);
+    thisWeek.setDate(thisWeek.getDate() - 7);
+    const lastWeek = new Date(thisWeek);
+    lastWeek.setDate(lastWeek.getDate() - 7);
+
+    const thisWkCount = waitlist.filter(w => new Date(w.created_at) >= thisWeek).length;
+    const lastWkCount = waitlist.filter(w => {
+      const d = new Date(w.created_at);
+      return d >= lastWeek && d < thisWeek;
+    }).length;
+
+    if (lastWkCount === 0) return thisWkCount > 0 ? '+∞' : '0.0';
+    const growth = ((thisWkCount - lastWkCount) / lastWkCount) * 100;
+    return `${growth >= 0 ? '+' : ''}${growth.toFixed(1)}`;
+  }, [waitlist]);
+
+  // Waitlist total signups last week
+  const waitlistThisWeek = useMemo(() => {
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    return waitlist.filter(w => new Date(w.created_at) >= weekAgo).length;
+  }, [waitlist]);
+
   // Daily waitlist signups (last 14 days)
   const waitlistDays = useMemo(() => {
     const days = lastNDays(14);
@@ -646,10 +690,17 @@ function AnalyticsDashboardContent() {
             <div className="text-3xl font-black text-amber-400 mt-1">
               {loadingWaitlist ? '…' : waitlist.length}
             </div>
-            <div className="text-[9px] text-amber-500 font-mono mt-1">
-              {Object.entries(waitlistSubjectCounts)
-                .map(([s, c]) => `${s}: ${c}`)
-                .join(' · ')}
+            <div className="text-[9px] text-amber-400 font-mono mt-1">
+              {loadingWaitlist ? '…' : (
+                <span className="flex items-center gap-1">
+                  <span>{waitlistThisWeek} this week</span>
+                  <span className={`text-[8px] ${
+                    waitlistGrowthRate.startsWith('+') ? 'text-emerald-400' : 'text-rose-400'
+                  }`}>
+                    ({waitlistGrowthRate}% vs last week)
+                  </span>
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -862,6 +913,143 @@ function AnalyticsDashboardContent() {
             <div className="text-[9px] text-slate-600 font-mono mt-1">Submissions per subject</div>
           </div>
         </div>
+
+        {/* ── Waitlist Progress & Percentages ────────────── */}
+        {!loadingWaitlist && waitlist.length > 0 && (
+          <div className="bg-slate-950 border border-amber-500/20 rounded-2xl p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                📊 Waitlist Progress
+              </h3>
+              <span className="text-[9px] text-slate-600 font-mono">
+                {waitlistConversionPct}% converted to registered users
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Subject breakdown */}
+              <div>
+                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-3">
+                  By Subject Interest
+                </p>
+                <div className="space-y-2.5">
+                  {Object.entries(waitlistSubjectCounts).length === 0 ? (
+                    <p className="text-[10px] text-slate-600 italic">No data</p>
+                  ) : (
+                    Object.entries(waitlistSubjectCounts).map(([subject, count]) => {
+                      const pct = waitlistSubjectPercentages[subject] || '0.0';
+                      const colorMap: Record<string, string> = {
+                        'Social Studies': 'bg-indigo-500',
+                        'History': 'bg-amber-500',
+                        'Both': 'bg-emerald-500',
+                      };
+                      const textColorMap: Record<string, string> = {
+                        'Social Studies': 'text-indigo-400',
+                        'History': 'text-amber-400',
+                        'Both': 'text-emerald-400',
+                      };
+                      const iconMap: Record<string, string> = {
+                        'Social Studies': '📖',
+                        'History': '🏛️',
+                        'Both': '📚',
+                      };
+                      return (
+                        <div key={subject}>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className={`text-[10px] font-bold ${textColorMap[subject] || 'text-slate-400'}`}>
+                              {iconMap[subject] || '•'} {subject}
+                            </span>
+                            <span className="text-[10px] font-mono text-slate-400">
+                              {count} <span className="text-[9px] text-slate-600">({pct}%)</span>
+                            </span>
+                          </div>
+                          <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${colorMap[subject] || 'bg-slate-600'} transition-all duration-700`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+                {/* Total bar */}
+                <div className="mt-3 pt-3 border-t border-slate-800/50 flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-amber-400">Total</span>
+                  <span className="text-[10px] font-black font-mono text-white">{waitlist.length}</span>
+                </div>
+              </div>
+
+              {/* Conversion metrics */}
+              <div>
+                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-3">
+                  Conversion Funnel
+                </p>
+                <div className="space-y-3">
+                  <div className="bg-slate-900/40 rounded-xl p-3 text-center">
+                    <p className="text-[8px] text-slate-500 font-bold uppercase tracking-wider">Waitlist → User</p>
+                    <p className="text-xl font-black font-mono text-amber-400 mt-1">{waitlistConversionPct}%</p>
+                    <p className="text-[9px] text-slate-600 font-mono mt-0.5">
+                      {profiles.length} registered · {waitlist.length} waitlisted
+                    </p>
+                  </div>
+                  <div className="bg-slate-900/40 rounded-xl p-3 text-center">
+                    <p className="text-[8px] text-slate-500 font-bold uppercase tracking-wider">Weekly Growth</p>
+                    <p className={`text-xl font-black font-mono mt-1 ${
+                      waitlistGrowthRate.startsWith('+') ? 'text-emerald-400' : 'text-rose-400'
+                    }`}>
+                      {waitlistGrowthRate}%
+                    </p>
+                    <p className="text-[9px] text-slate-600 font-mono mt-0.5">
+                      {waitlistThisWeek} signups this week
+                    </p>
+                  </div>
+                  {/* Funnel bar */}
+                  <div className="h-3 bg-slate-800 rounded-full overflow-hidden flex">
+                    <div
+                      className="h-full bg-amber-500/70 rounded-l-full transition-all"
+                      style={{ width: `${Math.min(parseFloat(waitlistConversionPct), 100)}%` }}
+                    />
+                    <div
+                      className={`h-full bg-slate-700/50 transition-all ${
+                        parseFloat(waitlistConversionPct) >= 100 ? '' : 'rounded-r-full'
+                      }`}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* This week's signups vs last week */}
+              <div>
+                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-3">
+                  This Week vs Last Week
+                </p>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between bg-slate-900/40 rounded-xl px-3 py-2.5">
+                    <span className="text-[10px] text-slate-400">This Week</span>
+                    <span className="text-xs font-black font-mono text-amber-400">{waitlistThisWeek}</span>
+                  </div>
+                  <div className="flex items-center justify-between bg-slate-900/40 rounded-xl px-3 py-2.5">
+                    <span className="text-[10px] text-slate-400">Growth Rate</span>
+                    <span className={`text-xs font-black font-mono ${
+                      waitlistGrowthRate.startsWith('+') ? 'text-emerald-400' : 'text-rose-400'
+                    }`}>{waitlistGrowthRate}%</span>
+                  </div>
+                  <div className="bg-slate-900/30 rounded-xl p-3">
+                    <p className="text-[9px] text-slate-600 font-mono text-center leading-relaxed">
+                      {parseFloat(waitlistGrowthRate) > 0
+                        ? `📈 Waitlist is growing ${waitlistGrowthRate}% week-over-week. Keep driving traffic!`
+                        : parseFloat(waitlistGrowthRate) < 0
+                        ? `📉 Waitlist declined ${waitlistGrowthRate}% this week. Consider promotions.`
+                        : '📊 Waitlist is steady week-over-week.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── Charts row ──────────────────────────────────── */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
