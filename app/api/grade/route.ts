@@ -314,7 +314,7 @@ export async function POST(request: Request) {
           // Fetch current gamification state
           const { data: metrics, error: fetchErr } = await supabase
             .from('user_skill_metrics')
-            .select('total_xp, last_practice_date, current_streak, longest_streak, level_title, total_xp_decayed, xp_breakdown')
+            .select('total_xp, last_practice_date, current_streak, longest_streak, level_title, total_xp_decayed, xp_breakdown, weekly_xp_earned, weekly_reset_date')
             .eq('user_id', userId)
             .single() as unknown as { data: Record<string, any> | null; error: any };
 
@@ -388,6 +388,19 @@ export async function POST(request: Request) {
             fromReferrals: prevBreakdown.fromReferrals || 0,
           };
 
+          // ── Weekly XP tracking (resets each Monday) ──
+          const dayOfWeek = today.getUTCDay();
+          const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+          const mondayDate = new Date(today);
+          mondayDate.setUTCDate(today.getUTCDate() + diffToMonday);
+          mondayDate.setUTCHours(0, 0, 0, 0);
+          const mondayStr = mondayDate.toISOString().split('T')[0];
+
+          const weeklyResetDate = metrics.weekly_reset_date;
+          const resetIsThisWeek = weeklyResetDate === mondayStr;
+          const totalWeeklyXp = (resetIsThisWeek ? (metrics.weekly_xp_earned ?? 0) : 0)
+            + earnedXp + dailyBonus + streakBonus.bonus + achievementXp;
+
           const { error: gamErr } = await supabase
             .from('user_skill_metrics')
             .update({
@@ -400,6 +413,8 @@ export async function POST(request: Request) {
               total_evaluations: totalEvalCount,
               total_xp_decayed: totalDecayedXp,
               xp_breakdown: xpBreakdown,
+              weekly_xp_earned: totalWeeklyXp,
+              weekly_reset_date: mondayStr,
             } as never)
             .eq('user_id', userId);
 

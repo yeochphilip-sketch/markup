@@ -26,6 +26,7 @@ import DashboardSkeleton from '@/app/components/DashboardSkeleton';
 import GlobalErrorBanner from '@/app/components/GlobalErrorBanner';
 import MobileSidebar from '@/app/components/MobileSidebar';
 import TestimonialPrompt, { recordCompletedScan, shouldShowTestimonial } from '@/app/components/TestimonialPrompt';
+import WeeklyDigestPanel from '@/app/components/WeeklyDigestPanel';
 import { getLevelConfig, getLevelTitle, getNextLevelXp, getPrevLevelXp, LEVEL_THRESHOLDS, playGradeCompleteSound, playLevelUpSound, playAchievementSound, isDailyGoalMet, ACHIEVEMENT_DEFS, calculateXpDecay, getDecayWarning } from '@/lib/gamification';
 import { SKILL_LABELS, TOPIC_SUMMARIES, detectSubTopic, isCustomTopic } from '@/lib/summary-utils';
 
@@ -142,6 +143,7 @@ export default function DashboardPage() {
   const [leaderboardData, setLeaderboardData] = useState<any>(null);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(false);
+  const [totalEvaluations, setTotalEvaluations] = useState(0);
   const [achievements, setAchievements] = useState<string[]>([]);
   const [newlyUnlocked, setNewlyUnlocked] = useState<any[]>([]);
   const [showAchievementUnlocked, setShowAchievementUnlocked] = useState(false);
@@ -383,10 +385,11 @@ export default function DashboardPage() {
     try {
       const { data: metricsData } = await supabase
         .from('user_skill_metrics')
-        .select('sbq_inference_score, sbq_comparison_score, sbq_reliability_score, seq_essay_score, seq_conclusion_score, total_xp, level_title, current_streak, longest_streak, achievements, last_practice_date, ss_goal_level, history_goal_level, takes_history')
+        .select('sbq_inference_score, sbq_comparison_score, sbq_reliability_score, seq_essay_score, seq_conclusion_score, total_xp, level_title, current_streak, longest_streak, achievements, last_practice_date, ss_goal_level, history_goal_level, takes_history, total_evaluations')
         .eq('user_id', uid)
         .single();
       if (metricsData) {
+        setTotalEvaluations(metricsData.total_evaluations ?? 0);
         setSkillRatings({
           inference: metricsData.sbq_inference_score || 1,
           comparison: metricsData.sbq_comparison_score || 1,
@@ -840,6 +843,9 @@ export default function DashboardPage() {
           totalXpGained += achievementXp;
         }
 
+        // Update total evaluations counter
+        setTotalEvaluations(prev => prev + 1);
+
         // Play grade complete sound
         if (isSoundEnabled) playGradeCompleteSound();
 
@@ -1156,7 +1162,7 @@ export default function DashboardPage() {
       </header>
 
       {/* Analytics Matrix Panel — hidden on phones (< 768px), visible on tablets+ */}
-      <div className="hidden md:block">
+      <div className="hidden md:block space-y-4">
         <AnalyticsPanel
           userId={userId}
           levelTitle={levelTitle}
@@ -1175,6 +1181,17 @@ export default function DashboardPage() {
           onSetExamGoal={handleSetExamGoal}
           onSetTakesHistory={handleSetTakesHistory}
         />
+
+        {/* Weekly Digest Panel */}
+        {userId && (
+          <WeeklyDigestPanel
+            userId={userId}
+            masteryPoints={masteryPoints}
+            levelTitle={levelTitle}
+            streakData={streakData}
+            totalEvaluations={totalEvaluations}
+          />
+        )}
       </div>
 
       {/* Main Grid Framework Layout */}

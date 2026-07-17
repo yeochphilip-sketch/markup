@@ -281,6 +281,23 @@ ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS xp_breakdown JSON
 }'::jsonb;
 
 -- ════════════════════════════════════════════════════════════
+--  XP breakdown tracking (by source)
+-- ════════════════════════════════════════════════════════════
+ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS xp_breakdown JSONB DEFAULT '{
+  "fromGrades": 0,
+  "fromAchievements": 0,
+  "fromStreaks": 0,
+  "fromDailyGoals": 0,
+  "fromReferrals": 0
+}'::jsonb;
+
+-- ════════════════════════════════════════════════════════════
+--  Weekly XP tracking (for weekly digest feature)
+-- ════════════════════════════════════════════════════════════
+ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS weekly_xp_earned  INTEGER DEFAULT 0;
+ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS weekly_reset_date  DATE;
+
+-- ════════════════════════════════════════════════════════════
 --  Personalized reminder columns
 -- ════════════════════════════════════════════════════════════
 ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS last_active_at           TIMESTAMP WITH TIME ZONE;
