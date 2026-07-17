@@ -307,12 +307,43 @@ The sources must be designed specifically to test the ${resolvedQuestionType} sk
       );
     }
 
-    // Persist for sidebar history
+    // Persist for sidebar history (store full data, including All Formats extras in metadata)
     if (userId && process.env.NEXT_PUBLIC_SUPABASE_URL) {
       try {
         const client = process.env.SUPABASE_SERVICE_ROLE_KEY
           ? createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
           : await getServerSupabase();
+
+        // Build comprehensive metadata for All Formats
+        const metadata: Record<string, any> = {
+          sourceCount: resolvedSourceCount,
+          isAllFormats: isAllFormats || undefined,
+        };
+
+        if (isAllFormats) {
+          const allFormatsResult = result as Record<string, any>;
+          if (allFormatsResult.sourceCProvenance) metadata.sourceCProvenance = allFormatsResult.sourceCProvenance;
+          if (allFormatsResult.sourceC) metadata.sourceC = allFormatsResult.sourceC;
+          if (allFormatsResult.sourceDProvenance) metadata.sourceDProvenance = allFormatsResult.sourceDProvenance;
+          if (allFormatsResult.sourceD) metadata.sourceD = allFormatsResult.sourceD;
+          if (allFormatsResult.sourceEProvenance) metadata.sourceEProvenance = allFormatsResult.sourceEProvenance;
+          if (allFormatsResult.sourceE) metadata.sourceE = allFormatsResult.sourceE;
+          if (allFormatsResult.partA_Inference) metadata.partA_Inference = allFormatsResult.partA_Inference;
+          if (allFormatsResult.partB_Comparison) metadata.partB_Comparison = allFormatsResult.partB_Comparison;
+          if (allFormatsResult.partC_Purpose) metadata.partC_Purpose = allFormatsResult.partC_Purpose;
+          if (allFormatsResult.partD_Reliability) metadata.partD_Reliability = allFormatsResult.partD_Reliability;
+          if (allFormatsResult.partE_Assertion) metadata.partE_Assertion = allFormatsResult.partE_Assertion;
+          if (allFormatsResult.srqBackgroundContext) metadata.srqBackgroundContext = allFormatsResult.srqBackgroundContext;
+          if (allFormatsResult.srqQuestionA) metadata.srqQuestionA = allFormatsResult.srqQuestionA;
+          if (allFormatsResult.srqQuestionB) metadata.srqQuestionB = allFormatsResult.srqQuestionB;
+          if (allFormatsResult.seqQuestion1) metadata.seqQuestion1 = allFormatsResult.seqQuestion1;
+          if (allFormatsResult.seqQuestion2) metadata.seqQuestion2 = allFormatsResult.seqQuestion2;
+          if (allFormatsResult.seqQuestion3) metadata.seqQuestion3 = allFormatsResult.seqQuestion3;
+          if (allFormatsResult.sbcsPrompt) metadata.sbcsPrompt = allFormatsResult.sbcsPrompt;
+          if (allFormatsResult.seqPrompt) metadata.seqPrompt = allFormatsResult.seqPrompt;
+          if (allFormatsResult.srqPrompt) metadata.srqPrompt = allFormatsResult.srqPrompt;
+        }
+
         await client.from('generated_questions').insert({
           user_id: userId,
           subject: resolvedSubject,
@@ -323,7 +354,7 @@ The sources must be designed specifically to test the ${resolvedQuestionType} sk
           source_b: result.sourceB || '',
           question_prompt: result.questionPrompt || '',
           suggested_answer: result.suggestedAnswer || '',
-          metadata: { sourceCount: resolvedSourceCount },
+          metadata,
         } as never);
       } catch (dbErr) {
         console.warn('Non-fatal: failed to persist generated_questions row', dbErr);

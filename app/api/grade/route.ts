@@ -32,7 +32,7 @@ async function tryGradeWithFallbacks(
     attempts.push({ model: google('gemini-2.5-flash'), label: 'Google Gemini 2.5 Flash', temp: 0.2 });
   }
 
-  const jsonInstruction = `\n\nYou MUST respond with ONLY a valid JSON object using these exact keys:\n{\n  "scoreLevel": "string (e.g. 'L3')",\n  "scoreMarks": "number (e.g. 6)",\n  "scoreMaxMarks": "number (e.g. 8)",\n  "scoreLabel": "string (human-readable score, at least 4 chars)",\n  "sbcsScore": { "level": "string (optional)", "marks": 0, "maxMarks": 0, "label": "string (optional)" },\n  "seqScore": { "level": "string (optional)", "marks": 0, "maxMarks": 0, "label": "string (optional)" },\n  "srqScore": { "level": "string (optional)", "marks": 0, "maxMarks": 0, "label": "string (optional)" },\n  "pointStatus": "'Pass' or 'Fail'",\n  "evidenceStatus": "'Pass' or 'Fail'",\n  "critique": ["string (min 10 chars)", "..."],\n  "highlightedSegments": [{"text": "string", "type": "'correct' | 'weak' | 'error'"}],\n  "a1Upgrade": "string (min 40 chars)",\n  "gradingConfidence": 0.5,\n  "modelAnswerConfidence": 0.5\n}\nNo markdown, no code fences, no other text. Just the JSON object.`;
+  const jsonInstruction = `\n\nYou MUST respond with ONLY a valid JSON object using these exact keys:\n{\n  "scoreLevel": "string (e.g. 'L3')",\n  "scoreMarks": "number (e.g. 6)",\n  "scoreMaxMarks": "number (e.g. 8)",\n  "scoreLabel": "string (human-readable score, at least 4 chars)",\n  "sbcsScore": { "level": "string (optional)", "marks": 0, "maxMarks": 0, "label": "string (optional)" },\n  "seqScore": { "level": "string (optional)", "marks": 0, "maxMarks": 0, "label": "string (optional)" },\n  "srqScore": { "level": "string (optional)", "marks": 0, "maxMarks": 0, "label": "string (optional)" },\n  "pointStatus": "'Pass' or 'Fail'",\n  "evidenceStatus": "'Pass' or 'Fail'",\n  "critique": ["string (min 10 chars)", "..."],\n  "highlightedSegments": [{"text": "string", "type": "'correct' | 'weak' | 'error'"}],\n  "a1Upgrade": "string (min 40 chars)",\n  "gradingConfidence": 0.5,\n  "modelAnswerConfidence": 0.5,\n  "schoolBenchmark": { \"topTierEstimate\": "string (e.g. 'L3')", \"midTierEstimate\": "string (e.g. 'L3')", \"standardEstimate\": "string (e.g. 'L4')", \"explanation\": "string (min 10 chars, explaining the estimates)" }\n}\nNo markdown, no code fences, no other text. Just the JSON object.`;
 
   const errors: string[] = [];
   for (const attempt of attempts) {
@@ -137,6 +137,14 @@ const evaluationSchema = z.object({
   // Separate confidence scores
   gradingConfidence: z.number().min(0).max(1),
   modelAnswerConfidence: z.number().min(0).max(1),
+
+  // School benchmarking (optional)
+  schoolBenchmark: z.object({
+    topTierEstimate: z.string(),
+    midTierEstimate: z.string(),
+    standardEstimate: z.string(),
+    explanation: z.string().min(10),
+  }).optional(),
 });
 
 /**
@@ -248,6 +256,7 @@ export async function POST(request: Request) {
       ...evaluation,
       scoreEstimate: evaluation.scoreLabel,
       confidence: evaluation.gradingConfidence,
+      schoolBenchmark: evaluation.schoolBenchmark,
       gamification: {
         xpEarned: earnedXp,
         newLevel,

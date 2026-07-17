@@ -66,7 +66,8 @@ const SYLLABUS_MAP: Record<string, { topics: string[]; skills: string[] }> = {
       'SBQ: Purpose / Motive Evolution (AO2)',
       'SBQ: Utility & Reliability Limits (AO2)',
       'SBQ: Synthesis Matrix Assertion (AO2)',
-      'SRQ/SEQ: Structured Essay Explanations (AO1)'
+      'SRQ: Structured Response Questions (AO1)',
+      'SEQ: Structured Essay Questions (AO1)'
     ]
   },
   'Elective History': {
@@ -261,6 +262,12 @@ export default function DashboardPage() {
     confidence: 0 as number,
     a1Upgrade: '' as string
   });
+  const [schoolBenchmark, setSchoolBenchmark] = useState<{
+    topTierEstimate: string;
+    midTierEstimate: string;
+    standardEstimate: string;
+    explanation: string;
+  } | null>(null);
 
   useEffect(() => {
     let interval: any = null;
@@ -793,6 +800,7 @@ export default function DashboardPage() {
         confidence: data.confidence ?? 0,
         a1Upgrade: data.a1Upgrade || ''
       });
+      setSchoolBenchmark(data.schoolBenchmark || null);
 
       if (userId) {
         // Gamification: apply XP earned from the grade response
@@ -1599,6 +1607,34 @@ export default function DashboardPage() {
                   </div>
                   <div className="text-xl font-black text-indigo-400 tracking-tight mt-1.5 font-mono select-text">{evaluation.scoreEstimate}</div>
                   
+                  {/* School Benchmarking — calibrated to Singapore school standards */}
+                  {schoolBenchmark && (
+                    <div className="mt-3 bg-gradient-to-r from-indigo-950/40 via-purple-950/30 to-slate-950/40 border border-indigo-900/30 rounded-xl p-3">
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <span className="text-[10px]">🏫</span>
+                        <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider">School Benchmark</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 mb-2">
+                        <div className="bg-slate-900/60 rounded-lg p-2 text-center">
+                          <span className="text-[7px] font-bold text-amber-400 uppercase tracking-wider block">Top-Tier</span>
+                          <span className="text-sm font-black text-white font-mono">{schoolBenchmark.topTierEstimate}</span>
+                          <span className="text-[7px] text-slate-500 block">RI / HCI / ACS</span>
+                        </div>
+                        <div className="bg-slate-900/60 rounded-lg p-2 text-center">
+                          <span className="text-[7px] font-bold text-emerald-400 uppercase tracking-wider block">Mid-Tier</span>
+                          <span className="text-sm font-black text-white font-mono">{schoolBenchmark.midTierEstimate}</span>
+                          <span className="text-[7px] text-slate-500 block">SCGS / Cedar / MGS</span>
+                        </div>
+                        <div className="bg-slate-900/60 rounded-lg p-2 text-center">
+                          <span className="text-[7px] font-bold text-slate-400 uppercase tracking-wider block">Standard</span>
+                          <span className="text-sm font-black text-white font-mono">{schoolBenchmark.standardEstimate}</span>
+                          <span className="text-[7px] text-slate-500 block">Nat'l Avg</span>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-slate-400 leading-relaxed">{schoolBenchmark.explanation}</p>
+                    </div>
+                  )}
+
                   {/* Confidence indicator */}
                   {evaluation.confidence > 0 && (
                     <div className="mt-2 flex items-center gap-2">

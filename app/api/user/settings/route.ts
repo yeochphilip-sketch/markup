@@ -80,11 +80,10 @@ export async function GET(request: Request) {
 
     if (supabaseUrl && supabaseKey) {
       const { metrics, error } = await fetchUserMetrics(createClient(supabaseUrl, supabaseKey), userId);
-      if (error) {
-        console.warn('settings GET error:', error);
-        return defaultMetricsResponse();
+      if (!error) {
+        return buildMetricsResponse(metrics);
       }
-      return buildMetricsResponse(metrics);
+      console.warn('settings GET error (falling back to session auth):', error);
     }
 
     // Fallback: cookie-based session auth (respects RLS)
@@ -161,7 +160,7 @@ export async function PATCH(request: Request) {
     // e.g. for users whose signup predated the user_skill_metrics trigger.
     // If the row already exists, only the fields in updateData are touched.
 
-    // Try service role key first
+    // Try service role key first (may fail if env var is misconfigured)
     if (supabaseUrl && supabaseKey) {
       const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
       const { error } = await supabaseAdmin
@@ -170,11 +169,10 @@ export async function PATCH(request: Request) {
           { user_id: userId, ...updateData } as never,
           { onConflict: 'user_id' }
         );
-      if (error) {
-        console.warn('settings PATCH error:', error.message);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+      if (!error) {
+        return NextResponse.json({ success: true });
       }
-      return NextResponse.json({ success: true });
+      console.warn('settings PATCH service-role error (falling back to session auth):', error.message);
     }
 
     // Fallback: use cookie-based session auth (respects RLS)

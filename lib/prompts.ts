@@ -128,7 +128,22 @@ You MUST apply these rules BEFORE any LORMS evaluation. The quality gate in Step
 - Top band: Students must GROUP sources (supporting vs challenging), evaluate reliability of key sources, and reach a BALANCED final conclusion that directly answers the assertion.
 - Avoid: Listing sources one by one without synthesis. Students must compare and weigh evidence.
 
-### SEQ/SRQ Essays (8 marks): PEEL structure expected
+### SRQ Essays (SS only — 7-8 marks): Evidence + Judgment structure expected
+- For SRQ (a) 7-mark: Recommendation/Strategy questions
+  - Identify the issue and propose what should be done
+  - Explain who should do it and why
+  - Support with examples/evidence
+- For SRQ (b) 8-mark: Evaluation questions
+  - State your position clearly
+  - Provide evidence/reasons for your position
+  - Consider counter-arguments
+  - Reach a balanced conclusion
+- L1 = Descriptive answer with no clear position
+- L2 = One-sided argument with limited evidence
+- L3 = Multi-point argument with good evidence
+- L4 = Balanced evaluation with counter-arguments and substantiated judgment
+
+### SEQ Essays (History — 8 marks): PEEL structure expected
 - P: Point — clear factor/argument stated
 - E: Evidence — specific historical/contextual example
 - E: Explanation — how/why this factor matters (the "because" chain)
@@ -139,6 +154,51 @@ You MUST apply these rules BEFORE any LORMS evaluation. The quality gate in Step
 `;
 
 const EMPTY_SECTION_LABEL = '[This section was not submitted by the student — omit from grading.]';
+
+// ────────────────────────────────────────────────────────────────
+//  Singapore School Benchmark Standards
+// ────────────────────────────────────────────────────────────────
+
+const SCHOOL_BENCHMARK_DATA = `
+## SINGAPORE SCHOOL BENCHMARK STANDARDS
+
+When generating model answers and grading responses, calibrate your expectations to these school-level standards.
+Use the school name as a reference point when describing the expected quality.
+
+### Tier 1 — Top-Tier Schools (RI, HCI, ACS(I), NJC, VJC)
+- Expected standard: L4 for SBQ skills, L3–L4 for SRQ/SEQ by end of Sec 4
+- Model answers should demonstrate: sophisticated cross-referencing, nuanced provenance evaluation, mature PEEL structure with counter-arguments
+- Inference: Must infer from BOTH sources with sophisticated understanding of author perspective
+- Comparison: Must identify similarity AND difference with core message matching + evaluation of WHY perspectives differ
+- Reliability: Must include provenance + cross-referencing + typical limitations (bias, omission, propaganda)
+- Assertion: Must group sources, evaluate reliability, reach balanced judgment
+- SRQ/SEQ: Must evaluate and weigh factors, include counter-arguments, reach substantiated conclusion
+
+### Tier 2 — Mid-Tier Schools (SCGS, Cedar Girls', MGS, St. Nick's, TKGS, Dunman High, St. Joseph's, Catholic High)
+- Expected standard: L3 for SBQ skills, L2–L3 for SRQ/SEQ by end of Sec 4
+- Model answers should demonstrate: clear structure, good evidence use, some cross-referencing
+- Inference: Must infer from BOTH sources with clear message identification
+- Comparison: Similarity AND difference identified with content matching
+- Reliability: Provenance + content evaluation with some cross-referencing
+- Assertion: Cross-reference sources to support position
+- SRQ/SEQ: Two or more factors with good evidence, clear PEEL structure
+
+### Tier 3 — Standard Schools
+- Expected standard: L2 for SBQ skills, L1–L2 for SRQ/SEQ by end of Sec 4
+- Model answers should focus on: clear point identification, basic evidence use, structure
+- Inference: Identify surface information from source
+- Comparison: Similarity OR difference identified
+- Reliability: Basic provenance evaluation
+- Assertion: Position stated with evidence from one or two sources
+- SRQ/SEQ: One or two factors identified with basic explanation
+
+### Benchmarking Rules for Grading:
+1. When providing the \`schoolBenchmark\` field in the response, estimate which Tier this response would correspond to at a top-tier vs mid-tier vs standard school.
+2. Be specific about what the student's response would score at each school level.
+3. Always include at least one reference in the critique like: "This response would be a solid L3 at a standard school, but would need stronger cross-referencing to reach L3 at a top-tier school like RI or HCI."
+4. For the model answer (a1Upgrade), write it at Tier 1 (top-tier school) standard — this gives students something to aim for regardless of their school.
+5. Do NOT penalise students for being at a lower-tier school — the benchmark is a diagnostic tool, not a judgment.
+`;
 
 // ────────────────────────────────────────────────────────────────
 //  LORMS Matrices — Social Studies
@@ -205,8 +265,21 @@ const SS_SYNTHESIS_LORMS = `
 | L4 | Synthesises with evaluation of source strengths/limitations, reaching a well-supported judgment | 5 |
 `;
 
+const SS_SRQ_LORMS = `
+### LORMS MATRIX — SRQ: Structured Response Questions (AO1) — Max 7-8 marks
+
+| Level | Descriptor | Marks |
+|-------|------------|-------|
+| L1 | Descriptive answer — identifies an issue or states facts without explanation. No clear argument or position. Must contain actual subject content to qualify. | 1–2 |
+| L2 | One-sided argument — identifies ONE strategy/reason with some supporting evidence. Basic structure with stated position. | 3–4 |
+| L3 | Multi-point argument — identifies TWO or more strategies/reasons with good evidence for each. Considers multiple perspectives. Clear structure with position and evidence. | 5–6 |
+| L4 | Sophisticated balanced evaluation — weighs multiple strategies/reasons, considers counter-arguments, reaches a substantiated judgment. Demonstrates mature awareness of complexity. | 7–8 |
+
+**Key distinction:** L2 = one-sided (one reason). L3 = multi-factor. L4 = evaluation weighing factors + counter-arguments + conclusion.
+`;
+
 const SS_SEQ_LORMS = `
-### LORMS MATRIX — SRQ/SEQ: Structured Essay Explanations (AO1) — Max 8 marks
+### LORMS MATRIX — SEQ: Structured Essay Questions (AO1) — Max 8 marks
 
 | Level | Descriptor | Marks |
 |-------|------------|-------|
@@ -379,6 +452,38 @@ const INVALID_CONTENT_EXAMPLES: FewShotExample[] = [
     ],
     confidence: 0.99,
     a1Upgrade: 'No model answer available — the submitted response was not a genuine attempt.',
+  },
+];
+
+const SS_SRQ_EXAMPLES: FewShotExample[] = [
+  {
+    level: 'L2',
+    studentAnswer: 'The government should provide more financial support to low-income families. This is because they are struggling with the high cost of living in Singapore.',
+    scoreEstimate: 'L2 / 4 marks — One strategy identified with basic supporting reason',
+    critique: [
+      'You identified ONE strategy (financial support for low-income families) — this meets the minimum for L2.',
+      'Your explanation is clear but very general — it lacks specific evidence or examples.',
+      'To reach L3, add a SECOND strategy (e.g., skills training, public housing subsidies) and use concrete examples.',
+      'For SRQ (a), discuss WHO should implement the strategy and WHY it is appropriate.',
+      'For SRQ (b), consider counter-arguments and evaluate the effectiveness of your proposed approach.',
+    ],
+    confidence: 0.80,
+    a1Upgrade: 'SRQ (a) — Recommendation: The government should expand the Community Care Endowment Fund (ComCare) to provide more targeted financial assistance to low-income families, while simultaneously investing in SkillsFuture credits to help these families gain sustainable employment. This two-pronged approach addresses both immediate financial needs and long-term self-sufficiency. SRQ (b) — Evaluation: While financial assistance provides immediate relief, it risks creating dependency if not paired with upskilling opportunities. Therefore, the most effective approach combines short-term aid with long-term capacity building — a balanced strategy that addresses root causes rather than symptoms.',
+  },
+  {
+    level: 'L4',
+    studentAnswer: 'Singapore can address its ageing population challenge through three key strategies: redesigning the retirement framework, expanding healthcare infrastructure, and fostering intergenerational community bonds. Firstly, raising the re-employment age from 67 to 70 would allow seniors to remain economically active and financially independent — as seen in Japan, where extended workforce participation has mitigated pension shortfalls. Secondly, expanding the Community Health Assist Scheme (CHAS) to cover more chronic conditions would reduce the healthcare burden on seniors, particularly lower-income ones who currently avoid treatment due to cost. However, these strategies face challenges — employers may resist hiring older workers due to productivity concerns, and healthcare expansion requires significant government funding. Therefore, while all three strategies are necessary, the retirement framework reform is the most impactful as it addresses both economic and social dimensions simultaneously.',
+    scoreEstimate: 'L4 / 8 marks — Balanced evaluation with multiple strategies, evidence, counter-arguments, and substantiated prioritisation',
+    critique: [
+      'Excellent — you identified THREE distinct strategies with specific evidence.',
+      'Strong use of comparative example (Japan) to support your argument.',
+      'You acknowledged limitations/counter-arguments (employer resistance, funding constraints).',
+      'The concluding judgment prioritises which strategy is most impactful.',
+      'This is a textbook L4 SRQ response demonstrating mature evaluative thinking.',
+      'PEEL structure is evident throughout each paragraph.',
+    ],
+    confidence: 0.94,
+    a1Upgrade: 'Singapore\'s ageing population requires a multi-pronged approach spanning economic, healthcare, and social dimensions. The most impactful strategy is raising the re-employment age to 70 — this preserves seniors\' financial independence, reduces dependency on state welfare, and leverages their accumulated expertise. Japan\'s experience demonstrates that extended workforce participation can mitigate pension pressure while maintaining economic productivity. However, this must be paired with expanded healthcare access through enhanced CHAS subsidies for chronic conditions, addressing the reality that older workers need healthy bodies to remain employable. The key challenge — employer reluctance to retain older workers — can be addressed through wage offsets and productivity grants. Ultimately, financial independence through extended employment is the most sustainable solution, as it preserves dignity and autonomy while reducing long-term state burden.',
   },
 ];
 
@@ -729,6 +834,15 @@ ${sourceRules}
 - The suggested answer should demonstrate A1 standard for the selected skill track.
 - If the skill track is SBQ-only (e.g., Comparison, Inference, Reliability), leave SEQ and SRQ
   prompts as "Optional: Section deactivated for focused skill strategy simulation."
+- If the skill track is SRQ-only, generate ALL 5 sources + SBQ questions Part (a)-(e) BUT the focus should be on SRQ — ensure the SRQ section is particularly detailed with nuanced, evaluative prompts.
+- If the skill track is SEQ-only (History), generate the 3 SEQ essay prompts with the stimulus context but the main focus is the essay prompts.
+
+## SCHOOL BENCHMARKING
+
+${SCHOOL_BENCHMARK_DATA}
+
+Calibrate ALL model answers to Tier 1 (top-tier school) standard — RI, HCI, ACS(I), NJC, VJC level.
+The suggested answer should reflect the depth, sophistication, and evaluative thinking expected at these schools.
 `.trim();
 }
 
@@ -763,9 +877,10 @@ function getLormsMatrix(questionType: string, subject: string): string {
   if (type.includes('purpose') || type.includes('motive')) return SS_PURPOSE_LORMS;
   if (type.includes('utility') || type.includes('reliability')) return SS_UTILITY_LORMS;
   if (type.includes('synthesis') || type.includes('assertion') || type.includes('matrix')) return SS_SYNTHESIS_LORMS;
-  if (type.includes('seq') || type.includes('essay') || type.includes('srq')) return SS_SEQ_LORMS;
-  // All Formats — return all SS rubrics
-  return [SS_COMPARISON_LORMS, SS_INFERENCE_LORMS, SS_PURPOSE_LORMS, SS_UTILITY_LORMS, SS_SYNTHESIS_LORMS, SS_SEQ_LORMS].join('\n');
+  if (type.includes('srq') && !type.includes('seq')) return SS_SRQ_LORMS;
+  if (type.includes('seq') || type.includes('essay')) return SS_SEQ_LORMS;
+  // All Formats — return all SS rubrics (SRQ + SEQ)
+  return [SS_COMPARISON_LORMS, SS_INFERENCE_LORMS, SS_PURPOSE_LORMS, SS_UTILITY_LORMS, SS_SYNTHESIS_LORMS, SS_SRQ_LORMS, SS_SEQ_LORMS].join('\n');
 }
 
 function getFewShotExamples(questionType: string, subject: string): FewShotExample[] {
@@ -788,7 +903,8 @@ function getFewShotExamples(questionType: string, subject: string): FewShotExamp
     else if (type.includes('purpose') || type.includes('motive')) skillExamples = SS_PURPOSE_EXAMPLES;
     else if (type.includes('utility') || type.includes('reliability')) skillExamples = SS_UTILITY_EXAMPLES;
     else if (type.includes('synthesis') || type.includes('assertion') || type.includes('matrix')) skillExamples = SS_SYNTHESIS_EXAMPLES;
-    else if (type.includes('seq') || type.includes('essay') || type.includes('srq')) skillExamples = SS_SEQ_EXAMPLES;
+    else if (type.includes('srq') && !type.includes('seq')) skillExamples = SS_SRQ_EXAMPLES;
+    else if (type.includes('seq') || type.includes('essay')) skillExamples = SS_SEQ_EXAMPLES;
     else skillExamples = SS_COMPARISON_EXAMPLES;
   }
 
@@ -875,6 +991,20 @@ ${QUALITY_RULES}
 6. Be encouraging, professional, and diagnostic — no generic fluff.
 7. Under 12 words of actual content → flag as "L0 — Insufficient content" (quality gate applies). 12+ words but not a coherent analytical argument → L1 maximum with note.
 8. Output a \`confidence\` score between 0.0 and 1.0.
+
+## SCHOOL BENCHMARKING (MANDATORY)
+
+${SCHOOL_BENCHMARK_DATA}
+
+In addition to the standard grading output, include a \`schoolBenchmark\` object in your response with:
+- \`topTierEstimate\`: What level this response would likely score at a top-tier school (RI, HCI, ACS(I)) — e.g., "L3"
+- \`midTierEstimate\`: What level at a mid-tier school (SCGS, Cedar, MGS) — e.g., "L3"
+- \`standardEstimate\`: What level at a standard school — e.g., "L4"
+- \`explanation\`: A 1-2 sentence explanation of why the estimates differ (or why they're the same)
+
+Example: \`"This response demonstrates solid comparison with similarity AND difference identified, but lacks evaluation of WHY the sources differ — cross-referencing with provenance. At a top-tier school this would be a high L3 (4/5), at a mid-tier school it would reach L4 (5/5)."\`
+
+IMPORTANT: School benchmarking is DIAGNOSTIC. Do NOT change the LORMS level based on the school — the LORMS rubric is absolute. The school benchmark contextualises the score.
 `.trim();
 }
 
@@ -913,5 +1043,10 @@ Apply the LORMS rubric strictly using the step-by-step rubric resolution process
 Highlight which segments were correct, which were weak, and which were structural errors.
 Produce a clean A1-grade rewrite the student can compare against their own work.
 Rate your confidence in this assessment.
+
+## SCHOOL BENCHMARKING
+
+Include a \`schoolBenchmark\` object in your response with estimates at Tier 1 (top-tier: RI/HCI/ACS), Tier 2 (mid-tier: SCGS/Cedar/MGS), and Tier 3 (standard) schools.
+The model answer (a1Upgrade) should be written to Tier 1 standard — this gives the student a target regardless of their current school level.
   `.trim();
 }

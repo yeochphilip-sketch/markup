@@ -74,6 +74,7 @@ ALTER TABLE public.generated_questions ADD COLUMN IF NOT EXISTS source_a        
 ALTER TABLE public.generated_questions ADD COLUMN IF NOT EXISTS source_b           TEXT NOT NULL DEFAULT '';
 ALTER TABLE public.generated_questions ADD COLUMN IF NOT EXISTS question_prompt    TEXT NOT NULL DEFAULT '';
 ALTER TABLE public.generated_questions ADD COLUMN IF NOT EXISTS suggested_answer   TEXT;
+ALTER TABLE public.generated_questions ADD COLUMN IF NOT EXISTS metadata           JSONB DEFAULT '{}'::jsonb;
 
 -- Fix NOT NULL on existing columns (if table had them, they can't be NULL anyway)
 ALTER TABLE public.generated_questions ALTER COLUMN subject            SET NOT NULL;
@@ -268,17 +269,6 @@ ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS achievements     
 ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS total_evaluations     INTEGER DEFAULT 0;
 ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS total_xp_decayed      INTEGER DEFAULT 0;
 ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS last_decay_check_date  DATE;
-
--- ════════════════════════════════════════════════════════════
---  XP breakdown tracking (by source)
--- ════════════════════════════════════════════════════════════
-ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS xp_breakdown JSONB DEFAULT '{
-  "fromGrades": 0,
-  "fromAchievements": 0,
-  "fromStreaks": 0,
-  "fromDailyGoals": 0,
-  "fromReferrals": 0
-}'::jsonb;
 
 -- ════════════════════════════════════════════════════════════
 --  XP breakdown tracking (by source)

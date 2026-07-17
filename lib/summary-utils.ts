@@ -11,12 +11,13 @@ export const SKILL_LABELS: Record<string, string> = {
   'SBQ: Purpose / Motive Evolution (AO2)': 'Purpose / Motive (AO2)',
   'SBQ: Utility & Reliability Limits (AO2)': 'Utility & Reliability (AO2)',
   'SBQ: Synthesis Matrix Assertion (AO2)': 'Assertion (AO2)',
-  'SRQ/SEQ: Structured Essay Explanations (AO1)': 'Essay Explanations (AO1)',
+  'SRQ: Structured Response Questions (AO1)': 'SRQ Response (AO1)',
   'SBQ: Inference / Message (AO3)': 'Inference (AO3)',
   'SBQ: Comparison & Contrast (AO3)': 'Comparison (AO3)',
   'SBQ: Reliability & Cross-Referencing (AO3)': 'Cross-Referencing (AO3)',
   'SBQ: Evaluation of Utility (AO3)': 'Eval. Utility (AO3)',
   'SBQ: Target Purpose Analysis (AO3)': 'Purpose Analysis (AO3)',
+  'SEQ: Structured Essay Questions (AO1)': 'SEQ Essay (AO1)',
   'SEQ: High-Scoring Essay Factor Prioritization (AO1/AO2)': 'Essay Factors (AO1/AO2)',
 };
 

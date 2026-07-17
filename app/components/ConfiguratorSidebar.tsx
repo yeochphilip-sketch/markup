@@ -210,24 +210,14 @@ export default function ConfiguratorSidebar({
             </select>
           </div>
 
-          {/* Source count selector — shown only for All Formats */}
+          {/* Source count — SBCS always uses 5 sources */}
           {!isCustomMode && selectedSkill.toLowerCase().includes('all formats') && (
             <div className="space-y-1">
               <label className="text-[9px] font-bold uppercase text-slate-500">Number of Sources</label>
-              <div className="grid grid-cols-4 bg-slate-900 p-1 rounded-xl border border-slate-800 gap-0.5">
-                {[2, 3, 4, 5].map((n) => (
-                  <button
-                    key={n}
-                    onClick={() => onSetSourceCount(n)}
-                    className={`text-[10px] font-bold py-2 rounded-lg transition ${
-                      sourceCount === n
-                        ? 'bg-amber-600 text-white shadow-sm'
-                        : 'text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    {n}
-                  </button>
-                ))}
+              <div className="bg-slate-900 rounded-xl border border-slate-800 p-2.5 text-center">
+                <span className="text-[11px] font-bold text-amber-400">
+                  5 Sources <span className="text-[9px] text-slate-500 font-normal">(SBCS standard)</span>
+                </span>
               </div>
             </div>
           )}
