@@ -109,12 +109,23 @@ const highlightedSegmentSchema = z.object({
   type: z.enum(['correct', 'weak', 'error']),
 });
 
-const sectionScoreSchema = z.object({
+// Preprocess: strip null values from section score objects entirely
+function cleanSectionScore(val: unknown): unknown {
+  if (val === null || val === undefined) return undefined;
+  if (typeof val !== 'object') return val;
+  const cleaned: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(val as Record<string, unknown>)) {
+    if (v !== null) cleaned[k] = v;
+  }
+  return Object.keys(cleaned).length > 0 ? cleaned : undefined;
+}
+
+const sectionScoreSchema = z.preprocess(cleanSectionScore, z.object({
   level: z.string().optional(),
   marks: z.number().optional(),
   maxMarks: z.number().optional(),
   label: z.string().optional(),
-});
+}).optional());
 
 const evaluationSchema = z.object({
   // Overall score — structured fields + human-readable label
@@ -124,9 +135,9 @@ const evaluationSchema = z.object({
   scoreLabel: z.string().min(4),
 
   // Optional per-section scores for "All Formats" mode
-  sbcsScore: sectionScoreSchema.optional(),
-  seqScore: sectionScoreSchema.optional(),
-  srqScore: sectionScoreSchema.optional(),
+  sbcsScore: sectionScoreSchema,
+  seqScore: sectionScoreSchema,
+  srqScore: sectionScoreSchema,
 
   pointStatus: z.enum(['Pass', 'Fail']),
   evidenceStatus: z.enum(['Pass', 'Fail']),

@@ -5,6 +5,8 @@
 // chain-of-thought rubric resolution steps, and confidence scoring.
 // ================================================================
 
+import { getModelAnswerExamples } from '@/lib/school-papers';
+
 // ────────────────────────────────────────────────────────────────
 //  Shared chain-of-thought + confidence instructions
 // ────────────────────────────────────────────────────────────────
@@ -702,7 +704,23 @@ const HIST_RELIABILITY_EXAMPLES: FewShotExample[] = [
 const ALL_FORMATS_INSTRUCTIONS = `
 ## ALL FORMATS MODE — COMPLETE O-LEVEL EXAM PACKAGE (MANDATORY)
 
-When the target skill track is "All Formats", you MUST produce a COMPLETE, full-length O-Level examination stimulus package. This is NOT a single-skill exercise. You must generate ALL components described below.
+### REFERENCE: REAL MOE SCHOOL PAPER FORMATS
+
+Your output must match the structure of REAL Singapore school exam papers like these:
+
+**Victoria School SS 2020** — "Zero-Waste Nation": 6 sources (A-F: cartoon, MEWR project, CNA article, ST infographic, Facebook response, NEA photo), 5 SBCS parts (Inference[6m], Comparison[7m], Purpose[7m], Reliability[7m], Assertion[8m]) + SRQ section with 2 questions (7m + 8m) = 50 marks total.
+
+**Montfort SS 2024** — "Declining Birth Rates": 6 sources (CNA article, ST cartoon, BBC report, Forum letter, MP speech, IPS survey), 5 SBCS parts (Inference[5m], Comparison[7m], Surprise/Reliability[7m], Prove[6m], Hybrid SEQ[10m]) + SRQ section.
+
+**Deyi History 2024** — "Korean War — US Intervention": 6 sources (Veterans for Peace article, American cartoon, Truman speech, North Korean history, Acheson memoir, Chinese propaganda pamphlet), 5 SBCS parts (Surprise[6m], Purpose[5m], Prove[6m], Message[5m], Assertion[8m]) + 3 SEQ essays (10m each) = 50 marks.
+
+**Edgefield History 2024** — "Korean War — Regional vs Cold War": 6 sources (Truman statement, Mao speech, CIA report, US leaflet, Stalin telegram, Chinese historians), 5 SBCS parts (Utility[5m], Purpose[5m], Surprise[6m], Prove[6m], Assertion[8m]) + 3 SEQ essays.
+
+**CCHM History 2025** — "Korean War — Who Was to Blame?": 6 sources (US leaflet, Truman press conference, Truman memoirs, DPRK report, UN leaflet, Chinese historian), 5 SBCS parts (Message[5m], Reliability[6m], Surprise[5m], Agreement[6m], Assertion[8m]) + 3 SEQ essays.
+
+**St. Margaret's History 2023** — "Stalin's Great Terror": 6 sources (survivor account, Deutscher book, British textbook, Kopelev autobiography, Khrushchev speech, Soviet photograph), 5 SBCS parts (Inference[5m], Comparison[5m], Surprise[6m], Utility[6m], Assertion[8m]) + 2 SEQ essays (8m+12m).
+
+Pattern to follow: Each paper has EXACTLY 6 sources with distinct provenances, 5 SBCS parts testing different skills with varying mark weights, subject-specific Section B (SRQ for SS, SEQ for History), and a total of 50 marks. Your output must follow this same structure.
 
 ============================================
 === OVERALL CONTEXT ===
@@ -714,13 +732,13 @@ For Social Studies: Choose a scenario related to one of the three issues (Citize
 For History: Choose a scenario related to the selected case study topic.
 
 ============================================
-=== SECTION A: SOURCES (Generate exactly 5) ===
+=== SECTION A: SOURCES (Generate exactly 6 sources) ===
 ============================================
 
-Generate exactly 5 sources (numbered Source 1 through Source 5), each with:
+Generate exactly 5 sources (labelled Source 1 through Source 5, plus optionally a 6th Source 6 in metadata), each with:
 - A distinct, realistic provenance (date, author, publication/context — be specific)
 - Substantive content (at least 60 characters each)
-- Different source types: e.g., speech extract, newspaper article, interview transcript, government report, cartoon/poster description, diary entry, statistical table
+- Different source types: e.g., speech extract, newspaper article, interview transcript, government report, cartoon/poster description, diary entry, statistical table, photograph description, propaganda leaflet
 - Different perspectives: some sources should support a particular view, some should oppose or complicate it, and some should be neutral
 - Provenance should vary enough that reliability and purpose can be meaningfully assessed
 
@@ -769,13 +787,62 @@ Provide 3 separate SEQ (Structured Essay Question) essay prompts as Section B of
 - SEQ Question 3: Focus on **comparison or judgment** (e.g., "To what extent was X more important than Y?" or "Which factor was the most important in...?")
 
 ===========================================
-=== SUGGESTED ANSWER / MODEL ANSWER ===
+=== SUGGESTED ANSWER / MODEL ANSWER — MOE TEACHER STANDARD ===
 ===========================================
 
-Provide a comprehensive A1-grade suggested answer that covers:
-- For Part A-E: A complete model response for each question, written at L4/L5 standard (top band), demonstrating correct structure (ISE for inference, explicit comparison for comparison, purpose + evidence for purpose, provenance + cross-ref for reliability, balanced synthesis for assertion)
-- For SRQ (SS only): Full model answers for both SRQ (a) and (b) at top band standard
-- For SEQ (History only): Full model answers for all 3 SEQ questions at L4 standard
+You MUST provide a comprehensive A1-grade suggested answer that reads EXACTLY like a model answer written by a Singapore MOE Humanities teacher for a top-tier school (RI, HCI, ACS). Observe the following strict formatting and style rules:
+
+## MOE-Style Answer Formatting Rules (MANDATORY — ALL rules MUST be followed)
+
+1. **Explicit structure markers**: Use "Point:", "Evidence:", "Explanation:" and "Link:" headers in ALL paragraphs. These markers must be BOLDED or clearly visible. FAILURE TO INCLUDE ALL FOUR MARKERS WILL RESULT IN THE ANSWER BEING REJECTED AS INCOMPLETE.
+2. **Conciseness**: MOE model answers are TIGHT. Aim for 3-5 sentences per paragraph, not 6-8. Every sentence must add analytical value.
+3. **Precision over verbosity**: Use specific phrases like "Source X reveals...", "This implies...", "In contrast...", "This is significant because...". Avoid: "This disparity is significant" (vague). Instead: "This contrast matters because it reveals the fundamental tension between X and Y."
+4. **Exact rubric language — MUST include LORMS level labels**: You MUST include the exact LORMS rubric terminology AND level label in EVERY answer. For example: "L4 Message (4-5m): The message is that..." or "L5 Will not work based on Perspective (7m): The resident would not..." DO NOT just describe the analysis — LABEL the LORMS level explicitly like the real school model answers do. E.g., for comparison, say "core message matching" explicitly and label the level: "L4 — Similarity AND Difference with core message matching."
+5. **Direct quotes from sources — MANDATORY**: You MUST include at least ONE direct quote from the source in EVERY paragraph, enclosed in double quotation marks. E.g., Source 1 states that "the subsidy covers 80% of outpatient costs." Generic paraphrasing without quoted evidence is NOT acceptable for an L4 model answer.
+6. **Cross-referencing — MANDATORY for Part (b) and Part (e)**: For comparison and assertion questions, you MUST explicitly compare sources using contrastive language: "whereas", "in contrast", "Source X reveals... while Source Y...", "on the other hand", "similarly". Describing sources separately ("Source A says... Source B says...") is NOT cross-referencing and does NOT meet L3+
+7. **Conclusion/evaluation — MANDATORY for every Part**: Each Part's model answer MUST end with a concluding/evaluative sentence (introduced by "Therefore:", "Thus:", "Hence:", "In conclusion:", "As such:", or similar transition) that provides an evaluative judgment. E.g., "Therefore, this contrast reveals that the government's policy was driven by electoral rather than economic considerations." Answers that end without a conclusion will be marked DOWN.
+8. **No padding**: Do NOT start with "The government's support for businesses, as presented in Source A and Source B, reveals a complex dynamic..." This is filler. Start DIRECTLY with the analysis.
+9. **Natural academic register**: Write in fluent, natural English that an MOE teacher would produce — clear, precise, confident. Avoid robotic or overly complex sentence structures.
+10. **Answer length**: 
+    - Part (a) Inference: 2-3 sentences
+    - Part (b) Comparison: 4-6 sentences
+    - Part (c) Purpose: 3-4 sentences
+    - Part (d) Reliability: 4-6 sentences
+    - Part (e) Assertion: 6-10 sentences (balanced, with evaluation)
+    - SRQ (a): 4-6 sentences
+    - SRQ (b): 5-8 sentences
+    - SEQ each: 6-10 sentences
+
+## What This Should Look Like (Example Structure for Comparison):
+
+"Point: Both Source A and Source B address [topic], but they differ fundamentally in their assessment of [aspect]. Evidence: Source A, a [provenance description], presents [aspect] as [description] — 'direct quote from source.' In contrast, Source B, an [editorial/report from context], argues [aspect] is [description] — 'direct quote from source.' Explanation: Source A's core message is that [X], whereas Source B's core message is that [Y]. This difference is rooted in their contrasting purposes — Source A seeks to [purpose], while Source B aims to [purpose]. Link: This divergence matters because it reveals [broader significance], shaping how a historian/citizen would evaluate [implications]."
+
+CRITICAL: Each section (Part A-E) must have its own complete model answer. Do NOT combine them into one paragraph. Label each part clearly.
+
+- For Part A-E: Write a complete model response for EACH question at L4/L5 standard.
+- For SRQ (SS only): Write full model answers for both SRQ (a) and (b) at L4 standard, with clear structure markers.
+- For SEQ (History only): Write full model answers for all 3 SEQ questions at L4 standard, with PEEL structure.
+
+## REAL MOE SCHOOL MODEL ANSWER LORMS PATTERNS — YOU MUST USE THESE
+
+The following are LORMS-level language patterns from actual MOE school model answers. Your output MUST use matching LORMS labels and level descriptors:
+
+- SS Inference (Victoria 2020): [L4 Message (4-5m): The message is that X. L5 (6m): Message with broader outcome — Y.]
+- SS Comparison (Victoria 2020): [L3 (4-5m): Will work OR will NOT work. L4 (6m): Will work AND will NOT work. L5 (7m): Will NOT work based on Perspective.]
+- History Surprise (Deyi 2024): [L3 (4-5m): Evaluation by cross-reference. L4 (6m): Purpose in context — author's agenda.]
+- History Prove (Deyi 2024): [L5 (5m): Disagreement + cross-reference. L6 (6m): Purpose evaluation — competing agendas.]
+- History Assertion (Deyi 2024): [L2 (2-4m): Yes OR No. L3 (5-7m): Yes AND No. + Bonus: CK evaluation.]
+- SS SRQ (Victoria 2020): [L3 (5-7m): Explains reasons. L4 (8m): Explains relative importance.]
+- History SEQ (Deyi 2024): [L3 (6-8m): Factor + counter-factor. L4 (9-10m): Evaluates and weighs.]
+
+### CRITICAL CHECKLIST — All 7 must pass:
+1. LORMS labels missing? Every Part needs L4 Message: / L3 Comparison: etc.
+2. Direct quotes missing? Every paragraph needs "evidence in quotes"
+3. Cross-referencing missing? Part (b/e) MUST compare sources (whereas, in contrast)
+4. Conclusion missing? Every Part ends with Therefore:/Thus: judgment
+5. PEEL markers missing? Point/Evidence/Explanation/Link in every paragraph
+6. Provenance not evaluated? Part (c/d) MUST discuss author/date/type/purpose
+7. Balanced judgment missing? Part (e) MUST present agree AND disagree
 `;
 
 const GENERATION_SOURCE_RULES: Record<string, string> = {
@@ -805,6 +872,9 @@ function getGenerationSourceRules(questionType: string): string {
   return ALL_FORMATS_INSTRUCTIONS;
 }
 
+/**
+ * Get the condensed generation prompt (fits under 6K tokens for 8B fallback).
+ */
 export function getGenerateSystemPrompt(subject: string, topic: string, questionType: string): string {
   const sourceRules = getGenerationSourceRules(questionType);
   const aos = getAssessmentObjectives(subject);
@@ -844,6 +914,27 @@ ${SCHOOL_BENCHMARK_DATA}
 Calibrate ALL model answers to Tier 1 (top-tier school) standard — RI, HCI, ACS(I), NJC, VJC level.
 The suggested answer should reflect the depth, sophistication, and evaluative thinking expected at these schools.
 `.trim();
+}
+
+
+/**
+ * 70B-specific generation prompt — includes verbatim Victoria School model
+ * answer examples for higher-quality output. Only use this for the 70B model
+ * (not the 8B fallback) because it exceeds the 8B's token limit.
+ */
+export function getGenerateSystemPrompt70B(subject: string, topic: string, questionType: string): string {
+  const base = getGenerateSystemPrompt(subject, topic, questionType);
+  const modelAnswers = getModelAnswerExamples(subject === 'History' ? 'History' : 'Social Studies');
+  return `${base}
+
+## REAL MOE SCHOOL MODEL ANSWER EXAMPLES — YOU MUST MATCH THIS STANDARD
+
+${modelAnswers}
+
+These are actual MOE teacher-written model answers from Victoria School SS 2020.
+Your suggested answers MUST match the SAME analytical depth, structure, LORMS-level
+precision, and formatting shown in these examples. Use the exact LORMS level labels
+(e.g., "L4 Message (4-5m):") and PEEL structure demonstrated above.`;
 }
 
 function getSubjectLabel(subject: string): string {
@@ -1041,8 +1132,56 @@ ${combinedAnswer}
 
 Apply the LORMS rubric strictly using the step-by-step rubric resolution process.
 Highlight which segments were correct, which were weak, and which were structural errors.
-Produce a clean A1-grade rewrite the student can compare against their own work.
-Rate your confidence in this assessment.
+
+## A1 MODEL ANSWER (a1Upgrade) — MOE TEACHER STANDARD
+
+Write the a1Upgrade as if you are an MOE Humanities teacher at a top-tier school (RI, HCI, ACS) writing a model answer for your students.
+
+### MOE-Style Rules (MANDATORY for a1Upgrade):
+1. Use explicit structure markers: "Point:", "Evidence:", "Explanation:", "Link:" in every paragraph
+2. Be CONCISE: 3-5 sentences per point. No verbose introductions like "The government's support... reveals a complex dynamic..."
+3. Start DIRECTLY with the analysis, not a generic framing sentence
+4. Use precise analytical language: "Source X reveals...", "This implies...", "In contrast...", "This is significant because..."
+5. Reference specific evidence from the question/sources (quote key phrases)
+6. End each point with a Link that ties back to the broader implication
+7. Write at Tier 1 (top-tier school) L4 standard — sophisticated, evaluative, confident
+8. Keep natural academic register — clear, precise English that reads like a real teacher wrote it
+9. Use REAL MOE LEVEL DESCRIPTORS from the actual Victoria School SS model answer (see example below)
+
+### REAL MOE SCHOOL MODEL ANSWER EXAMPLE — Victoria School SS 2020
+
+Here is an actual MOE teacher-written model answer from Victoria School's SA2 Social Studies paper.
+This is the EXACT format, depth, and style you must match:
+
+Question: Study Source A. What is the message of this cartoon? Explain your answer. [6]
+MOE Teacher Answer:
+"L4 Message (4-5m): The message is that recycling is seen as negative / undesirable act by many adult Singaporeans. (Behaviour of Singaporeans toward recycling) This is because many feel that it is not their responsibility and it should be the responsibility of those who earn/are paid to do these jobs such as the Karang Guni men.
+
+L5 Message with broader outcome (6m): The message of this cartoon is to create a sense of shared responsibility among Singaporeans toward recycling (source was created in 2010). In the past since recycling was perceived to be undesirable act, it was necessary for actions to be taken to have a change of mindset among Singaporeans and work together for the good of society — protecting the environment."
+
+Question: Study Sources B and C. Does the resident in Source C think that the project in Source B will work? [7]
+MOE Teacher Answer:
+"L4 Will work AND Will NOT work based on content (6m): Will work — as the new bin educates residents of how to recycle. Source B — 'we aim to increase public awareness about the process of recycling right and reduce contamination'... 'Notices are also to be placed at a person's eye-level...visualise what is allowed to be recycled with minimal effort'. Source C — '...many are still not very educated about how to recycle properly...' Will not work — convenience. Source B — 'We hope to create a transparent bin which may make people more conscious of what they are placing into the bin...' Source C — 'Do you really think that Singaporeans in general will take the time out to do that when they don't even take the time to do simple things?' Will not work as most Singaporeans may still throw things that do not belong to the recycling bin even if the bin is transparent as the process of recycling right is too tedious and time consuming.
+
+L5 Will not work based on Perspective (7m): The resident would not think that the project will work as she feels cynical/negative that Singaporeans will change their mindset and put in the time to recycle properly. Source B's project may not address the root cause which is Singaporean's behaviour as it is only dealing with the bin's structure."
+
+### REAL MOE SCHOOL MODEL ANSWER EXAMPLE — Deyi Secondary History 2024
+
+Question: Study Source A. Are you surprised by what the source says? Explain your answer. [6]
+MOE Teacher Answer:
+"L2: Surprised for what it tells about the Korean War (3m): I am surprised as it is actually different from the common American understanding of the Korean war by pointing out that it was the Americans who initiated the Korean War as US wanted to establish a democratic South Korea. This can be seen from the source which shows 'The truth is that the Korean War really started in 1945 when the U.S. suppressed the KPR government and imposed its military rule in the southern part of Korea.'
+
+L3: Answers which attempt to evaluate what is said by cross-reference to other sources or contextual knowledge (4-5m): I am surprised as I feel that US would not have wanted to initiate the Korean War as based on my contextual knowledge, the Americans were initially not interested in the affairs of Korea. This can be seen from the fact that Korea was not part of the American defensive perimeter. US have even started withdrawing the troops from Korea from 1949 onwards.
+
+L4: Answers which evaluate the source based on the purpose in context (6m): Upon closer examination of the provenance, I am not surprised by the source as Source A is written by Veterans for Peace which is likely to advocate for peace and show a biased perspective of the Korean War. As a member of Veteran for Peace, it is likely that the author's purpose is to show how fighting in a war was unnecessary so as to discourage the American public from supporting future government's decision to get itself involved in a distant place like Korea."
+
+### IMPORTANT: a1Upgrade Must Be a SINGLE Coherent Answer
+
+The a1Upgrade field expects ONE complete model answer at L4/L5 standard, NOT a multi-level breakdown. Use the Victoria School and Deyi examples above for STYLE (evidence quotes, analytical precision, clarity) but output only the TOP-BAND answer. Do NOT include multiple LORMS level descriptions — just write the answer itself. Think of it as the answer key a teacher would give to students.
+
+**Correct (single answer):** "The message of the cartoon is that recycling is seen as undesirable by adult Singaporeans because they believe it is the responsibility of paid workers like Karang Guni men. This attitude creates a barrier to shared responsibility for the environment, which the cartoon critiques by highlighting the gap between personal convenience and collective action."
+
+**Incorrect (multi-level breakdown):** "L4 Message (4-5m): ... L5 Message with broader outcome (6m): ..."
 
 ## SCHOOL BENCHMARKING
 

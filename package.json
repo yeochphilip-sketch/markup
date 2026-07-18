@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "eval": "npx tsx scripts/run-eval.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^4.0.8",
@@ -20,9 +21,11 @@
     "html-to-image": "^1.11.13",
     "next": "16.2.10",
     "openai": "^6.45.0",
+    "pdf-parse": "^2.4.5",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "stripe": "^22.3.0"
+    "stripe": "^22.3.0",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
     "@edge-runtime/vm": "^5.0.0",

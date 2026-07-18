@@ -5,7 +5,7 @@ import { generateText } from 'ai';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
 import { getServerSupabase } from '@/lib/supabase-server';
-import { getGenerateSystemPrompt } from '@/lib/prompts';
+import { getGenerateSystemPrompt, getGenerateSystemPrompt70B } from '@/lib/prompts';
 import { checkSupabaseRateLimit, GENERATE_QUESTION_LIMIT, rateLimitResponse } from '@/lib/rate-limit-supabase';
 
 const groq = createOpenAI({
@@ -98,12 +98,14 @@ type QuestionResult = z.infer<typeof questionSchema>;
 
 /**
  * Try each model provider in sequence until one succeeds.
+ * If system70B is provided, the first (70B) attempt uses that enriched prompt.
  */
 async function tryGenerateWithFallbacks<T>(
   system: string,
   prompt: string,
   schema: z.ZodType<T>,
   jsonFields: string,
+  system70B?: string,
 ): Promise<T> {
   const attempts = [
     { model: groq('llama-3.3-70b-versatile'), label: 'Groq Llama 3.3 70B', temp: 0.4 },
@@ -117,11 +119,13 @@ async function tryGenerateWithFallbacks<T>(
   const jsonInstruction = `\n\nYou MUST respond with ONLY a valid JSON object using these exact keys:\n${jsonFields}\nNo markdown, no code fences, no other text. Just the JSON object.`;
 
   const errors: string[] = [];
-  for (const attempt of attempts) {
+  for (let i = 0; i < attempts.length; i++) {
+    const attempt = attempts[i];
+    const sys = (i === 0 && system70B) ? system70B : system;
     try {
       const result = await generateText({
         model: attempt.model,
-        system: system + jsonInstruction,
+        system: sys + jsonInstruction,
         prompt,
         temperature: attempt.temp,
       });
@@ -182,6 +186,62 @@ function buildAllFormatsJsonFields(sourceCount: number): string {
   lines.push(`  "seqQuestion3": "string (FOR HISTORY ONLY: SEQ essay question 3. Set to empty if not History.)",`);
   lines.push(`  "suggestedAnswer": "string (A1-grade comprehensive model answer covering ALL parts, at least 30 chars)"`);
   return `{\n${lines.join('\n')}\n}`;
+}
+
+/**
+ * Post-generation quality validation.
+ * Returns a list of issues found (empty = passed).
+ */
+function validateGeneration(
+  result: Record<string, any>,
+  resolvedSourceCount: number,
+  isAllFormats: boolean,
+): string[] {
+  const issues: string[] = [];
+
+  // 1. Check background context
+  if (!result.backgroundContext || result.backgroundContext.length < 40) {
+    issues.push('backgroundContext is too short or missing (< 40 chars)');
+  }
+
+  // 2. Check sources have minimum content length
+  const sourceKeys = ['sourceA', 'sourceB', 'sourceC', 'sourceD', 'sourceE'];
+  for (let i = 0; i < resolvedSourceCount && i < sourceKeys.length; i++) {
+    const key = sourceKeys[i];
+    const content = result[key];
+    if (!content || content.length < 120) {
+      issues.push(`${key} is too short or missing (< 120 chars)`);
+    }
+  }
+
+  // 3. Check suggestedAnswer exists
+  if (!result.suggestedAnswer || result.suggestedAnswer.length < 30) {
+    issues.push('suggestedAnswer is too short or missing (< 30 chars)');
+  }
+
+  // 4. For All Formats, check LORMS labels are present in suggestedAnswer
+  if (isAllFormats && result.suggestedAnswer && result.suggestedAnswer.length > 30) {
+    const hasLORMS = /L[1-6]\s/.test(result.suggestedAnswer);
+    if (!hasLORMS) {
+      issues.push('suggestedAnswer missing LORMS level labels (e.g., "L4", "L3")');
+    }
+    const hasPoint = /Point:/i.test(result.suggestedAnswer);
+    if (!hasPoint) {
+      issues.push('suggestedAnswer missing "Point:" PEEL marker');
+    }
+  }
+
+  // 5. Check part questions are non-empty
+  if (isAllFormats) {
+    const parts = ['partA_Inference', 'partB_Comparison', 'partC_Purpose', 'partD_Reliability', 'partE_Assertion'];
+    for (const part of parts) {
+      if (!result[part] || result[part].length < 3) {
+        issues.push(`${part} is missing or too short`);
+      }
+    }
+  }
+
+  return issues;
 }
 
 /**
@@ -275,6 +335,7 @@ export async function POST(request: Request) {
       : 2; // Individual tracks always get 2 sources
 
     const systemPrompt = getGenerateSystemPrompt(resolvedSubject, resolvedTopic, resolvedQuestionType);
+    const systemPrompt70B = getGenerateSystemPrompt70B(resolvedSubject, resolvedTopic, resolvedQuestionType);
 
     let result;
 
@@ -294,6 +355,7 @@ ${sourcePrompt}
 The sources must be designed to test a RANGE of skills (inference, comparison, purpose, reliability, assertion).`.trim(),
         schema,
         jsonFields,
+        systemPrompt70B, // Enriched prompt for 70B model
       );
       result = normaliseAllFormatsResponse(raw as AllFormatsData, resolvedSourceCount);
     } else {
@@ -304,6 +366,7 @@ Skill track: ${resolvedQuestionType}.
 The sources must be designed specifically to test the ${resolvedQuestionType} skill.`.trim(),
         questionSchema,
         INDIVIDUAL_JSON_FIELDS,
+        systemPrompt70B, // Enriched prompt for 70B model
       );
     }
 
@@ -359,6 +422,57 @@ The sources must be designed specifically to test the ${resolvedQuestionType} sk
       } catch (dbErr) {
         console.warn('Non-fatal: failed to persist generated_questions row', dbErr);
       }
+    }
+
+    // ── Quality validation (post-generation check) ──
+    const resultObj = result as Record<string, any>;
+    const validationIssues = validateGeneration(resultObj, resolvedSourceCount, isAllFormats);
+
+    if (validationIssues.length > 0) {
+      console.warn('[generate] Quality validation failed:', validationIssues);
+
+      // One retry with the 70B prompt for better quality
+      console.log('[generate] Retrying generation once for quality...');
+      try {
+        const retrySystem = getGenerateSystemPrompt70B(resolvedSubject, resolvedTopic, resolvedQuestionType);
+        if (isAllFormats) {
+          const schema = createAllFormatsSchema(resolvedSourceCount);
+          const jsonFields = buildAllFormatsJsonFields(resolvedSourceCount);
+          const sourcePrompt = resolvedSourceCount < 5
+            ? `Sources 1-${resolvedSourceCount} are REQUIRED; sources ${resolvedSourceCount + 1}-5 should be set to empty strings.`
+            : 'All 5 sources are required.';
+
+          const retryRaw = await tryGenerateWithFallbacks(
+            systemPrompt,
+            `Regenerate a complete O-Level ${resolvedSubject} FULL EXAM PACKAGE on the topic "${resolvedTopic}".
+Previous attempt had issues: ${validationIssues.join('; ')}.
+Ensure ALL sections are complete and LORMS labels are present.`.trim(),
+            schema,
+            jsonFields,
+            retrySystem,
+          );
+          result = normaliseAllFormatsResponse(retryRaw as AllFormatsData, resolvedSourceCount);
+        } else {
+          // For individual tracks, just regenerate
+          const retryResult = await tryGenerateWithFallbacks(
+            systemPrompt,
+            `Regenerate an O-Level ${resolvedSubject} stimulus package on the topic "${resolvedTopic}".
+Previous attempt had issues: ${validationIssues.join('; ')}.
+Skill track: ${resolvedQuestionType}.`.trim(),
+            questionSchema,
+            INDIVIDUAL_JSON_FIELDS,
+            retrySystem,
+          );
+          result = retryResult;
+        }
+      } catch (retryErr) {
+        console.warn('[generate] Retry also failed, serving original result:', retryErr);
+        // Serve the original result even if retry fails
+      }
+
+      // Attach validation issues to response for debugging
+      const finalResult = result as Record<string, any>;
+      finalResult._validationIssues = validationIssues;
     }
 
     return NextResponse.json(result);
