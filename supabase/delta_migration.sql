@@ -256,6 +256,9 @@ ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS sbq_comparison_sc
 ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS sbq_reliability_score INTEGER DEFAULT 1;
 ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS seq_essay_score       INTEGER DEFAULT 1;
 ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS seq_conclusion_score  INTEGER DEFAULT 0;
+ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS sbq_purpose_score      INTEGER DEFAULT 1;
+ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS sbq_synthesis_score    INTEGER DEFAULT 1;
+ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS sbq_utility_score      INTEGER DEFAULT 1;
 
 -- ════════════════════════════════════════════════════════════
 --  Gamification columns
@@ -720,6 +723,148 @@ CREATE POLICY "Allow all delete rate_limits"
 
 -- Periodically clean up stale entries (via pg_cron or manual)
 -- A cron job can run: DELETE FROM public.rate_limits WHERE window_expires_at < now() - interval '1 hour'
+
+-- ============================================================
+-- 16. atomic_gamification_update — handles gamification state atomically
+--     Prevents race conditions when concurrent submissions arrive for the same user.
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION public.atomic_gamification_update(
+    p_user_id UUID,
+    p_earned_xp INTEGER DEFAULT 0,
+    p_daily_bonus INTEGER DEFAULT 0,
+    p_streak_bonus INTEGER DEFAULT 0,
+    p_achievement_xp INTEGER DEFAULT 0,
+    p_new_achievements TEXT[] DEFAULT '{}',
+    p_decay_xp INTEGER DEFAULT 0,
+    p_section_increment INTEGER DEFAULT 1,
+    p_subject TEXT DEFAULT ''
+) RETURNS JSONB
+    LANGUAGE plpgsql
+    SECURITY DEFINER
+AS $$
+DECLARE
+    v_metrics RECORD;
+    v_new_total_xp INTEGER;
+    v_new_streak INTEGER;
+    v_new_longest_streak INTEGER;
+    v_all_achievements TEXT[];
+    v_today_str TEXT;
+    v_yesterday_str TEXT;
+    v_prev_breakdown JSONB;
+    v_xp_breakdown JSONB;
+    v_monday_str TEXT;
+    v_total_weekly_xp INTEGER;
+    v_new_level_title TEXT;
+    v_new_total_evaluations INTEGER;
+BEGIN
+    -- Row-level lock to prevent concurrent updates
+    SELECT * INTO v_metrics
+    FROM public.user_skill_metrics
+    WHERE user_id = p_user_id
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RETURN '{}'::jsonb;
+    END IF;
+
+    v_today_str := to_char(CURRENT_DATE, 'YYYY-MM-DD');
+    v_yesterday_str := to_char(CURRENT_DATE - INTERVAL '1 day', 'YYYY-MM-DD');
+
+    -- Atomic: increment total_evaluations
+    v_new_total_evaluations := COALESCE(v_metrics.total_evaluations, 0) + p_section_increment;
+
+    -- XP calculation
+    v_new_total_xp := GREATEST(0,
+        COALESCE(v_metrics.total_xp, 0)
+        + p_earned_xp + p_daily_bonus + p_streak_bonus + p_achievement_xp
+        - p_decay_xp
+    );
+
+    -- Level title (mirrors getLevelTitle from gamification.ts)
+    IF v_new_total_xp >= 5000 THEN
+        v_new_level_title := 'Master';
+    ELSIF v_new_total_xp >= 3000 THEN
+        v_new_level_title := 'Expert';
+    ELSIF v_new_total_xp >= 1500 THEN
+        v_new_level_title := 'Scholar';
+    ELSIF v_new_total_xp >= 500 THEN
+        v_new_level_title := 'Apprentice';
+    ELSE
+        v_new_level_title := 'Novice';
+    END IF;
+
+    -- Streak logic
+    IF v_metrics.last_practice_date = v_today_str THEN
+        v_new_streak := COALESCE(v_metrics.current_streak, 0);
+    ELSIF v_metrics.last_practice_date = v_yesterday_str THEN
+        v_new_streak := COALESCE(v_metrics.current_streak, 0) + 1;
+    ELSE
+        v_new_streak := 1;
+    END IF;
+    v_new_longest_streak := GREATEST(v_new_streak, COALESCE(v_metrics.longest_streak, 0));
+
+    -- Merge achievements (avoid duplicates via array dedup with subquery)
+    v_all_achievements := (
+        SELECT array_agg(DISTINCT a)
+        FROM (
+            SELECT unnest(COALESCE(v_metrics.achievements, '{}'))
+            UNION
+            SELECT unnest(p_new_achievements)
+        ) t(a)
+    );
+
+    -- XP breakdown
+    v_prev_breakdown := COALESCE(v_metrics.xp_breakdown, '{}');
+    v_xp_breakdown := jsonb_build_object(
+        'fromGrades', COALESCE((v_prev_breakdown->>'fromGrades')::INT, 0) + p_earned_xp,
+        'fromAchievements', COALESCE((v_prev_breakdown->>'fromAchievements')::INT, 0) + p_achievement_xp,
+        'fromStreaks', COALESCE((v_prev_breakdown->>'fromStreaks')::INT, 0) + p_streak_bonus,
+        'fromDailyGoals', COALESCE((v_prev_breakdown->>'fromDailyGoals')::INT, 0) + p_daily_bonus,
+        'fromReferrals', COALESCE((v_prev_breakdown->>'fromReferrals')::INT, 0)
+    );
+
+    -- Weekly tracking (reset on Monday)
+    v_monday_str := to_char(date_trunc('week', CURRENT_DATE)::DATE, 'YYYY-MM-DD');
+    IF COALESCE(v_metrics.weekly_reset_date, '') = v_monday_str THEN
+        v_total_weekly_xp := COALESCE(v_metrics.weekly_xp_earned, 0)
+            + p_earned_xp + p_daily_bonus + p_streak_bonus + p_achievement_xp;
+    ELSE
+        v_total_weekly_xp := p_earned_xp + p_daily_bonus + p_streak_bonus + p_achievement_xp;
+    END IF;
+
+    -- Atomic write
+    UPDATE public.user_skill_metrics
+    SET
+        total_xp = v_new_total_xp,
+        level_title = v_new_level_title,
+        last_practice_date = v_today_str,
+        current_streak = v_new_streak,
+        longest_streak = v_new_longest_streak,
+        total_evaluations = v_new_total_evaluations,
+        total_xp_decayed = COALESCE(total_xp_decayed, 0) + p_decay_xp,
+        achievements = v_all_achievements,
+        xp_breakdown = v_xp_breakdown,
+        weekly_xp_earned = v_total_weekly_xp,
+        weekly_reset_date = v_monday_str,
+        updated_at = now()
+    WHERE user_id = p_user_id;
+
+    RETURN jsonb_build_object(
+        'total_xp', v_new_total_xp,
+        'level_title', v_new_level_title,
+        'current_streak', v_new_streak,
+        'longest_streak', v_new_longest_streak,
+        'total_evaluations', v_new_total_evaluations,
+        'achievements', v_all_achievements,
+        'xp_breakdown', v_xp_breakdown,
+        'weekly_xp_earned', v_total_weekly_xp,
+        'weekly_reset_date', v_monday_str,
+        'total_xp_decayed', COALESCE(v_metrics.total_xp_decayed, 0) + p_decay_xp,
+        'last_practice_date', v_today_str
+    );
+END;
+$$;
 
 -- ============================================================
 -- Done.

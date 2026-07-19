@@ -99,6 +99,7 @@ type QuestionResult = z.infer<typeof questionSchema>;
 /**
  * Try each model provider in sequence until one succeeds.
  * If system70B is provided, the first (70B) attempt uses that enriched prompt.
+ * If retryModels is provided (e.g., for retry after quality failure), it replaces the default list.
  */
 async function tryGenerateWithFallbacks<T>(
   system: string,
@@ -106,13 +107,14 @@ async function tryGenerateWithFallbacks<T>(
   schema: z.ZodType<T>,
   jsonFields: string,
   system70B?: string,
+  retryModels?: Array<{ model: ReturnType<typeof groq> | ReturnType<typeof google>; label: string; temp: number }>,
 ): Promise<T> {
-  const attempts = [
+  const attempts = retryModels ?? [
     { model: groq('llama-3.3-70b-versatile'), label: 'Groq Llama 3.3 70B', temp: 0.4 },
     { model: groq('llama-3.1-8b-instant'), label: 'Groq Llama 3.1 8B', temp: 0.4 },
   ];
 
-  if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+  if (!retryModels && process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
     attempts.push({ model: google('gemini-2.5-flash'), label: 'Google Gemini 2.5 Flash', temp: 0.4 });
   }
 
@@ -352,7 +354,9 @@ export async function POST(request: Request) {
         `Generate one complete O-Level ${resolvedSubject} FULL EXAM PACKAGE on the topic "${resolvedTopic}".
 Skill track: All Formats — generate ALL components (${resolvedSourceCount} sources, 5 SBQ questions part A-E, plus subject-specific SRQ/SEQ sections).
 ${sourcePrompt}
-The sources must be designed to test a RANGE of skills (inference, comparison, purpose, reliability, assertion).`.trim(),
+The sources must be designed to test a RANGE of skills (inference, comparison, purpose, reliability, assertion).
+
+CRITICAL: The suggestedAnswer MUST include LORMS level labels (e.g., "L4 Message (4-5m):") and PEEL structure markers (Point:/Evidence:/Explanation:/Link:) for EVERY part. Each part (a)-(e) must have its OWN model answer — do not combine them.`.trim(),
         schema,
         jsonFields,
         systemPrompt70B, // Enriched prompt for 70B model
@@ -432,8 +436,10 @@ The sources must be designed specifically to test the ${resolvedQuestionType} sk
       console.warn('[generate] Quality validation failed:', validationIssues);
 
       // One retry with the 70B prompt for better quality
-      console.log('[generate] Retrying generation once for quality...');
+      console.log('[generate] Retrying generation once for quality (using fallback models)...');
       try {
+        // Retry with a different model order: skip 70B (same model that produced the bad result),
+        // start with 8B or Gemini instead for diversity
         const retrySystem = getGenerateSystemPrompt70B(resolvedSubject, resolvedTopic, resolvedQuestionType);
         if (isAllFormats) {
           const schema = createAllFormatsSchema(resolvedSourceCount);
@@ -442,6 +448,17 @@ The sources must be designed specifically to test the ${resolvedQuestionType} sk
             ? `Sources 1-${resolvedSourceCount} are REQUIRED; sources ${resolvedSourceCount + 1}-5 should be set to empty strings.`
             : 'All 5 sources are required.';
 
+          // Use a modified fallback that starts with the 8B model instead of 70B
+          // (70B already failed quality validation, so try a different approach)
+          const retryAttempts = [
+            { model: groq('llama-3.1-8b-instant'), label: 'Groq Llama 3.1 8B', temp: 0.4 },
+            { model: groq('llama-3.3-70b-versatile'), label: 'Groq Llama 3.3 70B', temp: 0.4 },
+          ];
+          if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+            retryAttempts.unshift(
+              { model: google('gemini-2.5-flash'), label: 'Google Gemini 2.5 Flash', temp: 0.3 },
+            );
+          }
           const retryRaw = await tryGenerateWithFallbacks(
             systemPrompt,
             `Regenerate a complete O-Level ${resolvedSubject} FULL EXAM PACKAGE on the topic "${resolvedTopic}".
@@ -450,10 +467,20 @@ Ensure ALL sections are complete and LORMS labels are present.`.trim(),
             schema,
             jsonFields,
             retrySystem,
+            retryAttempts, // Use diversified model order for retry
           );
           result = normaliseAllFormatsResponse(retryRaw as AllFormatsData, resolvedSourceCount);
         } else {
-          // For individual tracks, just regenerate
+          // For individual tracks, just regenerate with diversified model order
+          const retryAttemptsIndividual = [
+            { model: groq('llama-3.1-8b-instant'), label: 'Groq Llama 3.1 8B', temp: 0.4 },
+            { model: groq('llama-3.3-70b-versatile'), label: 'Groq Llama 3.3 70B', temp: 0.4 },
+          ];
+          if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+            retryAttemptsIndividual.unshift(
+              { model: google('gemini-2.5-flash'), label: 'Google Gemini 2.5 Flash', temp: 0.3 },
+            );
+          }
           const retryResult = await tryGenerateWithFallbacks(
             systemPrompt,
             `Regenerate an O-Level ${resolvedSubject} stimulus package on the topic "${resolvedTopic}".
@@ -462,6 +489,7 @@ Skill track: ${resolvedQuestionType}.`.trim(),
             questionSchema,
             INDIVIDUAL_JSON_FIELDS,
             retrySystem,
+            retryAttemptsIndividual, // Use diversified model order for retry
           );
           result = retryResult;
         }

@@ -83,7 +83,8 @@ CREATE TABLE public.generated_questions (
     source_a           TEXT NOT NULL,
     source_b           TEXT NOT NULL,
     question_prompt    TEXT NOT NULL,
-    suggested_answer   TEXT
+    suggested_answer   TEXT,
+    metadata           JSONB DEFAULT '{}'::jsonb
 );
 
 ALTER TABLE public.generated_questions ENABLE ROW LEVEL SECURITY;
@@ -338,14 +339,19 @@ CREATE TABLE IF NOT EXISTS public.study_groups (
 );
 
 ALTER TABLE public.study_groups ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Allow authenticated create groups" ON public.study_groups;
-CREATE POLICY "Allow authenticated create groups"
-    ON public.study_groups FOR INSERT
-    WITH CHECK (auth.role() = 'authenticated');
-DROP POLICY IF EXISTS "Allow members read groups" ON public.study_groups;
-CREATE POLICY "Allow members read groups"
+DROP POLICY IF EXISTS "Allow group_select" ON public.study_groups;
+DROP POLICY IF EXISTS "Allow owner insert study_groups" ON public.study_groups;
+CREATE POLICY "Allow group_select"
     ON public.study_groups FOR SELECT
-    USING (true);
+    USING (
+        auth.uid() = owner_id
+        OR auth.uid() IN (
+            SELECT gm.user_id FROM public.study_group_members gm WHERE gm.group_id = id
+        )
+    );  -- Only owner and members can view group details
+CREATE POLICY "Allow owner insert study_groups"
+    ON public.study_groups FOR INSERT
+    WITH CHECK (auth.uid() = owner_id);
 DROP POLICY IF EXISTS "Allow service role all" ON public.study_groups;
 CREATE POLICY "Allow service role all"
     ON public.study_groups FOR ALL
@@ -365,10 +371,16 @@ CREATE TABLE IF NOT EXISTS public.study_group_members (
 );
 
 ALTER TABLE public.study_group_members ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Allow authenticated CRUD members" ON public.study_group_members;
-CREATE POLICY "Allow authenticated CRUD members"
-    ON public.study_group_members FOR ALL
-    USING (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Allow member select study_group_members" ON public.study_group_members;
+DROP POLICY IF EXISTS "Allow member insert study_group_members" ON public.study_group_members;
+CREATE POLICY "Allow member select study_group_members"
+    ON public.study_group_members FOR SELECT
+    USING (auth.uid() = user_id OR auth.uid() IN (
+        SELECT gm2.user_id FROM public.study_group_members gm2 WHERE gm2.group_id = group_id
+    ));
+CREATE POLICY "Allow member insert study_group_members"
+    ON public.study_group_members FOR INSERT
+    WITH CHECK (auth.uid() = user_id);
 DROP POLICY IF EXISTS "Allow service role all" ON public.study_group_members;
 CREATE POLICY "Allow service role all"
     ON public.study_group_members FOR ALL

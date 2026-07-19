@@ -7,7 +7,8 @@ import { createClient } from '@supabase/supabase-js';
 import { getServerSupabase } from '@/lib/supabase-server';
 import { getGradeSystemPrompt, getGradeUserPrompt } from '@/lib/prompts';
 import { checkSupabaseRateLimit, GRADE_LIMIT, rateLimitResponse } from '@/lib/rate-limit-supabase';
-import { getXpForLevel, getLevelTitle, DAILY_GOAL_BONUS_XP, getStreakBonus, calculateXpDecay, checkNewAchievements } from '@/lib/gamification';
+import { getAuthUserId } from '@/lib/supabase-server';
+import { getXpForLevel, DAILY_GOAL_BONUS_XP, getStreakBonus, calculateXpDecay, checkNewAchievements } from '@/lib/gamification';
 
 const groq = createOpenAI({
   baseURL: 'https://api.groq.com/openai/v1',
@@ -60,29 +61,15 @@ async function tryGradeWithFallbacks(
 export const runtime = 'nodejs';
 export const maxDuration = 90;
 
-// ── Response cache (in-memory, survives serverless warm starts) ──
-const responseCache = new Map<string, { result: unknown; expiresAt: number }>();
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
-
-function getCacheKey(essay: string): string {
-  let hash = 0;
-  for (let i = 0; i < essay.length; i++) {
-    const char = essay.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return `grade_${hash}_${essay.length}`;
-}
-
 // ── Skill track → user_skill_metrics column mapping ──
 const SKILL_COLUMN_MAP: Record<string, string> = {
   'inference': 'sbq_inference_score',
   'comparison': 'sbq_comparison_score',
   'contrast': 'sbq_comparison_score',
   'reliability': 'sbq_reliability_score',
-  'utility': 'sbq_reliability_score',
-  'purpose': 'sbq_inference_score',
-  'synthesis': 'sbq_comparison_score',
+  'utility': 'sbq_utility_score',
+  'purpose': 'sbq_purpose_score',
+  'synthesis': 'sbq_synthesis_score',
   'seq': 'seq_essay_score',
   'essay': 'seq_essay_score',
   'srq': 'seq_conclusion_score',
@@ -100,6 +87,75 @@ function extractLevelNumber(level: string): number {
   // Parse "L3" or "L4 / 5 marks" or "L2 / 2 marks" → 3, 4, 2
   const match = level.match(/L(\d+)/i);
   return match ? parseInt(match[1], 10) : 0;
+}
+
+/**
+ * Post-grade quality validation — checks for common LLM grading failures.
+ * Returns a list of issues (empty = passed quality check).
+ */
+function validateGrade(
+  evalResult: z.infer<typeof evaluationSchema>,
+  questionType: string,
+  activeSections: string[],
+): string[] {
+  const issues: string[] = [];
+  const isAllFormats = questionType.toLowerCase().includes('all formats') ||
+                       questionType.toLowerCase().includes('bundle');
+
+  // 1. Check that scoreLevel is a valid LORMS level (L0–L5)
+  const levelMatch = evalResult.scoreLevel.match(/^L([0-5])$/);
+  if (!levelMatch) {
+    issues.push(`Invalid scoreLevel format: "${evalResult.scoreLevel}" (expected L0–L5)`);
+  }
+
+  // 2. Check that scoreMarks doesn't exceed scoreMaxMarks
+  if (evalResult.scoreMarks > evalResult.scoreMaxMarks && evalResult.scoreMaxMarks > 0) {
+    issues.push(`scoreMarks (${evalResult.scoreMarks}) exceeds scoreMaxMarks (${evalResult.scoreMaxMarks})`);
+  }
+
+  // 3. Check that scoreMaxMarks is not 0 for valid submissions
+  if (evalResult.scoreMaxMarks === 0 && evalResult.scoreLevel !== 'L0') {
+    issues.push('scoreMaxMarks is 0 but scoreLevel is not L0');
+  }
+
+  // 4. Check that critique has reasonable content
+  if (evalResult.critique.length === 0) {
+    issues.push('critique is empty');
+  }
+  for (const c of evalResult.critique) {
+    if (c.length < 10) {
+      issues.push('critique contains entries shorter than 10 chars');
+      break;
+    }
+  }
+
+  // 5. Check that a1Upgrade is not suspiciously short
+  if (evalResult.a1Upgrade.length < 40) {
+    issues.push(`a1Upgrade is too short (${evalResult.a1Upgrade.length} chars, min 40)`);
+  }
+
+  // 6. Check confidence scores are in valid range
+  if (evalResult.gradingConfidence < 0 || evalResult.gradingConfidence > 1) {
+    issues.push(`gradingConfidence out of range: ${evalResult.gradingConfidence}`);
+  }
+  if (evalResult.modelAnswerConfidence < 0 || evalResult.modelAnswerConfidence > 1) {
+    issues.push(`modelAnswerConfidence out of range: ${evalResult.modelAnswerConfidence}`);
+  }
+
+  // 7. For All Formats: check that section scores are present for submitted sections
+  if (isAllFormats) {
+    if (activeSections.includes('sbcs') && !evalResult.sbcsScore) {
+      issues.push('SBCS section submitted but sbcsScore is missing');
+    }
+    if (activeSections.includes('seq') && !evalResult.seqScore) {
+      issues.push('SEQ section submitted but seqScore is missing');
+    }
+    if (activeSections.includes('srq') && !evalResult.srqScore) {
+      issues.push('SRQ section submitted but srqScore is missing');
+    }
+  }
+
+  return issues;
 }
 
 // ── Shared schemas ──
@@ -159,17 +215,23 @@ const evaluationSchema = z.object({
 });
 
 /**
- * Resolve a Supabase client: try service role key first (admin-level, bypasses RLS),
- * fall back to cookie-based session auth (user-level, respects RLS).
- * The caller must authenticate via the outer auth check.
+ * Resolve a Supabase client: prefer cookie-based session auth (user-level, respects RLS).
+ * Falls back to service role key only if session auth is unavailable.
+ * The service role bypasses RLS, so we prefer session auth for defense-in-depth.
  */
 async function getClientForUser() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (url && key) {
-    return createClient(url, key);
+  try {
+    // Prefer session-based client — respects RLS policies
+    return await getServerSupabase();
+  } catch {
+    // Fall back to service role key if session client can't be created
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (url && key) {
+      return createClient(url, key);
+    }
+    throw new Error('No Supabase client available');
   }
-  return getServerSupabase();
 }
 
 export async function POST(request: Request) {
@@ -180,6 +242,9 @@ export async function POST(request: Request) {
       return rateLimitResponse(rl.headers);
     }
 
+    // ── Auth check: verify userId matches the authenticated session ──
+    const authUserId = await getAuthUserId();
+
     const body = await request.json();
     const {
       sbcsAnswer = '',
@@ -189,8 +254,18 @@ export async function POST(request: Request) {
       questionType,
       subject,
       topic,
-      userId,
+      userId: bodyUserId,
       questionId,
+      sourceAProvenance,
+      sourceA,
+      sourceBProvenance,
+      sourceB,
+      sourceCProvenance,
+      sourceC,
+      sourceDProvenance,
+      sourceD,
+      sourceEProvenance,
+      sourceE,
     } = body as {
       sbcsAnswer?: string;
       seqAnswer?: string;
@@ -201,7 +276,35 @@ export async function POST(request: Request) {
       topic?: string;
       userId?: string;
       questionId?: string;
+      sourceAProvenance?: string;
+      sourceA?: string;
+      sourceBProvenance?: string;
+      sourceB?: string;
+      sourceCProvenance?: string;
+      sourceC?: string;
+      sourceDProvenance?: string;
+      sourceD?: string;
+      sourceEProvenance?: string;
+      sourceE?: string;
     };
+
+    // ── Resolve userId: body takes precedence if it matches session, else use session ──
+    const userId = bodyUserId
+      ? (bodyUserId === authUserId ? bodyUserId : null)
+      : authUserId;
+    // If userId was provided in body but doesn't match session, reject
+    if (bodyUserId && !authUserId) {
+      return NextResponse.json(
+        { error: 'Authentication required. Please sign in to submit graded answers.' },
+        { status: 401 },
+      );
+    }
+    if (bodyUserId && bodyUserId !== authUserId) {
+      return NextResponse.json(
+        { error: 'User ID mismatch. The provided userId does not match your session.' },
+        { status: 403 },
+      );
+    }
 
     // ── Only include non-empty sections ──
     const activeSections: string[] = [];
@@ -223,13 +326,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // ── Check response cache ──
-    const cacheKey = getCacheKey([sbcsAnswer, seqAnswer, srqAnswer].filter(Boolean).join('|||'));
-    const cached = responseCache.get(cacheKey);
-    if (cached && cached.expiresAt > Date.now()) {
-      return NextResponse.json(cached.result);
-    }
-
     const resolvedSubject = subject ?? 'Social Studies';
     const resolvedTopic = topic ?? 'General';
     const resolvedQuestionType = questionType ?? 'All Formats';
@@ -248,16 +344,28 @@ export async function POST(request: Request) {
       sbcsAnswer,
       seqAnswer,
       srqAnswer,
+      sourceAProvenance,
+      sourceA,
+      sourceBProvenance,
+      sourceB,
+      sourceCProvenance,
+      sourceC,
+      sourceDProvenance,
+      sourceD,
+      sourceEProvenance,
+      sourceE,
     });
 
     // ── Grade with fallback chain: Groq 70B → Groq 8B → Gemini Flash ──
     const evaluation = await tryGradeWithFallbacks(systemPrompt, userPrompt);
 
-    // ── Cache the response ──
-    responseCache.set(cacheKey, {
-      result: evaluation,
-      expiresAt: Date.now() + CACHE_TTL_MS,
-    });
+    // ── Post-grade quality validation ──
+    const qualityIssues = validateGrade(evaluation, resolvedQuestionType, activeSections);
+    if (qualityIssues.length > 0) {
+      console.warn('[grade] Quality validation issues:', qualityIssues);
+      // Attach to response for debugging, but still return the grade
+      (evaluation as any)._gradeQualityIssues = qualityIssues;
+    }
 
     // ── Build response with backward-compatible fields + gamification ──
     const newLevel = extractLevelNumber(evaluation.scoreLevel);
@@ -325,145 +433,83 @@ export async function POST(request: Request) {
         );
       }
 
-      // ── Gamification: XP, streak, level-up ──
-      const today = new Date();
-      const todayStr = today.toISOString().split('T')[0];
-
+      // ── Gamification: XP, streak, level-up (ATOMIC via RPC) ──
       dbWrites.push(
         (async () => {
-          // Fetch current gamification state
-          const { data: metrics, error: fetchErr } = await supabase
-            .from('user_skill_metrics')
-            .select('total_xp, last_practice_date, current_streak, longest_streak, level_title, total_xp_decayed, xp_breakdown, weekly_xp_earned, weekly_reset_date')
-            .eq('user_id', userId)
-            .single() as unknown as { data: Record<string, any> | null; error: any };
+          // Compute bonuses first (these depend on old state before atomic update)
+          const today = new Date();
+          const todayStr = today.toISOString().split('T')[0];
 
-          if (fetchErr || !metrics) {
-            console.warn('Non-fatal: failed to fetch gamification state', fetchErr);
-            return;
-          }
+          try {
+            // Read state needed to compute bonuses and check achievements
+            const { data: metrics } = await supabase
+              .from('user_skill_metrics')
+              .select('total_xp, total_evaluations, last_practice_date, current_streak, achievements')
+              .eq('user_id', userId)
+              .single() as unknown as { data: Record<string, any> | null; error: any };
 
-          const totalEvalCount = (metrics.total_evaluations ?? 0) + 1;
-          const dailyGoalJustMet = metrics.last_practice_date !== todayStr;
-          const dailyBonus = dailyGoalJustMet ? DAILY_GOAL_BONUS_XP : 0;
+            if (!metrics) return;
 
-          // ── Streak bonus ──
-          const streakBonus = getStreakBonus(metrics.current_streak ?? 0);
+            const dailyGoalJustMet = metrics.last_practice_date !== todayStr;
+            const dailyBonus = dailyGoalJustMet ? DAILY_GOAL_BONUS_XP : 0;
+            const streakBonus = getStreakBonus(metrics.current_streak ?? 0);
+            const decayedXp = dailyGoalJustMet
+              ? Math.max(0, calculateXpDecay(metrics.last_practice_date, metrics.total_xp ?? 0))
+              : 0;
 
-          // ── XP Decay: only apply if this is a new practice day (not same day) ──
-          const baseXp = metrics.total_xp ?? 0;
-          const decayedXp = dailyGoalJustMet
-            ? Math.max(0, calculateXpDecay(metrics.last_practice_date, baseXp))
-            : 0;
-          const totalDecayedXp = (metrics.total_xp_decayed ?? 0) + decayedXp;
+            // Compute totalEvalCount before the RPC increments it atomically
+            const newTotalEvalCount = (metrics.total_evaluations ?? 0) + 1;
 
-          let currentXp = baseXp + earnedXp + dailyBonus + streakBonus.bonus - decayedXp;
-          if (currentXp < 0) currentXp = 0;
-          const currentTitle = getLevelTitle(currentXp);
-          const previousTitle = metrics.level_title ?? 'Novice';
-          const leveledUp = previousTitle !== currentTitle;
+            // Check achievements using current state (before atomic update)
+            const existingAchievements = metrics.achievements ?? [];
+            const { achievements: newAchievements, totalXpReward: achievementXp } = checkNewAchievements({
+              newLevel,
+              newXp: (metrics.total_xp ?? 0) + earnedXp + dailyBonus + streakBonus.bonus - decayedXp,
+              totalEvalCount: newTotalEvalCount,
+              currentStreak: metrics.current_streak ?? 0, // RPC will handle actual streak
+              subject: resolvedSubject,
+              previousAchivements: existingAchievements,
+              dailyGoalMet: dailyGoalJustMet,
+            });
 
-          // Streak logic
-          const lastDate = metrics.last_practice_date;
-          const yesterday = new Date(today);
-          yesterday.setDate(yesterday.getDate() - 1);
-          const yesterdayStr = yesterday.toISOString().split('T')[0];
+            // Call atomic RPC — handles row-level locking internally
+            const { data: updated, error: rpcErr } = await supabase
+              .rpc('atomic_gamification_update', {
+                p_user_id: userId,
+                p_earned_xp: earnedXp,
+                p_daily_bonus: dailyBonus,
+                p_streak_bonus: streakBonus.bonus,
+                p_achievement_xp: achievementXp,
+                p_new_achievements: newAchievements.map(a => a.id),
+                p_decay_xp: decayedXp,
+                p_section_increment: 1,
+                p_subject: resolvedSubject,
+              });
 
-          let newStreak = metrics.current_streak ?? 0;
-          if (lastDate === todayStr) {
-            // Already practiced today — don't increment
-          } else if (lastDate === yesterdayStr) {
-            newStreak += 1; // Consecutive day
-          } else if (lastDate && lastDate !== yesterdayStr) {
-            newStreak = 1; // Streak broken
-          } else {
-            newStreak = 1; // First practice ever
-          }
+            if (rpcErr) {
+              console.warn('Non-fatal: atomic gamification RPC failed', rpcErr);
+              return;
+            }
 
-          const longestStreak = Math.max(newStreak, metrics.longest_streak ?? 0);
-
-          // ── Check achievements (now includes XP rewards!) ──
-          const existingAchievements = metrics.achievements ?? [];
-          const { achievements: newAchievements, totalXpReward: achievementXp } = checkNewAchievements({
-            newLevel,
-            newXp: currentXp,
-            totalEvalCount,
-            currentStreak: newStreak,
-            subject: resolvedSubject,
-            previousAchivements: existingAchievements,
-            dailyGoalMet: dailyGoalJustMet,
-          });
-          const allAchievements = [...existingAchievements, ...newAchievements.map(a => a.id)];
-
-          // Add achievement XP into the total
-          currentXp += achievementXp;
-
-          // ── Build cumulative XP breakdown ──
-          const prevBreakdown = metrics.xp_breakdown || {};
-          const xpBreakdown = {
-            fromGrades: (prevBreakdown.fromGrades || 0) + earnedXp,
-            fromAchievements: (prevBreakdown.fromAchievements || 0) + achievementXp,
-            fromStreaks: (prevBreakdown.fromStreaks || 0) + streakBonus.bonus,
-            fromDailyGoals: (prevBreakdown.fromDailyGoals || 0) + dailyBonus,
-            fromReferrals: prevBreakdown.fromReferrals || 0,
-          };
-
-          // ── Weekly XP tracking (resets each Monday) ──
-          const dayOfWeek = today.getUTCDay();
-          const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-          const mondayDate = new Date(today);
-          mondayDate.setUTCDate(today.getUTCDate() + diffToMonday);
-          mondayDate.setUTCHours(0, 0, 0, 0);
-          const mondayStr = mondayDate.toISOString().split('T')[0];
-
-          const weeklyResetDate = metrics.weekly_reset_date;
-          const resetIsThisWeek = weeklyResetDate === mondayStr;
-          const totalWeeklyXp = (resetIsThisWeek ? (metrics.weekly_xp_earned ?? 0) : 0)
-            + earnedXp + dailyBonus + streakBonus.bonus + achievementXp;
-
-          const { error: gamErr } = await supabase
-            .from('user_skill_metrics')
-            .update({
-              total_xp: currentXp,
-              level_title: currentTitle,
-              last_practice_date: todayStr,
-              current_streak: newStreak,
-              longest_streak: longestStreak,
-              achievements: allAchievements,
-              total_evaluations: totalEvalCount,
-              total_xp_decayed: totalDecayedXp,
-              xp_breakdown: xpBreakdown,
-              weekly_xp_earned: totalWeeklyXp,
-              weekly_reset_date: mondayStr,
-            } as never)
-            .eq('user_id', userId);
-
-          // Attach new achievements (with XP) to response so frontend can show them
-          if (newAchievements.length > 0 && response) {
-            (response as any)._newAchievements = newAchievements.map(a => ({
-              id: a.id,
-              title: a.title,
-              description: a.description,
-              icon: a.icon,
-              xpReward: a.xpReward,
-            }));
-          }
-          if (achievementXp > 0 && response) {
-            (response as any)._achievementXp = achievementXp;
-          }
-          if (dailyBonus > 0 && response) {
-            (response as any)._dailyGoalBonus = dailyBonus;
-          }
-          if (streakBonus.bonus > 0 && response) {
-            (response as any)._streakBonus = streakBonus;
-          }
-          if (decayedXp > 0 && response) {
-            (response as any)._xpDecayed = decayedXp;
-          }
-
-          if (gamErr) {
-            console.warn('Non-fatal: failed to update gamification state', gamErr);
-            return;
+            // Attach gamification details to response so frontend can show them
+            if (updated && typeof updated === 'object') {
+              const result = updated as Record<string, any>;
+              if (newAchievements.length > 0) {
+                (response as any)._newAchievements = newAchievements.map(a => ({
+                  id: a.id,
+                  title: a.title,
+                  description: a.description,
+                  icon: a.icon,
+                  xpReward: a.xpReward,
+                }));
+              }
+              if (achievementXp > 0) (response as any)._achievementXp = achievementXp;
+              if (dailyBonus > 0) (response as any)._dailyGoalBonus = dailyBonus;
+              if (streakBonus.bonus > 0) (response as any)._streakBonus = streakBonus;
+              if (decayedXp > 0) (response as any)._xpDecayed = decayedXp;
+            }
+          } catch (gamErr) {
+            console.warn('Non-fatal: gamification error', gamErr);
           }
         })(),
       );
@@ -471,47 +517,7 @@ export async function POST(request: Request) {
 
     await Promise.allSettled(dbWrites);
 
-    // ── Send practice receipt email (respects user preference) ──
-    if (userId && supabase) {
-      try {
-        // Check if user has practice receipts enabled
-        const { data: metrics } = await supabase
-          .from('user_skill_metrics')
-          .select('practice_receipt_enabled')
-          .eq('user_id', userId)
-          .single() as any;
-        
-        const receiptEnabled = metrics?.practice_receipt_enabled !== false;
-        
-        if (receiptEnabled) {
-          const { data: profile } = await supabase
-            .from('user_profiles')
-            .select('email, display_name')
-            .eq('id', userId)
-            .single() as any;
-          if (profile?.email) {
-            await fetch(
-              `${process.env.NEXT_PUBLIC_SITE_URL || 'https://markup-five.vercel.app'}/api/email/practice-receipt`,
-              {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  email: profile.email,
-                  name: profile.display_name || undefined,
-                  scoreEstimate: evaluation.scoreLabel,
-                  subject: resolvedSubject,
-                  topic: resolvedTopic,
-                  skill: resolvedQuestionType,
-                  xpEarned: earnedXp,
-                }),
-              },
-            );
-          }
-        }
-      } catch {
-        // Non-critical — practice receipt is best-effort
-      }
-    }
+    // Practice receipt email disabled during beta
 
     return NextResponse.json(response);
   } catch (error: unknown) {

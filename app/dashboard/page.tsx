@@ -220,7 +220,10 @@ export default function DashboardPage() {
     comparison: 1,
     reliability: 1,
     essay: 1,
-    conclusion: 0
+    conclusion: 0,
+    purpose: 1,
+    synthesis: 1,
+    utility: 1,
   });
 
   const [challenge, setChallenge] = useState({
@@ -411,7 +414,7 @@ export default function DashboardPage() {
     try {
       const { data: metricsData } = await supabase
         .from('user_skill_metrics')
-        .select('sbq_inference_score, sbq_comparison_score, sbq_reliability_score, seq_essay_score, seq_conclusion_score, total_xp, level_title, current_streak, longest_streak, achievements, last_practice_date, ss_goal_level, history_goal_level, takes_history, total_evaluations')
+        .select('sbq_inference_score, sbq_comparison_score, sbq_reliability_score, seq_essay_score, seq_conclusion_score, sbq_purpose_score, sbq_synthesis_score, sbq_utility_score, total_xp, level_title, current_streak, longest_streak, achievements, last_practice_date, ss_goal_level, history_goal_level, takes_history, total_evaluations')
         .eq('user_id', uid)
         .single();
       if (metricsData) {
@@ -421,7 +424,10 @@ export default function DashboardPage() {
           comparison: metricsData.sbq_comparison_score || 1,
           reliability: metricsData.sbq_reliability_score || 1,
           essay: metricsData.seq_essay_score || 1,
-          conclusion: metricsData.seq_conclusion_score !== undefined ? metricsData.seq_conclusion_score : 0
+          conclusion: metricsData.seq_conclusion_score !== undefined ? metricsData.seq_conclusion_score : 0,
+          purpose: metricsData.sbq_purpose_score || 1,
+          synthesis: metricsData.sbq_synthesis_score || 1,
+          utility: metricsData.sbq_utility_score || 1,
         });
         // Gamification state
         const xp = metricsData.total_xp ?? 0;

@@ -69,7 +69,7 @@ export default function ProfilePage() {
         // Fetch metrics
         const { data: metrics } = await supabase
           .from('user_skill_metrics')
-          .select('sbq_inference_score, sbq_comparison_score, sbq_reliability_score, seq_essay_score, seq_conclusion_score, total_xp, level_title, current_streak, longest_streak, achievements, last_practice_date, total_evaluations, total_xp_decayed, ss_goal_level, history_goal_level, takes_history, xp_breakdown')
+          .select('sbq_inference_score, sbq_comparison_score, sbq_reliability_score, seq_essay_score, seq_conclusion_score, sbq_purpose_score, sbq_synthesis_score, sbq_utility_score, total_xp, level_title, current_streak, longest_streak, achievements, last_practice_date, total_evaluations, total_xp_decayed, ss_goal_level, history_goal_level, takes_history, xp_breakdown')
           .eq('user_id', uid)
           .single();
 

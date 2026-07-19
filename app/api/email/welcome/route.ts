@@ -4,7 +4,14 @@ import { createClient } from '@supabase/supabase-js';
 export const runtime = 'nodejs';
 export const maxDuration = 30;
 
+// Emails disabled during beta — re-enable post-launch
+const EMAILS_ENABLED = false;
+
 export async function POST(request: Request) {
+  if (!EMAILS_ENABLED) {
+    return NextResponse.json({ sent: false, reason: 'Emails disabled during beta' });
+  }
+
   try {
     const body = await request.json();
     const { userId, email, name } = body as {

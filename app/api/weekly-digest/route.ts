@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
       .select(
         'total_xp, current_streak, longest_streak, level_title, total_evaluations, ' +
         'achievements, weekly_xp_earned, weekly_reset_date, ' +
-        'sbq_inference_score, sbq_comparison_score, sbq_reliability_score, seq_essay_score, seq_conclusion_score',
+        'sbq_inference_score, sbq_comparison_score, sbq_reliability_score, seq_essay_score, seq_conclusion_score, sbq_purpose_score, sbq_synthesis_score, sbq_utility_score',
       )
       .eq('user_id', userId)
       .single() as any;
@@ -160,7 +160,7 @@ export async function POST() {
 
     const { data: metrics } = await supabaseAdmin
       .from('user_skill_metrics')
-      .select('user_id, total_xp, current_streak, total_evaluations, weekly_xp_earned, weekly_reset_date, sbq_inference_score, sbq_comparison_score, sbq_reliability_score, seq_essay_score, seq_conclusion_score')
+      .select('user_id, total_xp, current_streak, total_evaluations, weekly_xp_earned, weekly_reset_date, sbq_inference_score, sbq_comparison_score, sbq_reliability_score, seq_essay_score, seq_conclusion_score, sbq_purpose_score, sbq_synthesis_score, sbq_utility_score')
       .in('user_id', userIds) as any;
 
     const { data: evalCounts } = await supabaseAdmin

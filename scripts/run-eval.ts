@@ -16,6 +16,7 @@
 import { EVAL_SET, evaluateEvalSet } from '../lib/eval-set';
 import * as fs from 'fs';
 import * as path from 'path';
+import { get_encoding } from '@dqbd/tiktoken';
 
 // ═══════════════════════════════════════════════════════════════
 //  Load .env.local so that NEXT_PUBLIC_SITE_URL is available
@@ -72,6 +73,27 @@ function color(s: string, c: 'red' | 'green' | 'yellow' | 'dim'): string {
 
 function pad(s: string, n: number): string {
   return s + ' '.repeat(Math.max(0, n - s.length));
+}
+
+// ── Token counting ──
+
+let _tokenEncoder: ReturnType<typeof get_encoding> | null = null;
+
+/**
+ * Lazily initialise the tiktoken cl100k_base encoder and return
+ * the token count for a given string. Falls back to a simple
+ * character-based estimate if tiktoken fails to load.
+ */
+function estimateTokens(text: string): number {
+  if (!_tokenEncoder) {
+    try {
+      _tokenEncoder = get_encoding('cl100k_base');
+    } catch {
+      // Fallback: ~4 chars per token
+      return Math.ceil(text.length / 4);
+    }
+  }
+  return _tokenEncoder.encode(text).length;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -211,14 +233,20 @@ async function main() {
         );
       }
 
+      // ── Token estimation ──
+      const sbcsTokens = estimateTokens(test.sbcsAnswer);
+      const seqTokens = estimateTokens(test.seqAnswer);
+      const srqTokens = estimateTokens(test.srqAnswer);
+      const totalInputTokens = sbcsTokens + seqTokens + srqTokens;
+
       if (errors.length === 0) {
         passed++;
         console.log(
-          `${color('✓', 'green')}  ${color(actualLevel, 'dim')}  ${color(result.confidence.toFixed(2), 'dim')}  ${color(result._elapsed + 's', 'dim')}`,
+          `${color('✓', 'green')}  ${color(actualLevel, 'dim')}  ${color(result.confidence.toFixed(2), 'dim')}  ${color(result._elapsed + 's', 'dim')}  ${color(`${totalInputTokens} tok`, 'dim')}`,
         );
       } else {
         failed++;
-        console.log(`${color('✖', 'red')}`);
+        console.log(`${color('✖', 'red')}  ${color(`${totalInputTokens}t`, 'dim')}`);
         for (const err of errors) {
           console.log(`       ${color('→', 'yellow')} ${err}`);
         }

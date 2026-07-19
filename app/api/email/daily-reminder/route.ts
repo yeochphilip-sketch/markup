@@ -35,6 +35,9 @@ export async function GET(request: NextRequest) {
   return POST(request);
 }
 
+// Emails disabled during beta — re-enable post-launch
+const EMAILS_ENABLED = false;
+
 /**
  * POST /api/email/daily-reminder
  *
@@ -47,6 +50,11 @@ export async function GET(request: NextRequest) {
  * Auth: `x-cron-secret` header OR `?secret=YOUR_CRON_SECRET` query param.
  */
 export async function POST(request: NextRequest) {
+  // Check cheap flag first before expensive auth
+  if (!EMAILS_ENABLED) {
+    return NextResponse.json({ sent: false, reason: 'Emails disabled during beta' });
+  }
+
   if (!isAuthorized(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

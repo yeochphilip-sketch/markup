@@ -95,6 +95,14 @@ You MUST apply these rules BEFORE any LORMS evaluation. The quality gate in Step
 - Only one section submitted while others are empty: Grade ONLY the submitted sections; do not penalize for missing sections.
 - If the student clearly attempted the question but wrote very little (< 20 words of actual analysis), assign L1 with a note.
 
+### Combined Score for Partial Submissions (All Formats):
+- The overall combined score is computed as a weighted average by maxMarks:
+  each section (SBCS, SEQ, SRQ) contributes (sectionScore / sectionMaxMarks * sectionMaxMarks) to the total.
+- If a section was NOT submitted (answer is empty), its maxMarks is 0, giving it zero weight in the average.
+- Example: SBCS max=21 (submitted, scored 14), SEQ max=0 (not submitted), SRQ max=0 (not submitted) →
+  Overall = 14/21 = .67 ≈ L3 (since L3 range is typically .50-.74).
+- Do NOT penalise the student for missing sections — simply exclude them from the calculation.
+
 ## SEAB-ALIGNED STRUCTURE EXPECTATIONS (research-backed)
 
 ### Inference (2 marks): Expect the ISE structure
@@ -416,6 +424,19 @@ const SS_INFERENCE_EXAMPLES: FewShotExample[] = [
     confidence: 0.88,
     a1Upgrade: 'Surface level: Source A states that "new schools were constructed in rural districts." Inferred message: The government\'s decision to prioritise rural education implies it recognised a gap in rural infrastructure and was attempting to address regional inequality — or possibly to secure political loyalty from rural communities. This suggests the government was not merely building schools, but actively shaping its base of support through educational access.',
   },
+  {
+    level: 'L2',
+    studentAnswer: 'Source A, a government brochure for a housing scheme, states that "new rental flats will be allocated to lower-income families first." Source B, a Straits Times editorial, notes that "young couples are still priced out of the resale market despite the new scheme." Taken together, these sources imply that while the government claims to prioritise affordability, the actual impact on the ground is uneven — the scheme helps the poorest but does not fully resolve the broader affordability crisis for young Singaporeans.',
+    scoreEstimate: 'L2 / 2 marks — Inferred message identified from BOTH sources, reading between the lines',
+    critique: [
+      'Excellent — you went beyond surface facts to infer the underlying message from each source.',
+      'You correctly identified what Source A implies (government prioritising lower-income) and Source B implies (policy gap remains).',
+      'You synthesised both inferences into a coherent conclusion about policy effectiveness.',
+      'This is a textbook L2 inference using both sources.',
+    ],
+    confidence: 0.90,
+    a1Upgrade: 'Source A implies the government is positioning itself as responsive to lower-income housing needs — the allocation priority signals an intention to address inequality. Source B, however, implies that this framing is incomplete: the policy misses the "sandwich" class of young couples, suggesting a gap between official messaging and on-the-ground reality. Together, the sources infer that while welfare measures exist, their design leaves significant segments of the population inadequately served.',
+  },
 ];
 
 const INVALID_CONTENT_EXAMPLES: FewShotExample[] = [
@@ -489,22 +510,7 @@ const SS_SRQ_EXAMPLES: FewShotExample[] = [
   },
 ];
 
-const SS_SEQ_EXAMPLES: FewShotExample[] = [
-  {
-    level: 'L2',
-    studentAnswer: 'One factor that led to the policy change was economic recession. When the economy slowed down, the government had less money to spend. So they changed their policy to cut costs.',
-    scoreEstimate: 'L2 / 4 marks — One factor identified with basic explanation',
-    critique: [
-      'You identified ONE factor (economic recession) — this meets L2.',
-      'Your explanation is clear but general — it lacks specific evidence (e.g., GDP figures, specific budget cuts).',
-      'To reach L3, add a SECOND factor (e.g., political pressure, international influence) and use specific evidence.',
-      'Use the PEEL structure: Point, Evidence, Explanation, Link.',
-      'Aim for concrete historical examples rather than generic reasoning.',
-    ],
-    confidence: 0.82,
-    a1Upgrade: 'Point: A key factor driving the policy change was the economic recession of [year]. Evidence: GDP contracted by X%, and government revenue fell by Y%, forcing the treasury to cut spending by Z%. Explanation: The recession constrained the government\'s fiscal space — fewer resources meant the existing policy was no longer affordable. Rather than borrow, the government chose to restructure, prioritising essential services. Link: Therefore, economic conditions acted as a structural constraint that made policy change unavoidable, regardless of the government\'s ideological preferences.',
-  },
-];
+
 
 // ────────────────────────────────────────────────────────────────
 //  Few-Shot Examples — Elective History (AO3)
@@ -601,9 +607,36 @@ const SS_PURPOSE_EXAMPLES: FewShotExample[] = [
     a1Upgrade:
       'Source A: The government press release frames housing policy as a "comprehensive plan to benefit all Singaporeans" — its purpose is to project competence and secure public approval for the policy. Source B: The editorial criticises the policy as "widening inequality" — its purpose is to hold the government accountable and advocate for more inclusive policymaking. The shift in purpose from government self-promotion to independent critique reveals the tension between official narratives and civil society oversight in Singapore\'s governance model.',
   },
+  {
+    level: 'L3',
+    studentAnswer:
+      'Source A is a government press release promoting a new housing policy as a "comprehensive plan to benefit all Singaporeans." Its purpose is to persuade the public that the government is addressing housing affordability. Source B, an editorial, criticises the policy as "widening inequality" and its purpose is to advocate for more inclusive policymaking. The key difference is that Source A seeks public approval, while Source B seeks accountability — reflecting the different roles of government and media in Singaporean society.',
+    scoreEstimate: 'L3 / 4 marks — Explains HOW and WHY the purpose of BOTH sources differs, with evidence',
+    critique: [
+      'You identified the purpose of BOTH sources individually — meets L2.',
+      'You explained WHY the purposes differ (government vs media roles) — this reaches L3.',
+      'Strong use of evidence from both sources to support your analysis.',
+      'The contrast between "public approval" and "accountability" is a mature analytical distinction.',
+    ],
+    confidence: 0.88,
+    a1Upgrade: 'Source A, an official press release, frames the housing policy as a "comprehensive plan to benefit all Singaporeans" — its purpose is to project governmental competence and secure public endorsement, a natural function of executive communication. Source B, an independent editorial, evaluates the same policy as "widening inequality" — its purpose is to provide critical oversight and advocate for more inclusive policymaking. The evolution from self-promotion (Source A) to critical evaluation (Source B) reflects the essential tension in governance between executing policy and being held accountable for its outcomes. This contrast matters because it demonstrates that policy success is contested: the government measures intent, while civil society measures impact.',
+  },
 ];
 
 const SS_UTILITY_EXAMPLES: FewShotExample[] = [
+  {
+    level: 'L1',
+    studentAnswer:
+      'This source is useful because it tells us about the housing policy.',
+    scoreEstimate: 'L1 / 1 mark — States source is useful without meaningful justification',
+    critique: [
+      'You stated that the source is useful, but did not explain WHY or HOW.',
+      'To reach L2, specify what the source is useful FOR and assess its provenance.',
+      'A strong utility answer identifies both what the source reveals AND its limitations.',
+    ],
+    confidence: 0.80,
+    a1Upgrade: 'This source is useful because it directly states the government\'s official housing policy plans. However, as a government press release, it naturally presents policies in a favourable light, so its utility for understanding actual implementation challenges is limited. Cross-referencing with independent sources would give a more complete picture.',
+  },
   {
     level: 'L3',
     studentAnswer:
@@ -617,6 +650,22 @@ const SS_UTILITY_EXAMPLES: FewShotExample[] = [
       'A final evaluative judgment on which source is more useful overall would strengthen your answer.',
     ],
     confidence: 0.85,
+    a1Upgrade:
+      'Source A, a government press release, is highly useful for understanding the official framing of housing policy — it reveals what the government wants the public to believe about its intentions. However, its utility for assessing actual policy outcomes is limited by its promotional purpose. Source B, an editorial, reveals the gap between policy promises and on-the-ground reality, but its utility is limited by potential editorial bias. Cross-referencing: Source A reveals the government\'s confident projections; Source B reveals the implementation failures those projections omit. Together, they are more useful than either alone — Source A tells us the intention, Source B tells us the reception. Final judgment: For a historian assessing policy effectiveness, Source B is more useful because it provides independent evidence of outcomes, though Source A is essential context.',
+  },
+  {
+    level: 'L4',
+    studentAnswer:
+      'Source A, a government press release, is highly useful for understanding the official framing of housing policy — it reveals what the government wants the public to believe. However, its promotional purpose limits its utility for assessing actual outcomes. Source B, an editorial, reveals the implementation failures that Source A omits. Cross-referencing both, Source A tells us the intention; Source B tells us the reception. Final judgment: For assessing policy effectiveness, Source B is more useful because it provides independent evidence of outcomes, though Source A is essential for understanding the government\'s narrative.',
+    scoreEstimate:
+      'L4 / 5 marks — Cross-referenced evaluation with balanced final judgment on which source is more useful',
+    critique: [
+      'Excellent cross-referencing — you identified what each source reveals AND conceals.',
+      'Clear final judgment on which source is more useful and why.',
+      'Precise evidence from both sources supports your evaluation.',
+      'This is a textbook L4 utility response.',
+    ],
+    confidence: 0.92,
     a1Upgrade:
       'Source A, a government press release, is highly useful for understanding the official framing of housing policy — it reveals what the government wants the public to believe about its intentions. However, its utility for assessing actual policy outcomes is limited by its promotional purpose. Source B, an editorial, reveals the gap between policy promises and on-the-ground reality, but its utility is limited by potential editorial bias. Cross-referencing: Source A reveals the government\'s confident projections; Source B reveals the implementation failures those projections omit. Together, they are more useful than either alone — Source A tells us the intention, Source B tells us the reception. Final judgment: For a historian assessing policy effectiveness, Source B is more useful because it provides independent evidence of outcomes, though Source A is essential context.',
   },
@@ -639,6 +688,53 @@ const SS_SYNTHESIS_EXAMPLES: FewShotExample[] = [
     a1Upgrade:
       'Assertion: The government\'s business support policy was partially effective. Source A supports this view — the government committed substantial funding to digitalisation grants, demonstrating proactive support. However, as a government source, it naturally omits implementation challenges. Source B provides crucial counter-evidence: it reveals that traditional hawkers lacked the digital literacy to benefit, suggesting the policy was effective only for tech-ready firms. Cross-referencing both sources, the evidence suggests the policy achieved its goals for a subset of businesses but failed to reach those most in need. Therefore, while I agree the policy had merit, I argue it was incompletely effective — success was concentrated among those already equipped to benefit, widening rather than narrowing the digital divide.',
   },
+  {
+    level: 'L4',
+    studentAnswer:
+      'The assertion that the government\'s business support policy was effective is only partially true. Source A commits substantial funding to digitalisation grants, demonstrating genuine effort. However, as a government source, it naturally omits implementation failures. Source B reveals that traditional hawkers lacked the digital literacy to benefit, showing the policy was only effective for tech-ready firms. Source A and B together show success concentrated among those already equipped, widening rather than narrowing the digital divide. Moreover, the reliability of Source A is limited by its promotional purpose, while Source B\'s editorial nature means it may overstate failures. Therefore, the policy achieved its goals for a subset of businesses but failed those most in need — effectiveness was segmented, not universal.',
+    scoreEstimate:
+      'L4 / 5 marks — Synthesises with evaluation of source strengths/limitations, reaching a well-supported judgment',
+    critique: [
+      'You presented a clear, balanced position with both supporting and challenging evidence.',
+      'You evaluated source reliability (Source A promotional, Source B editorialising) — this meets L4.',
+      'Strong cross-referencing with specific evidence from both sources.',
+      'The concluding judgment is nuanced and well-supported.',
+      'This is a textbook L4 synthesis/assertion response.',
+    ],
+    confidence: 0.93,
+    a1Upgrade:
+      'Assertion: The government\'s business support policy was partially effective. Source A supports this view — the government committed substantial funding to digitalisation grants, demonstrating proactive support. However, as a government source, it naturally omits implementation challenges, limiting its reliability for assessing actual outcomes. Source B provides crucial counter-evidence: it reveals that traditional hawkers lacked the digital literacy to benefit, suggesting the policy was effective only for tech-ready firms. Cross-referencing both sources, the evidence suggests the policy achieved its goals for a subset of businesses but failed to reach those most in need. Therefore, while I agree the policy had merit, I argue it was incompletely effective — success was concentrated among those already equipped to benefit, widening rather than narrowing the digital divide.',
+  },
+];
+
+const SS_SEQ_EXAMPLES: FewShotExample[] = [
+  {
+    level: 'L2',
+    studentAnswer: 'One factor that led to the policy change was economic recession. When the economy slowed down, the government had less money to spend. So they changed their policy to cut costs.',
+    scoreEstimate: 'L2 / 4 marks — One factor identified with basic explanation',
+    critique: [
+      'You identified ONE factor (economic recession) — this meets L2.',
+      'Your explanation is clear but general — it lacks specific evidence (e.g., GDP figures, specific budget cuts).',
+      'To reach L3, add a SECOND factor (e.g., political pressure, international influence) and use specific evidence.',
+      'Use the PEEL structure: Point, Evidence, Explanation, Link.',
+      'Aim for concrete historical examples rather than generic reasoning.',
+    ],
+    confidence: 0.82,
+    a1Upgrade: 'Point: A key factor driving the policy change was the economic recession of [year]. Evidence: GDP contracted by X%, and government revenue fell by Y%, forcing the treasury to cut spending by Z%. Explanation: The recession constrained the government\'s fiscal space — fewer resources meant the existing policy was no longer affordable. Rather than borrow, the government chose to restructure, prioritising essential services. Link: Therefore, economic conditions acted as a structural constraint that made policy change unavoidable, regardless of the government\'s ideological preferences.',
+  },
+  {
+    level: 'L4',
+    studentAnswer: 'Two factors drove the policy change: economic recession and international pressure. The recession (GDP contracted 4.2%) constrained fiscal space, forcing the government to cut spending. However, international pressure from the IMF was equally significant — the IMF required policy reform as a condition for bailout loans, making change unavoidable. While the recession provided the motive, international pressure provided the mechanism. Policy change was ultimately the product of both structural economic constraints and external diplomatic leverage, with international pressure being the more decisive factor since it imposed a hard deadline.',
+    scoreEstimate: 'L4 / 8 marks — Sophisticated balanced analysis evaluating multiple factors and reaching a substantiated conclusion',
+    critique: [
+      'You identified TWO factors with specific evidence — meets L3.',
+      'You EVALUATED and WEIGHED the factors, concluding which was more significant — meets L4.',
+      'Strong PEEL structure throughout.',
+      'The concluding judgment is well-supported and demonstrates mature analytical thinking.',
+    ],
+    confidence: 0.90,
+    a1Upgrade: 'Point: The policy change was driven by the interaction of economic recession and international pressure, of which international pressure was the more decisive. Evidence: GDP contracted by 4.2% in 2009, reducing government revenue by $2.1B, while the IMF simultaneously demanded structural reforms as a condition for a $4B bailout package. Explanation: The recession created the fiscal necessity for change, but the IMF\'s conditionality provided the external enforcement mechanism that made change politically feasible — the government could blame international obligations rather than admit domestic failure. Link: Therefore, while both factors were necessary, international pressure was the more significant because it provided both the catalyst AND the political cover for reform, whereas economic pressure alone could have been managed through borrowing or temporary measures.',
+  },
 ];
 
 const HIST_SEQ_EXAMPLES: FewShotExample[] = [
@@ -658,6 +754,131 @@ const HIST_SEQ_EXAMPLES: FewShotExample[] = [
     confidence: 0.87,
     a1Upgrade:
       'Point: The outbreak of World War II was caused by a combination of structural and diplomatic factors, of which the Treaty of Versailles was the most significant. Evidence: The Treaty imposed reparations of 132 billion gold marks, stripped Germany of its colonies, and limited its army to 100,000 men, creating widespread humiliation and economic hardship. Explanation: This resentment created fertile ground for Hitler\'s nationalist rhetoric and allowed the Nazi Party to gain popular support by promising to undo the Treaty\'s injustices — without Versailles, Hitler would have lacked his most powerful rallying cry. Factor 2 — Appeasement: Britain and France\'s policy of conceding to Hitler\'s demands (Rhineland 1936, Austria 1938, Czechoslovakia 1938–39) emboldened Germany to pursue further expansion. However, appeasement was itself a response to the perceived unfairness of Versailles. Link: Therefore, while both factors were necessary, the Treaty of Versailles was the deeper, structural cause — it created the conditions that made both Hitler\'s rise and appeasement possible. Without Versailles, the pathway to war would have been fundamentally different.',
+  },
+  {
+    level: 'L4',
+    studentAnswer:
+      'The rise of Nazism was caused by both Hitler\'s strong base of support and the Great Depression, of which the Depression was more fundamental. Hitler cultivated support among wealthy businessmen by promising to destroy Communism, securing funding for the SA and propaganda. However, the Great Depression created the conditions for mass support — unemployment hit 6 million, and desperate Germans turned to the Nazis who offered hope and jobs. While Hitler\'s base provided resources, the Depression provided the audience. Without mass unemployment, Hitler\'s wealthy backers alone could not have delivered electoral success. Therefore, the Great Depression was the decisive factor — the stage on which Hitler performed, rather than the performer himself.',
+    scoreEstimate:
+      'L4 / 8 marks — Evaluates and prioritises factors, reaches a substantiated judgment on which was MOST significant',
+    critique: [
+      'You identified TWO factors (Hitler\'s support base and the Great Depression).',
+      'You EVALUATED and WEIGHED them, concluding the Depression was more fundamental — meets L4.',
+      'The "stage vs performer" metaphor is a mature analytical device.',
+      'Strong specific evidence: 6 million unemployed, wealthy businessmen, SA funding.',
+      'The concluding judgment is well-reasoned and directly answers the question.',
+    ],
+    confidence: 0.92,
+    a1Upgrade:
+      'Point: The rise of Nazism was caused by both Hitler\'s cultivation of elite support and the Great Depression, of which the Depression was the more fundamental factor. Evidence: Hitler secured financial backing from wealthy industrialists like Thyssen by promising to destroy Communism, funding the SA (brownshirts) and enabling a nationwide propaganda machine. Meanwhile, the Great Depression saw German unemployment soar from 1.6 million (1929) to 6 million (1932), creating widespread desperation. Explanation: Hitler\'s elite backing provided the resources to campaign, but the Depression provided the audience receptive to his message — without mass unemployment, the Nazi vote share could not have risen from 2.6% (1928) to 37.3% (1932). The elite funding was necessary but insufficient; the Depression was the structural condition that made mass appeal possible. Link: Therefore, while both factors were necessary, the Great Depression was the decisive cause — it created the desperate conditions that turned Hitler from a fringe agitator into a mass leader.',
+  },
+];
+
+const SS_RELIABILITY_EXAMPLES: FewShotExample[] = [
+  {
+    level: 'L2',
+    studentAnswer:
+      'Source C is a Facebook post by a resident complaining about recycling bins. It is not very reliable because it is just one person\'s opinion.',
+    scoreEstimate:
+      'L2 / 3 marks — Assesses reliability based on provenance but without critical nuance',
+    critique: [
+      'You correctly identified provenance (Facebook post, one person) — this meets L2.',
+      'However, "just one person\'s opinion" is a generic limitation.',
+      'To reach L3, cross-reference the content with another source — does it align or contradict?',
+      'To reach L4, identify SPECIFIC limitations: exaggeration, pushing blame, persuasive purpose.',
+    ],
+    confidence: 0.82,
+    a1Upgrade:
+      'Provenance: Source C is a Facebook comment from a self-described resident, dated 2019. Reliability assessment: As a personal account, the source offers genuine resident experience, lending credibility. However, its reliability is limited by the author\'s obvious frustration — rhetorical questions ("Do you really think Singaporeans will take the time to do that?") and exaggerated claims suggest emotional rather than factual reporting. Cross-referencing with Source B (official NEA data) showing declining recycling rates partially corroborates the frustration, but Source C\'s attribution of blame solely to the government is a subjective interpretation rather than an objective fact. Therefore, the source is reliable for understanding resident sentiment but not as an objective account of recycling policy effectiveness.',
+  },
+  {
+    level: 'L4',
+    studentAnswer:
+      'Source C is a Facebook post by a resident complaining about recycling bins. Its reliability is limited by its provenance — it is a single resident\'s frustrated account posted on social media, where emotional exaggeration is common. When cross-referenced with Source A (government press release stating improved recycling infrastructure), the contradiction is stark: Source C claims the government has done nothing, while Source A details specific initiatives. This suggests Source C may be over-exaggerating to shift blame from residents to the government. However, Source C IS reliable as evidence of resident sentiment, even if not reliable as an objective account of policy. For understanding how policy is perceived on the ground, it is valuable precisely because it captures genuine frustration, regardless of whether that frustration is fully justified.',
+    scoreEstimate:
+      'L4 / 5 marks — Comprehensive reliability evaluation with provenance + cross-referencing + nuanced final judgment',
+    critique: [
+      'Excellent provenance analysis — identified social media as a platform for emotional expression.',
+      'Strong cross-referencing with Source A to identify contradiction.',
+      'Identified a SPECIFIC limitation (over-exaggeration to shift blame) rather than generic "bias".',
+      'Nuanced final judgment — source is unreliable for facts but reliable for sentiment.',
+      'This is a textbook L4 reliability response.',
+    ],
+    confidence: 0.93,
+    a1Upgrade:
+      'Provenance: Source C is a Facebook post (2019) by an anonymous resident, published on a community group page. Nature: Personal complaint narrative with rhetorical questions. Reliability evaluation: The source\'s provenance as a social media complaint post significantly limits its reliability as factual evidence — the author has no editorial oversight and is writing from a position of visible frustration. Cross-referencing with Source A (government press release describing new bin designs and educational notices) reveals that Source C\'s claim that "the government has done nothing" is inaccurate; the government has taken specific steps. This suggests Source C over-exaggerates to shift blame from resident behaviour to government inaction. However, the source IS reliable as evidence of resident sentiment — the fact that a resident feels this frustrated is genuine, regardless of whether the frustration is objectively justified. Final judgment: Source C is unreliable for assessing policy effectiveness, but highly useful for understanding public perception of recycling policy.',
+  },
+];
+
+const HIST_PURPOSE_EXAMPLES: FewShotExample[] = [
+  {
+    level: 'L2',
+    studentAnswer:
+      'Mao made this speech to support the Korean people\'s war of liberation and resist US imperialism.',
+    scoreEstimate:
+      'L2 / 2 marks — Identifies purpose based on context (UN forces approaching Yalu River)',
+    critique: [
+      'You identified the basic purpose from the source content.',
+      'To reach L3, explain the MESSAGE the source conveys — not just what it says, but what it means.',
+      'To reach L4, explain the intended OUTCOME — what Mao wanted the Chinese people to FEEL or DO.',
+      'Consider: was this meant to boost morale, justify intervention, or unify public opinion?',
+    ],
+    confidence: 0.82,
+    a1Upgrade:
+      'I think Mao made this speech to frame Chinese intervention in Korea as a just and necessary act of defence against American imperialism, thereby legitimising the war to the Chinese public and the People\'s Liberation Army. Source B states Mao ordered troops to "support the Korean people\'s war of liberation and to resist the attacks of U.S. imperialism." At the time, US troops were approaching the Yalu River, China\'s border with Korea, creating a direct security threat. By portraying the intervention as defensive resistance against imperialism rather than offensive aggression, Mao aimed to boost troop morale, unify public opinion, and justify the human and economic cost of war to the Chinese population.',
+  },
+  {
+    level: 'L4',
+    studentAnswer:
+      'I think Mao made this speech in October 1950 to justify Chinese intervention in the Korean War to both the People\'s Liberation Army and the Chinese public. By framing the intervention as "support[ing] the Korean people\'s war of liberation" and "resist[ing] the attacks of U.S. imperialism," Mao portrayed China as a defender of Asian peoples against Western aggression rather than an aggressor. The intended outcome was to boost morale among Chinese troops being sent to Korea, to create a narrative of righteous defence that would justify the war\'s costs, and to unite the Chinese population behind the Communist Party\'s decision. This was crucial because China was still consolidating power after the 1949 Revolution, and an unpopular war could destabilise the new regime. The speech\'s purpose was therefore both military (motivate troops) and political (legitimise the war domestically).',
+    scoreEstimate:
+      'L4 / 5 marks — Purpose explained with intended outcome and context, well-supported with evidence',
+    critique: [
+      'Excellent — you identified the purpose AND explained the intended outcome.',
+      'Strong contextual knowledge (1949 Revolution, consolidating power).',
+      'You identified dual purposes: military motivation + political legitimisation.',
+      'Precise evidence from the source supports your analysis.',
+      'This is a textbook L4 purpose response for History.',
+    ],
+    confidence: 0.93,
+    a1Upgrade:
+      'I think Mao made this speech in October 1950 to justify Chinese intervention in the Korean War to the People\'s Liberation Army and the Chinese public, with the intended outcome of building domestic support for a costly overseas deployment. By framing the intervention as necessary to "resist the attacks of U.S. imperialism and its running dogs" and to "safeguard the interests of the people of Korea, China and all the other countries in the East," Mao cast China as the defender of Asia against Western domination — a narrative that would resonate with nationalist sentiment. The purpose was to boost troop morale, create a unifying patriotic narrative, and legitimise the sacrifice of Chinese lives in Korea. This was critical because the CCP had only just won the civil war in 1949, and an unpopular war risked undermining the new regime\'s legitimacy. Therefore, the speech was as much a domestic political tool as a military order.',
+  },
+];
+
+const HIST_UTILITY_EXAMPLES: FewShotExample[] = [
+  {
+    level: 'L2',
+    studentAnswer:
+      'Source A, a statement by President Truman, is useful because it shows what the American president said about Korea.',
+    scoreEstimate:
+      'L2 / 2 marks — Assesses utility for a specific purpose based on content only',
+    critique: [
+      'You identified what the source is useful FOR — showing the US position.',
+      'This meets L2 criteria for content-based utility assessment.',
+      'To reach L3, also consider provenance limitations — is a presidential speech inherently biased?',
+      'To reach L4, cross-reference with another source to assess what this source reveals vs conceals.',
+    ],
+    confidence: 0.80,
+    a1Upgrade:
+      'Source A, a statement by President Truman in June 1950, is useful as evidence of the USA\'s official justification for intervening in Korea — it shows the public rationale (countering Communist aggression, upholding the UN). However, its utility is limited by its purpose as a public statement: Truman was justifying intervention to Congress and the American public, so the source naturally emphasises ideological motives ("Communism has passed beyond the use of subversion") while downplaying strategic interests (containing Soviet influence, protecting Japan). Therefore, the source is useful for understanding the public narrative but less useful for uncovering the full range of US motivations.',
+  },
+  {
+    level: 'L4',
+    studentAnswer:
+      'Source A, a statement by President Truman on 27 June 1950, is useful as evidence of the USA\'s official justification for intervening in Korea, but its utility is significantly limited by its purpose and provenance. As a public presidential statement, it was designed to justify intervention to Congress and the American public — hence its emphasis on ideological motives ("Communism has passed beyond the use of subversion to conquer independent nations") and its omission of strategic calculations (containing Soviet influence, protecting Japan\'s security). When cross-referenced with Source E (a private Stalin-Mao telegram showing Soviet caution), the contrast reveals that Source A presents only one side of a complex geopolitical situation. For a historian seeking the USA\'s public rationale, Source A is highly useful; for understanding the full strategic picture, it is incomplete and requires corroboration from internal documents or retrospective analyses.',
+    scoreEstimate:
+      'L4 / 5 marks — Nuanced utility judgment with cross-referencing and balanced assessment',
+    critique: [
+      'Excellent cross-referencing with Source E to identify what Source A omits.',
+      'Clear distinction between what the source IS useful for vs what it conceals.',
+      'Strong provenance analysis (public statement, designed to justify).',
+      'Balanced final judgment on the source\'s utility for different research questions.',
+      'This is a textbook L4 utility response for History.',
+    ],
+    confidence: 0.94,
+    a1Upgrade:
+      'Source A, a statement by President Truman on 27 June 1950, is useful as evidence of the USA\'s official public justification for intervening in Korea — specifically, the narrative of defending free nations against Communist aggression. However, its utility is significantly limited by its purpose and provenance. As a public address by an American president, its purpose was to justify military action to Congress and the American public, meaning it naturally emphasises ideological motives ("Communism has passed beyond the use of subversion to conquer independent nations") while omitting strategic geopolitical calculations (the need to contain Soviet influence and protect Japan\'s security as the cornerstone of US Asian policy). Cross-referencing with Source E (a private Stalin-Mao telegram revealing Soviet caution and advising restraint) demonstrates that the Cold War context was far more nuanced than Source A suggests — the Communist powers were not uniformly aggressive as portrayed. Final judgment: Source A is highly useful for understanding the public narrative that justified US intervention, but (like any single source) is incomplete for understanding the full strategic picture and must be read alongside internal documents, private correspondence, and retrospective analyses.',
   },
 ];
 
@@ -735,7 +956,7 @@ For History: Choose a scenario related to the selected case study topic.
 === SECTION A: SOURCES (Generate exactly 6 sources) ===
 ============================================
 
-Generate exactly 5 sources (labelled Source 1 through Source 5, plus optionally a 6th Source 6 in metadata), each with:
+Generate between 2-5 sources (labelled Source 1 through Source N, where N is the requested source count), each with:
 - A distinct, realistic provenance (date, author, publication/context — be specific)
 - Substantive content (at least 60 characters each)
 - Different source types: e.g., speech extract, newspaper article, interview transcript, government report, cartoon/poster description, diary entry, statistical table, photograph description, propaganda leaflet
@@ -925,6 +1146,13 @@ The suggested answer should reflect the depth, sophistication, and evaluative th
 export function getGenerateSystemPrompt70B(subject: string, topic: string, questionType: string): string {
   const base = getGenerateSystemPrompt(subject, topic, questionType);
   const modelAnswers = getModelAnswerExamples(subject === 'History' ? 'History' : 'Social Studies');
+
+  // Note: ALL_FORMATS_INSTRUCTIONS is NOT appended here because
+  // getGenerationSourceRules() (called inside getGenerateSystemPrompt)
+  // already injects it into the base prompt under the
+  // "SKILL-SPECIFIC SOURCE REQUIREMENTS" heading. Adding it again
+  // would duplicate ~3,545 tokens.
+
   return `${base}
 
 ## REAL MOE SCHOOL MODEL ANSWER EXAMPLES — YOU MUST MATCH THIS STANDARD
@@ -986,8 +1214,22 @@ function getFewShotExamples(questionType: string, subject: string): FewShotExamp
     if (type.includes('comparison') || type.includes('contrast')) skillExamples = HIST_COMPARISON_EXAMPLES;
     else if (type.includes('inference') || type.includes('message')) skillExamples = HIST_INFERENCE_EXAMPLES;
     else if (type.includes('reliability') || type.includes('cross-ref')) skillExamples = HIST_RELIABILITY_EXAMPLES;
+    else if (type.includes('purpose') || type.includes('target') || type.includes('motive')) skillExamples = HIST_PURPOSE_EXAMPLES;
+    else if (type.includes('utility')) skillExamples = HIST_UTILITY_EXAMPLES;
     else if (type.includes('seq') || type.includes('essay') || type.includes('factor')) skillExamples = HIST_SEQ_EXAMPLES;
-    else skillExamples = HIST_COMPARISON_EXAMPLES;
+    else if (type.includes('all formats') || type.includes('bundle')) {
+      // All Formats: pick the HIGHEST-level example per skill so grader sees top-tier calibration
+      skillExamples = [
+        HIST_INFERENCE_EXAMPLES[HIST_INFERENCE_EXAMPLES.length - 1],
+        HIST_COMPARISON_EXAMPLES[HIST_COMPARISON_EXAMPLES.length - 1],
+        HIST_PURPOSE_EXAMPLES[HIST_PURPOSE_EXAMPLES.length - 1],
+        HIST_UTILITY_EXAMPLES[HIST_UTILITY_EXAMPLES.length - 1],
+        HIST_RELIABILITY_EXAMPLES[HIST_RELIABILITY_EXAMPLES.length - 1],
+        HIST_SEQ_EXAMPLES[HIST_SEQ_EXAMPLES.length - 1],
+      ].filter(Boolean);
+    } else {
+      skillExamples = HIST_COMPARISON_EXAMPLES;
+    }
   } else {
     if (type.includes('comparison') || type.includes('contrast')) skillExamples = SS_COMPARISON_EXAMPLES;
     else if (type.includes('inference') || type.includes('message')) skillExamples = SS_INFERENCE_EXAMPLES;
@@ -996,7 +1238,20 @@ function getFewShotExamples(questionType: string, subject: string): FewShotExamp
     else if (type.includes('synthesis') || type.includes('assertion') || type.includes('matrix')) skillExamples = SS_SYNTHESIS_EXAMPLES;
     else if (type.includes('srq') && !type.includes('seq')) skillExamples = SS_SRQ_EXAMPLES;
     else if (type.includes('seq') || type.includes('essay')) skillExamples = SS_SEQ_EXAMPLES;
-    else skillExamples = SS_COMPARISON_EXAMPLES;
+    else if (type.includes('all formats') || type.includes('bundle')) {
+      // All Formats: pick the HIGHEST-level example per skill so grader sees top-tier calibration
+      skillExamples = [
+        SS_INFERENCE_EXAMPLES[SS_INFERENCE_EXAMPLES.length - 1],
+        SS_COMPARISON_EXAMPLES[SS_COMPARISON_EXAMPLES.length - 1],
+        SS_PURPOSE_EXAMPLES[SS_PURPOSE_EXAMPLES.length - 1],
+        SS_UTILITY_EXAMPLES[SS_UTILITY_EXAMPLES.length - 1],
+        SS_SYNTHESIS_EXAMPLES[SS_SYNTHESIS_EXAMPLES.length - 1],
+        SS_SRQ_EXAMPLES[SS_SRQ_EXAMPLES.length - 1],
+        SS_SEQ_EXAMPLES[SS_SEQ_EXAMPLES.length - 1],
+      ].filter(Boolean);
+    } else {
+      skillExamples = SS_COMPARISON_EXAMPLES;
+    }
   }
 
   // Return invalid examples first, then skill-specific examples
@@ -1075,7 +1330,7 @@ ${QUALITY_RULES}
 
 0. **YOU MUST RUN THE QUALITY GATE (Step 0 in RUBRIC RESOLUTION) FIRST.** If the answer is invalid, return the rejection immediately and skip all following rules.
 1. Evaluate ONLY the rubric that applies to the selected skill track (${questionType}).
-2. If the skill track is "All Formats", evaluate each section against its own rubric AND provide an overall combined score. Output sbcsScore, seqScore, and srqScore with each section's level, marks, maxMarks, and a brief label.
+2. If the skill track is "All Formats", evaluate each section (SBCS sub-parts, SEQ, SRQ) against its own rubric. Output sbcsScore, seqScore, and srqScore with each section's level, marks, maxMarks, and a brief label. Then provide an overall combined scoreLevel and scoreMarks as follows: calculate the weighted average across submitted sections (weight by each section\'s maxMarks), round to the nearest whole level, and set scoreMaxMarks to the sum of all section maxMarks.
 3. The \`critique\` array should contain 3–8 specific, actionable bullet points.
 4. The \`a1Upgrade\` should be a complete rewritten answer demonstrating A1 standard.
 5. Each \`highlightedSegment\` must include the exact text from the student's answer.
@@ -1107,8 +1362,19 @@ export function getGradeUserPrompt(params: {
   sbcsAnswer: string;
   seqAnswer: string;
   srqAnswer: string;
+  /** Original source texts so the model can verify student source references */
+  sourceA?: string;
+  sourceB?: string;
+  sourceAProvenance?: string;
+  sourceBProvenance?: string;
+  sourceC?: string;
+  sourceD?: string;
+  sourceE?: string;
+  sourceCProvenance?: string;
+  sourceDProvenance?: string;
+  sourceEProvenance?: string;
 }): string {
-  const { questionPrompt, subject, topic, questionType, sbcsAnswer, seqAnswer, srqAnswer } = params;
+  const { questionPrompt, subject, topic, questionType, sbcsAnswer, seqAnswer, srqAnswer, sourceA, sourceB, sourceAProvenance, sourceBProvenance, sourceC, sourceD, sourceE, sourceCProvenance, sourceDProvenance, sourceEProvenance } = params;
 
   // Only include sections that were actually written
   const sections: string[] = [];
@@ -1117,6 +1383,20 @@ export function getGradeUserPrompt(params: {
   if (srqAnswer.trim()) sections.push(`SRQ Answer:\n${srqAnswer}`);
   const combinedAnswer = sections.join('\n\n');
 
+  // Build sources section if any sources are available
+  const sourceEntries = [
+    { provenance: sourceAProvenance, content: sourceA, label: 'Source A' },
+    { provenance: sourceBProvenance, content: sourceB, label: 'Source B' },
+    { provenance: sourceCProvenance, content: sourceC, label: 'Source C' },
+    { provenance: sourceDProvenance, content: sourceD, label: 'Source D' },
+    { provenance: sourceEProvenance, content: sourceE, label: 'Source E' },
+  ].filter(e => e.content);
+  const sourcesSection = sourceEntries.length > 0
+    ? `\nORIGINAL SOURCES (for verifying student source references):\n${
+        sourceEntries.map(e => `${e.provenance ? `${e.label}: ${e.provenance}\n` : ''}${e.content}`).join('\n\n')
+      }\n`
+    : '';
+
   return `
 QUESTION PROMPT:
 ${questionPrompt || '(not provided)'}
@@ -1124,7 +1404,7 @@ ${questionPrompt || '(not provided)'}
 SUBJECT: ${subject}
 TOPIC: ${topic}
 SKILL TRACK: ${questionType}
-
+${sourcesSection}
 STUDENT ESSAY (submitted sections only):
 """
 ${combinedAnswer}

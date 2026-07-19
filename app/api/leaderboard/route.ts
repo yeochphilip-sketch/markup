@@ -47,7 +47,7 @@ export async function POST(request: Request) {
     try {
       const { data, error: myErr } = await (supabase
         .from('user_skill_metrics')
-        .select('total_xp, level_title, current_streak, longest_streak, last_practice_date, updated_at, sbq_inference_score, sbq_comparison_score, sbq_reliability_score, seq_essay_score, seq_conclusion_score')
+        .select('total_xp, level_title, current_streak, longest_streak, last_practice_date, updated_at, sbq_inference_score, sbq_comparison_score, sbq_reliability_score, seq_essay_score, seq_conclusion_score, sbq_purpose_score, sbq_synthesis_score, sbq_utility_score')
         .eq('user_id', userId)
         .single() as any);
       if (!myErr && data) myMetrics = data;
