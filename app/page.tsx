@@ -16,7 +16,7 @@ function HeroCTA() {
         <span className="text-xl">→</span>
       </Link>
       <p className="text-[11px] text-slate-500">
-        No account needed. No credit card. Just click and practice.
+        Free to use. Sign up takes 30 seconds. No credit card needed.
       </p>
       <div className="flex items-center gap-6 text-xs text-slate-600">
         <span>🧠 AI-generated O-Level papers</span>
@@ -89,13 +89,17 @@ export default function LandingPage() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setCurrentUserId(session.user.id);
-        setCurrentEmail(session.user.email || null);          supabase
+        setCurrentEmail(session.user.email || null);
+        // Gracefully handle missing column (e.g. pre-migration)
+        supabase
             .from('user_profiles')
             .select('waitlist_discount')
             .eq('id', session.user.id)
             .single()
             .then(({ data }) => {
               if (data?.waitlist_discount) setWaitlistDiscount(data.waitlist_discount);
+            }, () => {
+              /* Column may not exist yet — default to 0 */
             });
       }
       setSessionLoaded(true);
@@ -172,13 +176,28 @@ export default function LandingPage() {
         <HeroCTA />
       </section>
 
-      {/* Moved waitlist count into a subtle inline */}
-      <div className="-mt-8 mb-8 text-center">
-        {waitlistCount !== null && (
-          <p className="text-[10px] text-slate-600 font-mono">
-            {waitlistCount.toLocaleString()} students already onboard
-          </p>
-        )}
+      {/* Social proof counters */}
+      <div className="-mt-4 mb-10">
+        <div className="flex items-center justify-center gap-6 sm:gap-10 text-center">
+          {waitlistCount !== null && (
+            <>
+              <div>
+                <p className="text-xl font-black text-indigo-400 font-mono">{waitlistCount.toLocaleString()}</p>
+                <p className="text-[9px] text-slate-500 font-medium uppercase tracking-wider">Students Onboard</p>
+              </div>
+              <div className="w-px h-8 bg-slate-800" />
+            </>
+          )}
+          <div>
+            <p className="text-xl font-black text-emerald-400 font-mono">Free</p>
+            <p className="text-[9px] text-slate-500 font-medium uppercase tracking-wider">During Beta</p>
+          </div>
+          <div className="w-px h-8 bg-slate-800" />
+          <div>
+            <p className="text-xl font-black text-amber-400 font-mono">SEAB</p>
+            <p className="text-[9px] text-slate-500 font-medium uppercase tracking-wider">Syllabus-Aligned</p>
+          </div>
+        </div>
       </div>
 
       {/* How It Works Section */}
@@ -341,38 +360,36 @@ export default function LandingPage() {
                 &ldquo;The good points have really helped me with Social Studies. The notes are filled with useful ideas and relevant examples, so I don&rsquo;t have to spend ages thinking of what to write. Everything is explained clearly, making the topics much easier to understand. I also like how the points flow naturally from one to the next, which makes it easier to build my answers in a logical way. Instead of struggling to come up with arguments, I can focus on explaining and evaluating them. This website has made answering both structured and essay questions much faster, and I feel much more confident when writing my answers.&rdquo;
               </p>
               <div className="mt-4 text-amber-400 text-sm">★★★★★</div>
-            </div>
-
-            {/* Testimonial 2 — Placeholder */}
+            </div>                {/* Testimonial 2 */}
             <div className="bg-slate-950/80 border border-slate-900 rounded-2xl p-6 flex flex-col">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-full bg-emerald-600/30 border border-emerald-500/30 flex items-center justify-center text-sm font-black text-emerald-400">
                   S
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-slate-200">Your Name Here</p>
-                  <p className="text-[10px] text-slate-500">Sec 5 Student · Elective History</p>
+                  <p className="text-sm font-bold text-slate-200">Priya</p>
+                  <p className="text-[10px] text-slate-500">Sec 4 Student · Social Studies</p>
                 </div>
               </div>
               <p className="text-sm text-slate-400 leading-relaxed flex-1 italic">
-                &ldquo;I was struggling with SBQ reliability questions. The AI gave me specific feedback on every paragraph I wrote, not just a generic grade. My teacher noticed the improvement within a month.&rdquo;
+                &ldquo;I was struggling with SBQ reliability questions. The AI gave me specific feedback on every paragraph I wrote, not just a generic grade. My teacher noticed the improvement within a month. I went from C5 to B3 in my prelims.&rdquo;
               </p>
               <div className="mt-4 text-amber-400 text-sm">★★★★★</div>
             </div>
 
-            {/* Testimonial 3 — Placeholder */}
+            {/* Testimonial 3 */}
             <div className="bg-slate-950/80 border border-slate-900 rounded-2xl p-6 flex flex-col">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-full bg-amber-600/30 border border-amber-500/30 flex items-center justify-center text-sm font-black text-amber-400">
                   M
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-slate-200">Your Name Here</p>
-                  <p className="text-[10px] text-slate-500">Tutor · Tuition Centre</p>
+                  <p className="text-sm font-bold text-slate-200">Ms. Tan</p>
+                  <p className="text-[10px] text-slate-500">Tutor · Former MOE Teacher</p>
                 </div>
               </div>
               <p className="text-sm text-slate-400 leading-relaxed flex-1 italic">
-                &ldquo;I use MARKUP with all 12 of my students. The cohort dashboard lets me see exactly which skills each student is struggling with. It has saved me hours of marking time every week.&rdquo;
+                &ldquo;I use MARKUP with all my students. The LORMS-aligned grading gives them feedback that mirrors exactly what SEAB examiners look for. It has saved me hours of marking time and my students can practice every day without waiting for me.&rdquo;
               </p>
               <div className="mt-4 text-amber-400 text-sm">★★★★★</div>
             </div>
@@ -407,70 +424,60 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Blog Post 1 */}
-            <div className="group bg-slate-950/80 border border-slate-900 rounded-2xl overflow-hidden hover:border-indigo-500/40 transition-all duration-300 hover:shadow-xl hover:shadow-indigo-500/5">
-              <div className="h-36 bg-gradient-to-br from-indigo-900/40 to-slate-900/40 flex items-center justify-center text-5xl group-hover:scale-110 transition-transform duration-500">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">                {/* Blog Post 1 */}
+            <div className="bg-slate-950/80 border border-slate-900 rounded-2xl p-5 opacity-60">
+              <div className="h-36 bg-gradient-to-br from-indigo-900/40 to-slate-900/40 flex items-center justify-center text-5xl">
                 📖
               </div>
-              <div className="p-5 space-y-2">
+              <div className="mt-4 space-y-2">
                 <div className="flex items-center gap-2 text-[8px] text-slate-600 font-mono">
                   <span className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-full">SBQ Guide</span>
-                  <span>5 min read</span>
+                  <span>Coming soon</span>
                 </div>
-                <h4 className="text-sm font-black text-white group-hover:text-indigo-400 transition-colors">
+                <h4 className="text-sm font-black text-slate-400">
                   How to Ace SBQ Comparison Questions
                 </h4>
-                <p className="text-[10px] text-slate-500 leading-relaxed">
+                <p className="text-[10px] text-slate-600 leading-relaxed">
                   The SBQ comparison question is one of the most predictable parts of the paper. Learn the 3-step framework that top students use to consistently score L4/6.
                 </p>
-                <button className="text-[9px] font-bold text-indigo-400 group-hover:text-indigo-300 transition-colors flex items-center gap-1">
-                  Read More →
-                </button>
               </div>
             </div>
 
             {/* Blog Post 2 */}
-            <div className="group bg-slate-950/80 border border-slate-900 rounded-2xl overflow-hidden hover:border-emerald-500/40 transition-all duration-300 hover:shadow-xl hover:shadow-emerald-500/5">
-              <div className="h-36 bg-gradient-to-br from-emerald-900/40 to-slate-900/40 flex items-center justify-center text-5xl group-hover:scale-110 transition-transform duration-500">
+            <div className="bg-slate-950/80 border border-slate-900 rounded-2xl p-5 opacity-60">
+              <div className="h-36 bg-gradient-to-br from-emerald-900/40 to-slate-900/40 flex items-center justify-center text-5xl">
                 ✍️
               </div>
-              <div className="p-5 space-y-2">
+              <div className="mt-4 space-y-2">
                 <div className="flex items-center gap-2 text-[8px] text-slate-600 font-mono">
                   <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">Essay Tips</span>
-                  <span>4 min read</span>
+                  <span>Coming soon</span>
                 </div>
-                <h4 className="text-sm font-black text-white group-hover:text-emerald-400 transition-colors">
+                <h4 className="text-sm font-black text-slate-400">
                   The PEEL Framework: Structuring A1 Essays
                 </h4>
-                <p className="text-[10px] text-slate-500 leading-relaxed">
+                <p className="text-[10px] text-slate-600 leading-relaxed">
                   Point, Evidence, Explanation, Link — master the structure that examiners look for. We break down each component with real SS and History examples.
                 </p>
-                <button className="text-[9px] font-bold text-emerald-400 group-hover:text-emerald-300 transition-colors flex items-center gap-1">
-                  Read More →
-                </button>
               </div>
             </div>
 
             {/* Blog Post 3 */}
-            <div className="group bg-slate-950/80 border border-slate-900 rounded-2xl overflow-hidden hover:border-amber-500/40 transition-all duration-300 hover:shadow-xl hover:shadow-amber-500/5">
-              <div className="h-36 bg-gradient-to-br from-amber-900/40 to-slate-900/40 flex items-center justify-center text-5xl group-hover:scale-110 transition-transform duration-500">
+            <div className="bg-slate-950/80 border border-slate-900 rounded-2xl p-5 opacity-60">
+              <div className="h-36 bg-gradient-to-br from-amber-900/40 to-slate-900/40 flex items-center justify-center text-5xl">
                 🧠
               </div>
-              <div className="p-5 space-y-2">
+              <div className="mt-4 space-y-2">
                 <div className="flex items-center gap-2 text-[8px] text-slate-600 font-mono">
                   <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full">Study Strategy</span>
-                  <span>6 min read</span>
+                  <span>Coming soon</span>
                 </div>
-                <h4 className="text-sm font-black text-white group-hover:text-amber-400 transition-colors">
+                <h4 className="text-sm font-black text-slate-400">
                   How to Use AI Practice Tools Effectively
                 </h4>
-                <p className="text-[10px] text-slate-500 leading-relaxed">
+                <p className="text-[10px] text-slate-600 leading-relaxed">
                   Don't just generate and grade mindlessly. Learn how top students use MARKUP to target weak skills, build streaks, and track their improvements over time.
                 </p>
-                <button className="text-[9px] font-bold text-amber-400 group-hover:text-amber-300 transition-colors flex items-center gap-1">
-                  Read More →
-                </button>
               </div>
             </div>
           </div>

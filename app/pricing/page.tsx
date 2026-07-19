@@ -210,6 +210,8 @@ export default function PricingPage() {
           .single()
           .then(({ data }) => {
             if (data?.waitlist_discount) setWaitlistDiscount(data.waitlist_discount);
+          }, () => {
+            /* Column may not exist yet — default to 0 */
           });
       }
       setSessionLoaded(true);
@@ -222,7 +224,7 @@ export default function PricingPage() {
       return;
     }
     if (!currentUserId) {
-      router.push('/auth');
+      router.push('/auth?redirect=/pricing');
       return;
     }
     setCheckoutLoading(tier);

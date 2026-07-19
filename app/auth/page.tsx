@@ -7,6 +7,10 @@ import { useRouter } from 'next/navigation';
 export default function AuthPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
+  // Support redirect query param (e.g. /auth?redirect=/pricing)
+  const redirectTo = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search).get('redirect') || '/dashboard'
+    : '/dashboard';
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
@@ -53,7 +57,7 @@ export default function AuthPage() {
     try {
       const { error } = await supabase.auth.signInWithOtp({
         email: email.trim(),
-        options: { emailRedirectTo: `${window.location.origin}/dashboard` },
+        options: { emailRedirectTo: `${window.location.origin}${redirectTo}` },
       });
       if (error) throw error;
       setMessage('✅ Magic link sent! Check your email (and spam folder).');
@@ -105,7 +109,7 @@ export default function AuthPage() {
       await supabase.auth.signInWithOAuth({
         provider: 'google',
         // Redirecting Google sign-ins straight to the dashboard workspace
-        options: { redirectTo: `${window.location.origin}/dashboard` }
+        options: { redirectTo: `${window.location.origin}${redirectTo}` }
       });
     } catch (err) {
       console.error(err);
@@ -141,7 +145,7 @@ export default function AuthPage() {
         
         setMessage('Welcome to MARKUP! Taking you to your dashboard...');
         setTimeout(() => {
-          router.push('/dashboard');
+          router.push(redirectTo);
           router.refresh();
         }, 1000);
       } else {
@@ -153,7 +157,7 @@ export default function AuthPage() {
           await supabase.auth.setSession(data.session);
         }
         // Logs in straight to the dashboard workspace
-        router.push('/dashboard');
+        router.push(redirectTo);
         router.refresh();
       }
     } catch (err: unknown) {
