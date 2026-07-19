@@ -10,7 +10,7 @@
     "eval": "npx tsx scripts/run-eval.ts"
   },
   "dependencies": {
-    "@ai-sdk/google": "^4.0.8",
+    "@ai-sdk/google": "^4.0.18",
     "@ai-sdk/openai": "^4.0.14",
     "@dqbd/tiktoken": "^1.0.22",
     "@stripe/react-stripe-js": "^6.8.0",
