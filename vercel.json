@@ -4,16 +4,7 @@
   "outputDirectory": ".next",
   "installCommand": "npm install",
   "devCommand": "next dev",
-  "crons": [
-    {
-      "path": "/api/email/daily-reminder",
-      "schedule": "0 14 * * *"
-    },
-    {
-      "path": "/api/weekly-digest",
-      "schedule": "0 9 * * 0"
-    }
-  ],
+  "crons": [],
   "headers": [
     {
       "source": "/(.*)",
