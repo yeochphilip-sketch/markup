@@ -440,8 +440,8 @@ export default function StudyStrategyPage() {
         {/* Next Article */}
         <div className="border-t border-slate-900 pt-8">
           <div className="flex items-center justify-between">
-            <Link href="/tips/seq-evaluation" className="text-xs text-slate-500 hover:text-slate-300 transition font-bold">
-              ← Previous: SEQ Evaluation
+            <Link href="/tips/srq-guide" className="text-xs text-slate-500 hover:text-slate-300 transition font-bold">
+              ← Previous: SRQ Guide
             </Link>
             <Link href="/tips/exam-week-strategy" className="text-xs text-indigo-400 hover:text-indigo-300 transition font-bold">
               Next: Exam Week Strategy →

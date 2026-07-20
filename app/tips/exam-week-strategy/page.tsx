@@ -473,8 +473,8 @@ export default function ExamWeekStrategyPage() {
             <Link href="/tips/study-strategy" className="text-xs text-slate-500 hover:text-slate-300 transition font-bold">
               ← Previous: Study Strategy
             </Link>
-            <Link href="/tips" className="text-xs text-indigo-400 hover:text-indigo-300 transition font-bold">
-              All Tips →
+            <Link href="/tips/history-vs-social-studies" className="text-xs text-indigo-400 hover:text-indigo-300 transition font-bold">
+              Next: History vs Social Studies →
             </Link>
           </div>
         </div>

@@ -503,8 +503,8 @@ export default function SEQEvaluationPage() {
             <Link href="/tips/peel-framework" className="text-xs text-slate-500 hover:text-slate-300 transition font-bold">
               ← Previous: PEEL Framework
             </Link>
-            <Link href="/tips/study-strategy" className="text-xs text-indigo-400 hover:text-indigo-300 transition font-bold">
-              Next: Study Strategy →
+            <Link href="/tips/historical-context-essays" className="text-xs text-indigo-400 hover:text-indigo-300 transition font-bold">
+              Next: Historical Context →
             </Link>
           </div>
         </div>

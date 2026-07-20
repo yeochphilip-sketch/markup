@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import TipsGrid from '@/app/components/TipsGrid';
+import type { TipEntry } from '@/app/components/TipsGrid';
 
 export const metadata: Metadata = {
   title: 'Tips & Guides',
@@ -12,7 +14,7 @@ export const metadata: Metadata = {
   },
 };
 
-const TIPS = [
+const TIPS: TipEntry[] = [
   {
     slug: 'sbq-comparison',
     title: 'How to Ace SBQ Comparison Questions (L4/6 Framework)',
@@ -23,6 +25,8 @@ const TIPS = [
     tag: 'SBQ Guide',
     tagColor: 'indigo',
     readTime: '8 min read',
+    type: ['SBQ'],
+    subject: 'Both',
   },
   {
     slug: 'sbq-reliability',
@@ -34,6 +38,8 @@ const TIPS = [
     tag: 'SBQ Guide',
     tagColor: 'indigo',
     readTime: '9 min read',
+    type: ['SBQ'],
+    subject: 'Both',
   },
   {
     slug: 'sbq-purpose',
@@ -45,6 +51,21 @@ const TIPS = [
     tag: 'SBQ Guide',
     tagColor: 'indigo',
     readTime: '9 min read',
+    type: ['SBQ'],
+    subject: 'Both',
+  },
+  {
+    slug: 'sbq-utility-comparison',
+    title: 'How to Ace the SBQ 10-Mark Comparison/Utility Question (L5/8)',
+    description:
+      'The highest-value SBQ question — learn the 4-step method to assess how far sources agree, evaluate utility, and score the top L5/8 band.',
+    icon: '⚡',
+    gradient: 'from-violet-900/40 to-slate-900/40',
+    tag: 'SBQ Guide',
+    tagColor: 'indigo',
+    readTime: '10 min read',
+    type: ['SBQ'],
+    subject: 'Both',
   },
   {
     slug: 'peel-framework',
@@ -56,6 +77,8 @@ const TIPS = [
     tag: 'Essay Tips',
     tagColor: 'emerald',
     readTime: '10 min read',
+    type: ['SRQ', 'SEQ'],
+    subject: 'Both',
   },
   {
     slug: 'seq-evaluation',
@@ -67,6 +90,34 @@ const TIPS = [
     tag: 'Essay Tips',
     tagColor: 'emerald',
     readTime: '10 min read',
+    type: ['SEQ'],
+    subject: 'History',
+  },
+  {
+    slug: 'historical-context-essays',
+    title: 'How to Use Historical Context in Your Humanities Essays',
+    description:
+      'Don\'t just describe — contextualise. Learn how to weave contextual knowledge (CK) into your essays to deepen your analysis and score top L3/7 bands.',
+    icon: '🌐',
+    gradient: 'from-teal-900/40 to-slate-900/40',
+    tag: 'Essay Tips',
+    tagColor: 'emerald',
+    readTime: '11 min read',
+    type: ['SRQ', 'SEQ'],
+    subject: 'Both',
+  },
+  {
+    slug: 'srq-guide',
+    title: 'How to Answer SRQ Questions — Social Studies Guide',
+    description:
+      'Master the SRQ (Structured Response Question) for O-Level Social Studies. 3-step L3/8 framework with PEEL structure, evidence handling, and evaluation techniques.',
+    icon: '📝',
+    gradient: 'from-sky-900/40 to-slate-900/40',
+    tag: 'SRQ Guide',
+    tagColor: 'indigo',
+    readTime: '11 min read',
+    type: ['SRQ'],
+    subject: 'Social Studies',
   },
   {
     slug: 'study-strategy',
@@ -78,6 +129,8 @@ const TIPS = [
     tag: 'Study Strategy',
     tagColor: 'amber',
     readTime: '9 min read',
+    type: ['SBQ', 'SRQ', 'SEQ'],
+    subject: 'Both',
   },
   {
     slug: 'exam-week-strategy',
@@ -89,14 +142,23 @@ const TIPS = [
     tag: 'Study Strategy',
     tagColor: 'amber',
     readTime: '10 min read',
+    type: ['SBQ', 'SRQ', 'SEQ'],
+    subject: 'Both',
+  },
+  {
+    slug: 'history-vs-social-studies',
+    title: 'How to Study for History vs Social Studies',
+    description:
+      'Head-to-head comparison of content, exam format, skills, and study strategies. Learn how to ace both subjects and make the most of your study time.',
+    icon: '🎓',
+    gradient: 'from-cyan-900/40 to-slate-900/40',
+    tag: 'Study Strategy',
+    tagColor: 'amber',
+    readTime: '10 min read',
+    type: ['SBQ', 'SRQ', 'SEQ'],
+    subject: 'Both',
   },
 ];
-
-const TAG_STYLES: Record<string, { bg: string; text: string; border: string }> = {
-  indigo: { bg: 'bg-indigo-500/10', text: 'text-indigo-400', border: 'border-indigo-500/20' },
-  emerald: { bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20' },
-  amber: { bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20' },
-};
 
 export default function TipsPage() {
   return (
@@ -127,46 +189,8 @@ export default function TipsPage() {
           </p>
         </div>
 
-        {/* Blog Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {TIPS.map((tip) => {
-            const style = TAG_STYLES[tip.tagColor] || TAG_STYLES.indigo;
-            return (
-              <Link
-                key={tip.slug}
-                href={`/tips/${tip.slug}`}
-                className="group block bg-slate-950/80 border border-slate-900 rounded-2xl overflow-hidden hover:border-indigo-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-indigo-950/20 hover:scale-[1.02]"
-              >
-                <div
-                  className={`h-40 bg-gradient-to-br ${tip.gradient} flex items-center justify-center text-5xl transition-transform duration-300 group-hover:scale-105`}
-                >
-                  {tip.icon}
-                </div>
-                <div className="p-5 space-y-3">
-                  <div className="flex items-center gap-2 text-[8px] text-slate-600 font-mono">
-                    <span
-                      className={`${style.bg} ${style.text} ${style.border} border px-2 py-0.5 rounded-full`}
-                    >
-                      {tip.tag}
-                    </span>
-                    <span>{tip.readTime}</span>
-                  </div>
-                  <h2 className="text-sm font-black text-slate-200 group-hover:text-white transition-colors leading-snug">
-                    {tip.title}
-                  </h2>
-                  <p className="text-[10px] text-slate-500 leading-relaxed">
-                    {tip.description}
-                  </p>
-                  <div className="pt-2">
-                    <span className="text-[10px] font-bold text-indigo-400 group-hover:text-indigo-300 transition-colors inline-flex items-center gap-1">
-                      Read Guide →
-                    </span>
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
+        {/* Filterable Grid */}
+        <TipsGrid tips={TIPS} />
 
         {/* Trust & CTA Section */}
         <div className="bg-gradient-to-br from-slate-950/80 to-slate-950/50 border border-slate-900 rounded-2xl p-8 text-center space-y-4 mt-8">

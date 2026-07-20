@@ -434,8 +434,8 @@ export default function SBQPurposePage() {
             <Link href="/tips/sbq-reliability" className="text-xs text-slate-500 hover:text-slate-300 transition font-bold">
               ← Previous: SBQ Reliability
             </Link>
-            <Link href="/tips/peel-framework" className="text-xs text-indigo-400 hover:text-indigo-300 transition font-bold">
-              Next: PEEL Framework →
+            <Link href="/tips/sbq-utility-comparison" className="text-xs text-indigo-400 hover:text-indigo-300 transition font-bold">
+              Next: SBQ 10-Mark Comparison →
             </Link>
           </div>
         </div>
