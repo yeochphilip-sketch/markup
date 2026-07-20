@@ -14,6 +14,7 @@ interface ShareResultCardProps {
   masteryPoints: number;
   streakDays: number;
   critiqueCount: number;
+  referralCode?: string;
 }
 
 export default function ShareResultCard({
@@ -27,6 +28,7 @@ export default function ShareResultCard({
   masteryPoints,
   streakDays,
   critiqueCount,
+  referralCode,
 }: ShareResultCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isSharing, setIsSharing] = useState(false);
@@ -42,13 +44,17 @@ export default function ShareResultCard({
         backgroundColor: '#0a0a1a',
       });
 
+      const shareText = referralCode
+        ? `I scored ${scoreEstimate} on my ${subject} practice with MARKUP! Use my referral code ${referralCode} to join: markup-five.vercel.app?ref=${referralCode}`
+        : `I scored ${scoreEstimate} on my ${subject} practice with MARKUP! Try it free at markup-five.vercel.app`;
+
       // Try native share API first (mobile)
       if (navigator.share) {
         const blob = await (await fetch(dataUrl)).blob();
         const file = new File([blob], 'markup-grade.png', { type: 'image/png' });
         await navigator.share({
           title: 'My MARKUP Grade',
-          text: `I scored ${scoreEstimate} on my ${subject} practice!`,
+          text: shareText,
           files: [file],
         });
       } else {
@@ -58,12 +64,9 @@ export default function ShareResultCard({
         link.href = dataUrl;
         link.click();
 
-        // Copy to clipboard
+        // Copy text to clipboard
         try {
-          const blob = await (await fetch(dataUrl)).blob();
-          await navigator.clipboard.write([
-            new ClipboardItem({ 'image/png': blob }),
-          ]);
+          await navigator.clipboard.writeText(shareText);
         } catch {
           // Clipboard write not supported
         }
@@ -73,7 +76,9 @@ export default function ShareResultCard({
     } finally {
       setIsSharing(false);
     }
-  }, [scoreEstimate, subject]);
+  }, [scoreEstimate, subject, referralCode]);
+
+  const referralLink = referralCode ? `markup.app?ref=${referralCode}` : null;
 
   const confidenceColor =
     confidence >= 0.8 ? '#10b981' : confidence >= 0.6 ? '#f59e0b' : '#f43f5e';
@@ -180,6 +185,14 @@ export default function ShareResultCard({
                 <span>📝 {critiqueCount} diagnostics</span>
                 {streakDays > 0 && <span>🔥 {streakDays}d streak</span>}
               </div>
+
+              {/* Referral code (viral loop) */}
+              {referralCode && (
+                <div className="w-full bg-indigo-600/10 border border-indigo-500/20 rounded-lg px-3 py-1.5">
+                  <p className="text-[7px] text-indigo-400 font-bold uppercase tracking-wider">Join me on MARKUP</p>
+                  <p className="text-[8px] font-mono text-indigo-300 font-bold tracking-wider">ref: {referralCode}</p>
+                </div>
+              )}
 
               {/* Footer */}
               <div className="w-full h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" />

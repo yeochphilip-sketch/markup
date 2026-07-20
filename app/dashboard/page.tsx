@@ -27,6 +27,8 @@ import GlobalErrorBanner from '@/app/components/GlobalErrorBanner';
 import MobileSidebar from '@/app/components/MobileSidebar';
 import TestimonialPrompt, { recordCompletedScan, shouldShowTestimonial } from '@/app/components/TestimonialPrompt';
 import WeeklyDigestPanel from '@/app/components/WeeklyDigestPanel';
+import WeakestSkillCard from '@/app/components/WeakestSkillCard';
+import ReferralCTA from '@/app/components/ReferralCTA';
 import { getLevelConfig, getLevelTitle, getNextLevelXp, getPrevLevelXp, LEVEL_THRESHOLDS, playGradeCompleteSound, playLevelUpSound, playAchievementSound, isDailyGoalMet, ACHIEVEMENT_DEFS, calculateXpDecay, getDecayWarning } from '@/lib/gamification';
 import { SKILL_LABELS, TOPIC_SUMMARIES, detectSubTopic, isCustomTopic } from '@/lib/summary-utils';
 
@@ -172,6 +174,7 @@ export default function DashboardPage() {
   // (Timer refs for modals are now managed inside their respective components)
   const [hoveredNotif, setHoveredNotif] = useState<string | null>(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [myReferralCode, setMyReferralCode] = useState('');
 
   // ── Pause / resume helpers (for toast/daily-goal only) ──
   const pauseTimer = useCallback((timerRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>, startRef: React.MutableRefObject<number>, remainingRef: React.MutableRefObject<number>) => {
@@ -494,6 +497,12 @@ export default function DashboardPage() {
       setIsAdmin(isUserAdmin);
 
       setIsAuthLoading(false);
+
+      // ── Fetch user's referral code for ShareResultCard viral share ──
+      fetch(`/api/referral?userId=${user.id}`)
+        .then(r => r.json())
+        .then(d => { if (d.referralCode) setMyReferralCode(d.referralCode); })
+        .catch(() => {});
 
       // ── Send heartbeat to track last_active_at for personalized reminders ──
       sendHeartbeat(user.id);
@@ -1043,6 +1052,10 @@ export default function DashboardPage() {
     }
   };
 
+  // Read referral code from URL (preserved from landing page → dashboard → auth)
+  const urlRefCode = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('ref') || '' : '';
+  const getAuthLink = (path = '/auth') => urlRefCode ? `${path}?ref=${urlRefCode}` : path;
+
   const emailInitial = userEmail ? userEmail.charAt(0).toUpperCase() : 'G';
   const isGuest = !isAuthLoading && !userId;
   const isQuestionPromptInactive = (challenge.backgroundContext ?? '').includes('Click Generate Practice');
@@ -1074,7 +1087,7 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <Link
-              href="/auth"
+              href={getAuthLink()}
               className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-1.5 rounded-lg text-[10px] transition whitespace-nowrap"
             >
               Sign Up Free
@@ -1179,7 +1192,7 @@ export default function DashboardPage() {
                     🐛 Submit Bug / Feedback
                   </button>
                   {isGuest ? (
-                    <Link href="/auth" className="block w-full text-center bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-xl text-xs transition mt-2">
+                    <Link href={getAuthLink()} className="block w-full text-center bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-xl text-xs transition mt-2">
                       Sign Up Free
                     </Link>
                   ) : (
@@ -1223,6 +1236,20 @@ export default function DashboardPage() {
             levelTitle={levelTitle}
             streakData={streakData}
             totalEvaluations={totalEvaluations}
+          />
+        )}
+
+        {/* Referral CTA Widget */}
+        {userId && <ReferralCTA userId={userId} />}
+
+        {/* Weakest-Skill Suggestion Card */}
+        {userId && !isQuestionPromptInactive && (
+          <WeakestSkillCard
+            skillRatings={skillRatings}
+            activeSubject={activeSubject}
+            onSelectSkill={(skill) => {
+              setSelectedSkill(skill);
+            }}
           />
         )}
       </div>
@@ -1677,22 +1704,29 @@ export default function DashboardPage() {
                     </ul>
                   </div>
                 )}
-                {/* Share Result Card */}
+                {/* Share Result Card — with prominent post-grade share prompt */}
                 {userId && (
-                  <div className="pt-2 border-t border-slate-900 flex justify-end">
-                    <ShareResultCard
-                      scoreEstimate={evaluation.scoreEstimate}
-                      confidence={evaluation.confidence}
-                      subject={activeSubject}
-                      topic={selectedTopic}
-                      skill={selectedSkill}
-                      xpEarned={masteryPoints > 0 ? Math.min(masteryPoints, 200) : 0}
-                      levelTitle={levelTitle}
-                      masteryPoints={masteryPoints}
-                      streakDays={streakData.current}
-                      critiqueCount={evaluation.critique.length}
-                    />
-                  </div>
+                  <>
+                    <div className="pt-2 border-t border-slate-900 flex items-center justify-between">
+                      <span className="text-[9px] text-slate-600 font-medium">
+                        📤 Share your grade with classmates
+                      </span>
+                      <ShareResultCard
+                        scoreEstimate={evaluation.scoreEstimate}
+                        confidence={evaluation.confidence}
+                        subject={activeSubject}
+                        topic={selectedTopic}
+                        skill={selectedSkill}
+                        xpEarned={masteryPoints > 0 ? Math.min(masteryPoints, 200) : 0}
+                        levelTitle={levelTitle}
+                        masteryPoints={masteryPoints}
+                        streakDays={streakData.current}
+                        critiqueCount={evaluation.critique.length}
+                        referralCode={myReferralCode}
+                      />
+                    </div>
+                    <div className="w-full h-px bg-gradient-to-r from-transparent via-indigo-800/30 to-transparent" />
+                  </>
                 )}
               </>
             )}

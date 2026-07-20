@@ -15,6 +15,10 @@ export default function AuthPage() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [isMagicLink, setIsMagicLink] = useState(false);
+  const referralCodeParam = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search).get('ref') || ''
+    : '';
+  const [referralCodeInput, setReferralCodeInput] = useState(referralCodeParam);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   // MFA state
@@ -135,12 +139,26 @@ export default function AuthPage() {
           // 🚀 Manually seed their matching public profile tracking metrics row
           await supabase.from('user_profiles').insert([{
             id: data.user.id,
-            full_name: fallbackName, // 🌟 Now dynamically uses their email prefix!
+            full_name: fallbackName,
             email_address: email.toLowerCase().trim(),
             selected_plan: 'Free',
             billing_rate: 0,
             account_status: 'Active'
           }]);
+
+          // 🎯 Auto-claim referral code if present
+          const codeToClaim = referralCodeInput.trim().toUpperCase();
+          if (codeToClaim && data.user.id) {
+            fetch('/api/referral', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'claim',
+                userId: data.user.id,
+                referralCode: codeToClaim,
+              }),
+            }).catch(() => {});
+          }
         }
         
         setMessage('Welcome to MARKUP! Taking you to your dashboard...');
@@ -341,6 +359,21 @@ export default function AuthPage() {
                   className="w-full bg-slate-900 border border-slate-800 p-3 rounded-xl text-xs text-slate-200 focus:outline-none placeholder-slate-500"
                   required 
                 />
+                {isSignUp && (
+                  <div>
+                    <input 
+                      type="text" 
+                      placeholder="Referral code (optional) — e.g. ABC123" 
+                      value={referralCodeInput}
+                      onChange={(e) => setReferralCodeInput(e.target.value.toUpperCase())}
+                      className="w-full bg-slate-900 border border-slate-800 p-3 rounded-xl text-xs text-slate-200 text-center font-mono font-bold tracking-widest focus:outline-none placeholder-slate-500 uppercase"
+                      maxLength={8}
+                    />
+                    {referralCodeInput && (
+                      <p className="text-[8px] text-emerald-500 mt-1 text-center">🎉 You and your friend both get bonus XP!</p>
+                    )}
+                  </div>
+                )}
                 <button 
                   type="submit" 
                   disabled={isLoading}

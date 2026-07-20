@@ -7,9 +7,8 @@ import { supabase } from '@/utils/supabase';
 
 function HeroCTA() {
   return (
-    <div className="flex flex-col items-center gap-4">
-      <Link
-        href="/dashboard"
+    <div className="flex flex-col items-center gap-4">        <Link
+        href={typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('ref') ? `/dashboard?ref=${new URLSearchParams(window.location.search).get('ref')}` : '/dashboard'}
         className="bg-indigo-600 hover:bg-indigo-500 text-white font-black px-10 py-4 rounded-xl text-lg transition-all shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/40 hover:scale-[1.02] active:scale-[0.98] inline-flex items-center gap-2"
       >
         Start Practicing Now
@@ -69,6 +68,8 @@ const SAMPLE_CARDS = [
 
 export default function LandingPage() {
   const [waitlistCount, setWaitlistCount] = useState<number | null>(null);
+  const [stats, setStats] = useState<{ totalUsers: number | null; totalEvaluations: number | null; totalXp: number | null; avgStreak: number | null } | null>(null);
+  const [referralCode, setReferralCode] = useState<string | null>(null);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -78,10 +79,23 @@ export default function LandingPage() {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    // Read ?ref= from URL (referral code)
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const ref = params.get('ref');
+      if (ref) setReferralCode(ref);
+    }
+
+    // Fetch waitlist count + aggregate stats in parallel
     fetch('/api/waitlist/count')
       .then(r => r.json())
       .then(d => setWaitlistCount(d.count))
-      .catch(() => {}); // Don't set count on error — null means "unknown"
+      .catch(() => {});
+    
+    fetch('/api/stats')
+      .then(r => r.json())
+      .then(d => setStats(d))
+      .catch(() => {});
   }, []);
 
   // Load user session (for checkout buttons)
@@ -156,7 +170,7 @@ export default function LandingPage() {
             <Link href="#blog" className="hover:text-white transition">Tips</Link>
             <Link href="#pricing" className="hover:text-white transition">Pricing</Link>
           </div>
-          <Link href="/auth" className="bg-indigo-600 text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl hover:bg-indigo-500 transition shadow-lg shadow-indigo-500/20 whitespace-nowrap text-xs sm:text-sm">Sign In</Link>
+          <Link href={referralCode ? `/auth?ref=${referralCode}` : '/auth'} className="bg-indigo-600 text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl hover:bg-indigo-500 transition shadow-lg shadow-indigo-500/20 whitespace-nowrap text-xs sm:text-sm">Sign In</Link>
         </div>
       </nav>
 
@@ -176,23 +190,35 @@ export default function LandingPage() {
         <HeroCTA />
       </section>
 
-      {/* Social proof counters */}
+      {/* Social proof counters — with real aggregate stats */}
       <div className="-mt-4 mb-10">
-        <div className="flex items-center justify-center gap-6 sm:gap-10 text-center">
-          {waitlistCount !== null && (
+        <div className="flex items-center justify-center gap-6 sm:gap-10 text-center flex-wrap">
+          {stats?.totalUsers !== null && stats?.totalUsers !== undefined ? (
+            <>
+              <div>
+                <p className="text-xl font-black text-indigo-400 font-mono">{stats!.totalUsers!.toLocaleString()}</p>
+                <p className="text-[9px] text-slate-500 font-medium uppercase tracking-wider">Students Onboard</p>
+              </div>
+              <div className="w-px h-8 bg-slate-800 hidden sm:block" />
+            </>
+          ) : waitlistCount !== null ? (
             <>
               <div>
                 <p className="text-xl font-black text-indigo-400 font-mono">{waitlistCount.toLocaleString()}</p>
                 <p className="text-[9px] text-slate-500 font-medium uppercase tracking-wider">Students Onboard</p>
               </div>
-              <div className="w-px h-8 bg-slate-800" />
+              <div className="w-px h-8 bg-slate-800 hidden sm:block" />
+            </>
+          ) : null}
+          {stats?.totalEvaluations !== null && stats?.totalEvaluations !== undefined && (
+            <>
+              <div>
+                <p className="text-xl font-black text-emerald-400 font-mono">{stats!.totalEvaluations!.toLocaleString()}</p>
+                <p className="text-[9px] text-slate-500 font-medium uppercase tracking-wider">Papers Graded</p>
+              </div>
+              <div className="w-px h-8 bg-slate-800 hidden sm:block" />
             </>
           )}
-          <div>
-            <p className="text-xl font-black text-emerald-400 font-mono">Free</p>
-            <p className="text-[9px] text-slate-500 font-medium uppercase tracking-wider">During Beta</p>
-          </div>
-          <div className="w-px h-8 bg-slate-800" />
           <div>
             <p className="text-xl font-black text-amber-400 font-mono">SEAB</p>
             <p className="text-[9px] text-slate-500 font-medium uppercase tracking-wider">Syllabus-Aligned</p>
@@ -398,12 +424,11 @@ export default function LandingPage() {
           <div className="text-center mt-10">
             <button
               onClick={() => {
-                const hero = document.querySelector('section');
-                hero?.scrollIntoView({ behavior: 'smooth' });
+                window.location.href = referralCode ? `/auth?ref=${referralCode}` : '/auth';
               }}
               className="text-xs font-bold text-indigo-400 hover:text-indigo-300 underline underline-offset-4 transition"
             >
-              Join the waitlist and be the next story →
+              Join and be the next story →
             </button>
           </div>
         </div>
@@ -484,7 +509,7 @@ export default function LandingPage() {
 
           <div className="text-center mt-10">
             <Link
-              href="/auth"
+              href={referralCode ? `/auth?ref=${referralCode}` : '/auth'}
               className="text-xs font-bold text-indigo-400 hover:text-indigo-300 underline underline-offset-4 transition"
             >
               Start practicing while you read →
@@ -512,7 +537,7 @@ export default function LandingPage() {
               )}
             </p>
             <Link
-              href="/auth"
+              href={referralCode ? `/auth?ref=${referralCode}` : '/auth'}
               className="inline-block mt-6 bg-indigo-600 hover:bg-indigo-500 text-white font-black px-8 py-3.5 rounded-xl text-sm transition shadow-lg shadow-indigo-500/20"
             >
               Start Practicing Now — Free
