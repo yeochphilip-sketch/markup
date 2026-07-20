@@ -19,6 +19,11 @@ ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS email_address       TE
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS avatar_url          TEXT;
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS stripe_customer_id  TEXT;
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS subscription_tier   TEXT DEFAULT 'free';
+
+-- Allow ambassador tier (free premium access for influencers)
+ALTER TABLE public.user_profiles DROP CONSTRAINT IF EXISTS user_profiles_subscription_tier_check;
+ALTER TABLE public.user_profiles ADD CONSTRAINT user_profiles_subscription_tier_check
+    CHECK (subscription_tier IN ('free', 'student_monthly', 'student_academic', 'tuition_cohort', 'ambassador'));
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS selected_plan       TEXT DEFAULT 'Free';
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS billing_rate        NUMERIC(10, 2) DEFAULT 0;
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS account_status      TEXT DEFAULT 'Active';

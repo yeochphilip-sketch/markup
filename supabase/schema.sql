@@ -32,7 +32,8 @@ CREATE TABLE public.user_profiles (
             'free',
             'student_monthly',
             'student_academic',
-            'tuition_cohort'
+            'tuition_cohort',
+            'ambassador'
         )),
     selected_plan       TEXT DEFAULT 'Free'
         CHECK (selected_plan IN (

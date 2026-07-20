@@ -634,6 +634,12 @@ function AnalyticsDashboardContent() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <a
+              href="/admin/ambassadors"
+              className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 px-3 py-2 rounded-lg transition flex items-center gap-1.5"
+            >
+              🤝 Ambassadors
+            </a>
             <button
               onClick={handleRefresh}
               disabled={isRefreshing}
