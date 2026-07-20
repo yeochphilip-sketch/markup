@@ -167,7 +167,7 @@ export default function LandingPage() {
           <div className="hidden sm:flex items-center gap-4 sm:gap-6">
             <Link href="#how-it-works" className="hover:text-white transition">How It Works</Link>
             <Link href="#testimonials" className="hover:text-white transition">Testimonials</Link>
-            <Link href="#blog" className="hover:text-white transition">Tips</Link>
+            <Link href="/tips" className="hover:text-white transition">Tips</Link>
             <Link href="#pricing" className="hover:text-white transition">Pricing</Link>
           </div>
           <Link href={referralCode ? `/auth?ref=${referralCode}` : '/auth'} className="bg-indigo-600 text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl hover:bg-indigo-500 transition shadow-lg shadow-indigo-500/20 whitespace-nowrap text-xs sm:text-sm">Sign In</Link>
@@ -438,9 +438,11 @@ export default function LandingPage() {
       <section id="blog" className="px-6 py-20">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <span className="text-[10px] font-black text-emerald-400 tracking-widest uppercase bg-emerald-950/50 border border-emerald-900/50 px-3 py-1 rounded-full">
-              📝 Tips & Guides
-            </span>
+            <Link href="/tips">
+              <span className="text-[10px] font-black text-emerald-400 tracking-widest uppercase bg-emerald-950/50 border border-emerald-900/50 px-3 py-1 rounded-full hover:bg-emerald-950/70 transition">
+                📝 Tips & Guides
+              </span>
+            </Link>
             <h3 className="text-3xl md:text-5xl font-black tracking-tight mt-4">
               Learn how to ace your Humanities.
             </h3>
@@ -450,69 +452,78 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">                {/* Blog Post 1 */}
-            <div className="bg-slate-950/80 border border-slate-900 rounded-2xl p-5 opacity-60">
-              <div className="h-36 bg-gradient-to-br from-indigo-900/40 to-slate-900/40 flex items-center justify-center text-5xl">
+            <Link href="/tips/sbq-comparison" className="group block bg-slate-950/80 border border-slate-900 rounded-2xl overflow-hidden hover:border-indigo-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-indigo-950/20 hover:scale-[1.02]">
+              <div className="h-36 bg-gradient-to-br from-indigo-900/40 to-slate-900/40 flex items-center justify-center text-5xl transition-transform duration-300 group-hover:scale-105">
                 📖
               </div>
-              <div className="mt-4 space-y-2">
+              <div className="p-5 space-y-2">
                 <div className="flex items-center gap-2 text-[8px] text-slate-600 font-mono">
                   <span className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-full">SBQ Guide</span>
-                  <span>Coming soon</span>
+                  <span className="text-emerald-500/70">● Live</span>
                 </div>
-                <h4 className="text-sm font-black text-slate-400">
+                <h4 className="text-sm font-black text-slate-400 group-hover:text-white transition-colors leading-snug">
                   How to Ace SBQ Comparison Questions
                 </h4>
-                <p className="text-[10px] text-slate-600 leading-relaxed">
+                <p className="text-[10px] text-slate-500 leading-relaxed">
                   The SBQ comparison question is one of the most predictable parts of the paper. Learn the 3-step framework that top students use to consistently score L4/6.
                 </p>
+                <span className="inline-block text-[10px] font-bold text-indigo-400 group-hover:text-indigo-300 transition-colors pt-1">
+                  Read Guide →
+                </span>
               </div>
-            </div>
+            </Link>
 
             {/* Blog Post 2 */}
-            <div className="bg-slate-950/80 border border-slate-900 rounded-2xl p-5 opacity-60">
-              <div className="h-36 bg-gradient-to-br from-emerald-900/40 to-slate-900/40 flex items-center justify-center text-5xl">
+            <Link href="/tips/peel-framework" className="group block bg-slate-950/80 border border-slate-900 rounded-2xl overflow-hidden hover:border-emerald-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-emerald-950/20 hover:scale-[1.02]">
+              <div className="h-36 bg-gradient-to-br from-emerald-900/40 to-slate-900/40 flex items-center justify-center text-5xl transition-transform duration-300 group-hover:scale-105">
                 ✍️
               </div>
-              <div className="mt-4 space-y-2">
+              <div className="p-5 space-y-2">
                 <div className="flex items-center gap-2 text-[8px] text-slate-600 font-mono">
                   <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">Essay Tips</span>
-                  <span>Coming soon</span>
+                  <span className="text-emerald-500/70">● Live</span>
                 </div>
-                <h4 className="text-sm font-black text-slate-400">
+                <h4 className="text-sm font-black text-slate-400 group-hover:text-white transition-colors leading-snug">
                   The PEEL Framework: Structuring A1 Essays
                 </h4>
-                <p className="text-[10px] text-slate-600 leading-relaxed">
+                <p className="text-[10px] text-slate-500 leading-relaxed">
                   Point, Evidence, Explanation, Link — master the structure that examiners look for. We break down each component with real SS and History examples.
                 </p>
+                <span className="inline-block text-[10px] font-bold text-emerald-400 group-hover:text-emerald-300 transition-colors pt-1">
+                  Read Guide →
+                </span>
               </div>
-            </div>
+            </Link>
 
             {/* Blog Post 3 */}
-            <div className="bg-slate-950/80 border border-slate-900 rounded-2xl p-5 opacity-60">
-              <div className="h-36 bg-gradient-to-br from-amber-900/40 to-slate-900/40 flex items-center justify-center text-5xl">
+            <Link href="/tips/study-strategy" className="group block bg-slate-950/80 border border-slate-900 rounded-2xl overflow-hidden hover:border-amber-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-amber-950/20 hover:scale-[1.02]">
+              <div className="h-36 bg-gradient-to-br from-amber-900/40 to-slate-900/40 flex items-center justify-center text-5xl transition-transform duration-300 group-hover:scale-105">
                 🧠
               </div>
-              <div className="mt-4 space-y-2">
+              <div className="p-5 space-y-2">
                 <div className="flex items-center gap-2 text-[8px] text-slate-600 font-mono">
                   <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full">Study Strategy</span>
-                  <span>Coming soon</span>
+                  <span className="text-emerald-500/70">● Live</span>
                 </div>
-                <h4 className="text-sm font-black text-slate-400">
+                <h4 className="text-sm font-black text-slate-400 group-hover:text-white transition-colors leading-snug">
                   How to Use AI Practice Tools Effectively
                 </h4>
-                <p className="text-[10px] text-slate-600 leading-relaxed">
-                  Don't just generate and grade mindlessly. Learn how top students use MARKUP to target weak skills, build streaks, and track their improvements over time.
+                <p className="text-[10px] text-slate-500 leading-relaxed">
+                  Don&apos;t just generate and grade mindlessly. Learn how top students use MARKUP to target weak skills, build streaks, and track their improvements over time.
                 </p>
+                <span className="inline-block text-[10px] font-bold text-amber-400 group-hover:text-amber-300 transition-colors pt-1">
+                  Read Guide →
+                </span>
               </div>
-            </div>
+            </Link>
           </div>
 
           <div className="text-center mt-10">
             <Link
-              href={referralCode ? `/auth?ref=${referralCode}` : '/auth'}
+              href="/tips"
               className="text-xs font-bold text-indigo-400 hover:text-indigo-300 underline underline-offset-4 transition"
             >
-              Start practicing while you read →
+              View all guides →
             </Link>
           </div>
         </div>

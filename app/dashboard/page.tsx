@@ -1125,6 +1125,12 @@ export default function DashboardPage() {
             >
               ⚙️ Settings
             </button>
+            <Link
+              href="/tips"
+              className="hidden sm:inline-flex bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 text-[9px] font-bold px-3 py-2 rounded-lg transition items-center gap-1.5"
+            >
+              📖 Tips
+            </Link>
           </div>
         
         <div className="flex items-center gap-1 sm:gap-3">
