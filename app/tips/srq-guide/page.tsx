@@ -446,8 +446,8 @@ export default function SRQGuidePage() {
         {/* Next Article */}
         <div className="border-t border-slate-900 pt-8">
           <div className="flex items-center justify-between">
-            <Link href="/tips/historical-context-essays" className="text-xs text-slate-500 hover:text-slate-300 transition font-bold">
-              ← Previous: Historical Context
+            <Link href="/tips/seq-history-guide" className="text-xs text-slate-500 hover:text-slate-300 transition font-bold">
+              ← Previous: SEQ Guide (History)
             </Link>
             <Link href="/tips/study-strategy" className="text-xs text-indigo-400 hover:text-indigo-300 transition font-bold">
               Next: Study Strategy →

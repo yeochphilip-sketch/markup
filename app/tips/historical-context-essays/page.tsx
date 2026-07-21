@@ -70,8 +70,9 @@ export default function HistoricalContextEssaysPage() {
             <li><a href="#how-to-weave" className="text-indigo-400 hover:text-indigo-300 transition">3. How to Weave CK Into Your Essay</a></li>
             <li><a href="#types-of-ck" className="text-indigo-400 hover:text-indigo-300 transition">4. The 4 Types of Contextual Knowledge</a></li>
             <li><a href="#examples" className="text-indigo-400 hover:text-indigo-300 transition">5. Real Examples: No CK vs Strong CK</a></li>
-            <li><a href="#common-mistakes" className="text-indigo-400 hover:text-indigo-300 transition">6. Common Mistakes That Cost You Marks</a></li>
-            <li><a href="#practice" className="text-indigo-400 hover:text-indigo-300 transition">7. How to Build and Practise CK</a></li>
+            <li><a href="#social-studies-ck" className="text-indigo-400 hover:text-indigo-300 transition">6. CK for Social Studies — What&apos;s Different?</a></li>
+            <li><a href="#common-mistakes" className="text-indigo-400 hover:text-indigo-300 transition">7. Common Mistakes That Cost You Marks</a></li>
+            <li><a href="#practice" className="text-indigo-400 hover:text-indigo-300 transition">8. How to Build and Practise CK</a></li>
           </ul>
         </div>
 
@@ -319,9 +320,103 @@ export default function HistoricalContextEssaysPage() {
           </div>
         </section>
 
-        {/* Section 6 */}
+        {/* Section 6 — Social Studies CK */}
+        <section id="social-studies-ck" className="space-y-4 text-sm text-slate-400 leading-relaxed">
+          <h2 className="text-xl font-black text-white">6. CK for Social Studies — What&apos;s Different?</h2>
+          <p>
+            While the previous sections focus on CK for History (dates, events, historiographical
+            debates), CK for Social Studies looks <strong className="text-slate-200">different</strong>.
+            In SS, your contextual knowledge is drawn from <strong className="text-slate-200">current affairs,
+            government policies, and social issues</strong> rather than historical events.
+          </p>
+
+          <div className="space-y-3">
+            <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
+              <h3 className="text-sm font-bold text-sky-400 mb-1">🇸🇬 Types of SS Contextual Knowledge</h3>
+              <ul className="text-xs text-slate-400 space-y-2 list-disc pl-4">
+                <li><strong className="text-slate-200">Government policies:</strong> EIP, CPF, GST vouchers, SkillsFuture, Housing Grants — knowing specific policy names and how they work</li>
+                <li><strong className="text-slate-200">Current affairs:</strong> Recent events in Singapore and globally that illustrate social issues</li>
+                <li><strong className="text-slate-200">Case studies:</strong> Real-world examples of governance, diversity, or economic management (e.g., Singapore&apos;s response to COVID-19)</li>
+                <li><strong className="text-slate-200">Statistics:</strong> Key figures from Singapore&apos;s Department of Statistics, MCI surveys, or international indices</li>
+                <li><strong className="text-slate-200">Comparative examples:</strong> How other countries handle similar issues (e.g., healthcare systems in US vs UK vs Singapore)</li>
+              </ul>
+            </div>
+
+            <div className="bg-sky-950/30 border border-sky-900/30 rounded-xl p-4">
+              <h3 className="text-sm font-bold text-sky-300 mb-1">💡 How SS CK Differs from History CK</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-[10px] border-collapse mt-2">
+                  <thead>
+                    <tr className="border-b border-sky-900/50">
+                      <th className="text-left py-1.5 pr-3 font-black text-slate-500 uppercase tracking-widest">Aspect</th>
+                      <th className="text-left py-1.5 pr-3 font-black text-amber-400 uppercase tracking-widest">History CK</th>
+                      <th className="text-left py-1.5 font-black text-sky-400 uppercase tracking-widest">SS CK</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-b border-sky-900/30">
+                      <td className="py-1.5 pr-3 font-bold text-slate-300">Source</td>
+                      <td className="py-1.5 pr-3 text-slate-400">Textbooks, historical records, historiography</td>
+                      <td className="py-1.5 text-slate-400">News, government websites, current affairs</td>
+                    </tr>
+                    <tr className="border-b border-sky-900/30">
+                      <td className="py-1.5 pr-3 font-bold text-slate-300">Key facts</td>
+                      <td className="py-1.5 pr-3 text-slate-400">Dates, events, names, treaties</td>
+                      <td className="py-1.5 text-slate-400">Policy names, statistics, recent examples</td>
+                    </tr>
+                    <tr className="border-b border-sky-900/30">
+                      <td className="py-1.5 pr-3 font-bold text-slate-300">Purpose of CK</td>
+                      <td className="py-1.5 pr-3 text-slate-400">Explain causes and evaluate significance</td>
+                      <td className="py-1.5 text-slate-400">Corroborate/challenge sources, show awareness</td>
+                    </tr>
+                    <tr>
+                      <td className="py-1.5 pr-3 font-bold text-slate-300">Temporal focus</td>
+                      <td className="py-1.5 pr-3 text-slate-400">Past events (20th century)</td>
+                      <td className="py-1.5 text-slate-400">Contemporary issues + historical examples</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
+              <h3 className="text-sm font-bold text-slate-200 mb-1">🎯 SS CK Example in an SRQ Answer</h3>
+              <blockquote className="border-l-2 border-sky-500 pl-3 text-xs italic text-slate-300">
+                &ldquo;Source A claims that government policies have been effective in promoting
+                social mobility. This is corroborated by the fact that the proportion of resident
+                households living in HDB flats rose from 82% in 2000 to over 80% today, with
+                the Enhanced Housing Grant providing up to S$80,000 for lower-income families
+                to purchase their first home. Furthermore, SkillsFuture, introduced in 2015,
+                provides every Singaporean aged 25+ with S$500 in training credits — demonstrating
+                the government&apos;s commitment to enabling upward mobility through education.
+                However, Source B&apos;s concern about persistent income inequality reflects
+                broader challenges — Singapore&apos;s Gini coefficient, while improving after
+                transfers from 0.452 (2012) to 0.375 (2023), still shows significant disparity
+                that concerns social observers.&rdquo;
+              </blockquote>
+              <div className="text-[10px] text-sky-400 mt-1 space-y-1">
+                <p>✔ Uses specific policy names (EIP, SkillsFuture, Enhanced Housing Grant)</p>
+                <p>✔ Uses statistics from credible sources</p>
+                <p>✔ CK both supports AND complicates the source claims</p>
+                <p>✔ Demonstrates awareness of current Singaporean social context</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-indigo-950/30 border border-indigo-900/30 rounded-xl p-4">
+            <p className="text-xs text-indigo-300 font-bold">
+              📰 <strong className="text-slate-200">Building your SS CK bank:</strong> Read the
+              Straits Times or CNA weekly. Follow the Ministry of Social and Family Development
+              (MSF) and Ministry of Education (MOE) websites. Keep a running list of 3–5 key
+              statistics per topic. In the exam, this knowledge separates average answers from
+              top-band responses.
+            </p>
+          </div>
+        </section>
+
+        {/* Section 7 */}
         <section id="common-mistakes" className="space-y-4 text-sm text-slate-400 leading-relaxed">
-          <h2 className="text-xl font-black text-white">6. Common Mistakes That Cost You Marks</h2>
+          <h2 className="text-xl font-black text-white">7. Common Mistakes That Cost You Marks</h2>
 
           <div className="space-y-3">
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
@@ -374,9 +469,9 @@ export default function HistoricalContextEssaysPage() {
           </div>
         </section>
 
-        {/* Section 7 */}
+        {/* Section 8 */}
         <section id="practice" className="space-y-4 text-sm text-slate-400 leading-relaxed">
-          <h2 className="text-xl font-black text-white">7. How to Build and Practise CK</h2>
+          <h2 className="text-xl font-black text-white">8. How to Build and Practise CK</h2>
 
           <div className="bg-indigo-950/30 border border-indigo-900/30 rounded-xl p-5 space-y-3">
             <h3 className="text-sm font-black text-indigo-300">🎯 Use MARKUP&apos;s Essay Generator</h3>
@@ -427,8 +522,8 @@ export default function HistoricalContextEssaysPage() {
             <Link href="/tips/seq-evaluation" className="text-xs text-slate-500 hover:text-slate-300 transition font-bold">
               ← Previous: SEQ Evaluation
             </Link>
-            <Link href="/tips/srq-guide" className="text-xs text-indigo-400 hover:text-indigo-300 transition font-bold">
-              Next: SRQ Guide →
+            <Link href="/tips/seq-history-guide" className="text-xs text-indigo-400 hover:text-indigo-300 transition font-bold">
+              Next: SEQ Guide (History) →
             </Link>
           </div>
         </div>

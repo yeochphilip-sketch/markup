@@ -430,8 +430,8 @@ export default function SBQUtilityComparisonPage() {
             <Link href="/tips/sbq-purpose" className="text-xs text-slate-500 hover:text-slate-300 transition font-bold">
               ← Previous: SBQ Purpose
             </Link>
-            <Link href="/tips/peel-framework" className="text-xs text-indigo-400 hover:text-indigo-300 transition font-bold">
-              Next: PEEL Framework →
+            <Link href="/tips/sbq-templates" className="text-xs text-indigo-400 hover:text-indigo-300 transition font-bold">
+              Next: SBQ Templates →
             </Link>
           </div>
         </div>

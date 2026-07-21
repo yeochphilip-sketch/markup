@@ -129,9 +129,21 @@ function validateGrade(
     }
   }
 
-  // 5. Check that a1Upgrade is not suspiciously short
+  // 5. Check a1Upgrade quality
   if (evalResult.a1Upgrade.length < 40) {
     issues.push(`a1Upgrade is too short (${evalResult.a1Upgrade.length} chars, min 40)`);
+  }
+  // 5a. Check a1Upgrade has LORMS level labels
+  if (evalResult.a1Upgrade.length >= 40 && !/L[1-6]\s/.test(evalResult.a1Upgrade)) {
+    issues.push('a1Upgrade missing LORMS level labels (e.g., "L4", "L3")');
+  }
+  // 5b. Check a1Upgrade has PEEL markers for SRQ/SEQ/all-formats answers
+  if (evalResult.a1Upgrade.length >= 40 && !/Point:/i.test(evalResult.a1Upgrade)) {
+    issues.push('a1Upgrade missing "Point:" PEEL marker');
+  }
+  // 5c. Check a1Upgrade has direct quotes
+  if (evalResult.a1Upgrade.length >= 100 && !/"[^"]{5,}"/.test(evalResult.a1Upgrade)) {
+    issues.push('a1Upgrade missing direct quotes from sources');
   }
 
   // 6. Check confidence scores are in valid range
@@ -361,21 +373,50 @@ export async function POST(request: Request) {
 
     // ── Post-grade quality validation ──
     const qualityIssues = validateGrade(evaluation, resolvedQuestionType, activeSections);
-    if (qualityIssues.length > 0) {
-      console.warn('[grade] Quality validation issues:', qualityIssues);
-      // Attach to response for debugging, but still return the grade
-      (evaluation as any)._gradeQualityIssues = qualityIssues;
+    
+    // ── If a1Upgrade has quality issues, attempt one retry with enriched prompt ──
+    const a1UpgradeIssues = qualityIssues.filter(i =>
+      i.startsWith('a1Upgrade missing') || i.startsWith('a1Upgrade is too short')
+    );
+    
+    let finalEvaluation = evaluation;
+    if (a1UpgradeIssues.length > 0) {
+      console.warn('[grade] a1Upgrade quality issues, retrying once:', a1UpgradeIssues);
+      try {
+        const retryPrompt = `The previous model answer had quality issues: ${a1UpgradeIssues.join('; ')}.\n\n${userPrompt}\n\nIMPORTANT: Pay EXTRA attention to the MOE-STYLE ANSWER FORMATTING RULES and the CRITICAL CHECKLIST. The model answer MUST include:\n- LORMS level labels (e.g., "L4 Message:") in EVERY section\n- PEEL structure markers (Point:/Evidence:/Explanation:/Link:)\n- Direct quotes from sources in quotation marks\n- A concluding judgement for every part\n- Cross-referencing for comparison and assertion questions`;
+        const retryResult = await tryGradeWithFallbacks(systemPrompt, retryPrompt);
+        const retryIssues = validateGrade(retryResult, resolvedQuestionType, activeSections);
+        const retryA1Issues = retryIssues.filter(i =>
+          i.startsWith('a1Upgrade missing') || i.startsWith('a1Upgrade is too short')
+        );
+        if (retryA1Issues.length === 0) {
+          // Retry produced a valid a1Upgrade — use it
+          finalEvaluation = retryResult;
+          console.log('[grade] a1Upgrade retry succeeded');
+        } else {
+          // Retry failed too — keep the original
+          console.warn('[grade] a1Upgrade retry also had issues:', retryA1Issues);
+        }
+      } catch (retryErr) {
+        console.warn('[grade] a1Upgrade retry failed, using original:', retryErr);
+      }
+    }
+
+    const finalQualityIssues = validateGrade(finalEvaluation, resolvedQuestionType, activeSections);
+    if (finalQualityIssues.length > 0) {
+      console.warn('[grade] Final quality validation issues:', finalQualityIssues);
+      (finalEvaluation as any)._gradeQualityIssues = finalQualityIssues;
     }
 
     // ── Build response with backward-compatible fields + gamification ──
-    const newLevel = extractLevelNumber(evaluation.scoreLevel);
+    const newLevel = extractLevelNumber(finalEvaluation.scoreLevel);
     const earnedXp = getXpForLevel(newLevel);
 
     const response = {
-      ...evaluation,
-      scoreEstimate: evaluation.scoreLabel,
-      confidence: evaluation.gradingConfidence,
-      schoolBenchmark: evaluation.schoolBenchmark,
+      ...finalEvaluation,
+      scoreEstimate: finalEvaluation.scoreLabel,
+      confidence: finalEvaluation.gradingConfidence,
+      schoolBenchmark: finalEvaluation.schoolBenchmark,
       gamification: {
         xpEarned: earnedXp,
         newLevel,
@@ -403,14 +444,14 @@ export async function POST(request: Request) {
               sbcs_answer: sbcsAnswer,
               seq_answer: seqAnswer,
               srq_answer: srqAnswer,
-              score_estimate: evaluation.scoreLabel,
-              point_status: evaluation.pointStatus,
-              evidence_status: evaluation.evidenceStatus,
-              critique: evaluation.critique,
-              critique_bullets: evaluation.critique,
-              highlighted_segments: evaluation.highlightedSegments,
-              a1_upgrade: evaluation.a1Upgrade,
-              confidence_score: evaluation.gradingConfidence,
+              score_estimate: finalEvaluation.scoreLabel,
+              point_status: finalEvaluation.pointStatus,
+              evidence_status: finalEvaluation.evidenceStatus,
+              critique: finalEvaluation.critique,
+              critique_bullets: finalEvaluation.critique,
+              highlighted_segments: finalEvaluation.highlightedSegments,
+              a1_upgrade: finalEvaluation.a1Upgrade,
+              confidence_score: finalEvaluation.gradingConfidence,
             } as never);
           if (insertErr) console.warn('Non-fatal: failed to persist essay_evaluations row', insertErr);
         })(),

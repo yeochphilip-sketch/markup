@@ -470,8 +470,8 @@ export default function ExamWeekStrategyPage() {
         {/* Next Article */}
         <div className="border-t border-slate-900 pt-8">
           <div className="flex items-center justify-between">
-            <Link href="/tips/study-strategy" className="text-xs text-slate-500 hover:text-slate-300 transition font-bold">
-              ← Previous: Study Strategy
+            <Link href="/tips/common-mistakes" className="text-xs text-slate-500 hover:text-slate-300 transition font-bold">
+              ← Previous: Common Mistakes
             </Link>
             <Link href="/tips/history-vs-social-studies" className="text-xs text-indigo-400 hover:text-indigo-300 transition font-bold">
               Next: History vs Social Studies →

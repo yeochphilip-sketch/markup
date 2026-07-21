@@ -343,8 +343,8 @@ export default function SBQComparisonPage() {
             <Link href="/tips" className="text-xs text-slate-500 hover:text-slate-300 transition font-bold">
               ← Back to All Tips
             </Link>
-            <Link href="/tips/sbq-reliability" className="text-xs text-indigo-400 hover:text-indigo-300 transition font-bold">
-              Next: SBQ Reliability →
+            <Link href="/tips/sbq-source-analysis" className="text-xs text-indigo-400 hover:text-indigo-300 transition font-bold">
+              Next: SBQ Source Analysis →
             </Link>
           </div>
         </div>

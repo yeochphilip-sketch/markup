@@ -500,8 +500,8 @@ export default function SEQEvaluationPage() {
         {/* Next Article */}
         <div className="border-t border-slate-900 pt-8">
           <div className="flex items-center justify-between">
-            <Link href="/tips/peel-framework" className="text-xs text-slate-500 hover:text-slate-300 transition font-bold">
-              ← Previous: PEEL Framework
+            <Link href="/tips/intro-conclusions" className="text-xs text-slate-500 hover:text-slate-300 transition font-bold">
+              ← Previous: Intro & Conclusions
             </Link>
             <Link href="/tips/historical-context-essays" className="text-xs text-indigo-400 hover:text-indigo-300 transition font-bold">
               Next: Historical Context →

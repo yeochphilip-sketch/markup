@@ -69,8 +69,9 @@ export default function PEELFrameworkPage() {
             <li><a href="#evidence" className="text-indigo-400 hover:text-indigo-300 transition">3. E — Evidence: Prove Your Point</a></li>
             <li><a href="#explanation" className="text-indigo-400 hover:text-indigo-300 transition">4. E — Explanation: The Deep Dive</a></li>
             <li><a href="#link" className="text-indigo-400 hover:text-indigo-300 transition">5. L — Link: Connect It Back</a></li>
-            <li><a href="#full-example" className="text-indigo-400 hover:text-indigo-300 transition">6. Full Worked Example: SS & History</a></li>
-            <li><a href="#common-pitfalls" className="text-indigo-400 hover:text-indigo-300 transition">7. Common PEEL Pitfalls</a></li>
+            <li><a href="#peel-by-subject" className="text-indigo-400 hover:text-indigo-300 transition">6. PEEL for SS vs PEEL for History</a></li>
+            <li><a href="#full-example" className="text-indigo-400 hover:text-indigo-300 transition">7. Full Worked Example: SS & History</a></li>
+            <li><a href="#common-pitfalls" className="text-indigo-400 hover:text-indigo-300 transition">8. Common PEEL Pitfalls</a></li>
           </ul>
         </div>
 
@@ -262,9 +263,105 @@ export default function PEELFrameworkPage() {
           </div>
         </section>
 
-        {/* Section 6 */}
+        {/* Section 6 — PEEL by Subject */}
+        <section id="peel-by-subject" className="space-y-4 text-sm text-slate-400 leading-relaxed">
+          <h2 className="text-xl font-black text-white">6. PEEL for Social Studies SRQ vs PEEL for History SEQ</h2>
+          <p>
+            While PEEL works for both subjects, the <strong className="text-slate-200">way you use each component</strong>
+            differs depending on whether you&apos;re writing an SRQ (Social Studies) or an SEQ (History).
+            Here&apos;s what changes:
+          </p>
+
+          {/* SS Section */}
+          <div className="bg-sky-950/30 border border-sky-900/30 rounded-xl p-5 space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🇸🇬</span>
+              <h3 className="text-sm font-black text-white uppercase tracking-widest">PEEL for Social Studies SRQ</h3>
+            </div>
+            <p className="text-xs text-slate-300">
+              The SRQ (Structured Response Question) is based on <strong className="text-slate-200">source material</strong>.
+              You will be given one or more sources and asked a question that requires you to use them.
+            </p>
+            <div className="space-y-2 text-[10px] text-slate-400">
+              <p><strong className="text-indigo-400">P — Point:</strong> Directly address the question. Your point should respond to the SRQ&apos;s command word (evaluate, explain, to what extent) and stake out a clear position.</p>
+              <p><strong className="text-emerald-400">E — Evidence:</strong> <strong className="text-sky-300">MUST come from the source(s)</strong>. Quote or paraphrase specific lines. Unlike History, you don&apos;t bring external knowledge in the same way — your evidence is the source itself.</p>
+              <p><strong className="text-amber-400">E — Explanation:</strong> Show how the source evidence proves your point. Analyse the language, tone, and content of the source. For SRQ, explanation often involves <strong className="text-slate-200">inferring</strong> — going beyond what the source explicitly says to what it <em>implies</em>.</p>
+              <p><strong className="text-rose-400">L — Link:</strong> Connect back to the question. Explain how your analysis of the source has answered the SRQ&apos;s requirement. If there are multiple sources, link to your overall argument about them as a set.</p>
+            </div>
+            <div className="bg-slate-900/70 rounded-lg p-3 text-[10px] font-mono text-slate-400">
+              <p>💡 <em>SRQ tip: Your Evidence in every paragraph must trace back to a source. If you find yourself writing a paragraph without source reference in an SRQ, you&apos;re likely writing outside the scope of the question.</em></p>
+            </div>
+          </div>
+
+          {/* History Section */}
+          <div className="bg-amber-950/30 border border-amber-900/30 rounded-xl p-5 space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">📜</span>
+              <h3 className="text-sm font-black text-white uppercase tracking-widest">PEEL for Elective History SEQ</h3>
+            </div>
+            <p className="text-xs text-slate-300">
+              The SEQ (Structured Essay Question) is <strong className="text-slate-200">not source-based</strong>.
+              You are expected to bring your own contextual knowledge (CK) — facts, dates, events,
+              and historiography — to construct your argument.
+            </p>
+            <div className="space-y-2 text-[10px] text-slate-400">
+              <p><strong className="text-indigo-400">P — Point:</strong> Make a clear argumentative claim. For Part B (evaluation), your point should take a position: &ldquo;The most important factor was X because…&rdquo; rather than a neutral &ldquo;One factor was X.&rdquo;</p>
+              <p><strong className="text-emerald-400">E — Evidence:</strong> <strong className="text-amber-300">MUST come from your own knowledge</strong>. Use specific facts — dates, names, statistics, treaties, policies. The depth and specificity of your CK determines your LORMS band for knowledge.</p>
+              <p><strong className="text-amber-400">E — Explanation:</strong> Go deep into <em>how</em> and <em>why</em> your evidence proves your point. For SEQ, explanation often involves <strong className="text-slate-200">causation</strong> — showing the chain of events or reasons that connect your evidence to your argument.</p>
+              <p><strong className="text-rose-400">L — Link:</strong> Connect back to the question AND transition to your next argument. For Part B, the Link is also where you can <strong className="text-slate-200">weigh</strong> your argument against counter-arguments.</p>
+            </div>
+            <div className="bg-slate-900/70 rounded-lg p-3 text-[10px] font-mono text-slate-400">
+              <p>💡 <em>SEQ tip: If your Evidence section doesn&apos;t contain a specific date, a name, or a statistic, it&apos;s probably too vague. Push yourself to memorise 3–5 precise facts per topic.</em></p>
+            </div>
+          </div>
+
+          {/* Comparison Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-slate-800">
+                  <th className="text-left py-2 pr-3 text-[9px] font-black text-slate-500 uppercase tracking-widest">Component</th>
+                  <th className="text-left py-2 pr-3 text-[9px] font-black text-sky-400 uppercase tracking-widest">Social Studies SRQ</th>
+                  <th className="text-left py-2 text-[9px] font-black text-amber-400 uppercase tracking-widest">History SEQ</th>
+                </tr>
+              </thead>
+              <tbody className="text-[10px]">
+                <tr className="border-b border-slate-800/50">
+                  <td className="py-2 pr-3 font-bold text-slate-300">Point</td>
+                  <td className="py-2 pr-3 text-slate-400">Respond to source, take position</td>
+                  <td className="py-2 text-slate-400">Make argumentative claim with stance</td>
+                </tr>
+                <tr className="border-b border-slate-800/50">
+                  <td className="py-2 pr-3 font-bold text-slate-300">Evidence</td>
+                  <td className="py-2 pr-3 text-slate-400">From source(s) — quote or paraphrase</td>
+                  <td className="py-2 text-slate-400">From your own CK — facts, dates, names</td>
+                </tr>
+                <tr className="border-b border-slate-800/50">
+                  <td className="py-2 pr-3 font-bold text-slate-300">Explanation</td>
+                  <td className="py-2 pr-3 text-slate-400">Infer meaning, analyse language</td>
+                  <td className="py-2 text-slate-400">Show causation, weigh significance</td>
+                </tr>
+                <tr>
+                  <td className="py-2 pr-3 font-bold text-slate-300">Link</td>
+                  <td className="py-2 pr-3 text-slate-400">Connect back to SRQ requirement</td>
+                  <td className="py-2 text-slate-400">Reinforce argument, transition, weigh</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div className="bg-indigo-950/30 border border-indigo-900/30 rounded-xl p-4">
+            <p className="text-xs text-indigo-300 font-bold">
+              🎯 <strong className="text-slate-200">Bottom line:</strong> Both subjects use PEEL, but the
+              <em> source of evidence</em> is the key difference. In SS, your evidence comes from the
+              source. In History, your evidence comes from your knowledge. Adapt accordingly.
+            </p>
+          </div>
+        </section>
+
+        {/* Section 7 */}
         <section id="full-example" className="space-y-4 text-sm text-slate-400 leading-relaxed">
-          <h2 className="text-xl font-black text-white">6. Full Worked Example</h2>
+          <h2 className="text-xl font-black text-white">7. Full Worked Example</h2>
           <p>
             Here are two complete PEEL paragraphs — one for Social Studies SRQ and one for
             Elective History SEQ — so you can see the structure in action.
@@ -301,9 +398,9 @@ export default function PEELFrameworkPage() {
           </div>
         </section>
 
-        {/* Section 7 */}
+        {/* Section 8 */}
         <section id="common-pitfalls" className="space-y-4 text-sm text-slate-400 leading-relaxed">
-          <h2 className="text-xl font-black text-white">7. Common PEEL Pitfalls</h2>
+          <h2 className="text-xl font-black text-white">8. Common PEEL Pitfalls</h2>
 
           <div className="space-y-3">
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
@@ -374,11 +471,11 @@ export default function PEELFrameworkPage() {
         {/* Next Article */}
         <div className="border-t border-slate-900 pt-8">
           <div className="flex items-center justify-between">
-            <Link href="/tips/sbq-purpose" className="text-xs text-slate-500 hover:text-slate-300 transition font-bold">
-              ← Previous: SBQ Purpose
+            <Link href="/tips/model-sbq-answer" className="text-xs text-slate-500 hover:text-slate-300 transition font-bold">
+              ← Previous: Model SBQ Answer
             </Link>
-            <Link href="/tips/seq-evaluation" className="text-xs text-indigo-400 hover:text-indigo-300 transition font-bold">
-              Next: SEQ Evaluation →
+            <Link href="/tips/intro-conclusions" className="text-xs text-indigo-400 hover:text-indigo-300 transition font-bold">
+              Next: Intro & Conclusions →
             </Link>
           </div>
         </div>

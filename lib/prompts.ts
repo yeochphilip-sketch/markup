@@ -1011,7 +1011,44 @@ Provide 3 separate SEQ (Structured Essay Question) essay prompts as Section B of
 === SUGGESTED ANSWER / MODEL ANSWER — MOE TEACHER STANDARD ===
 ===========================================
 
-You MUST provide a comprehensive A1-grade suggested answer that reads EXACTLY like a model answer written by a Singapore MOE Humanities teacher for a top-tier school (RI, HCI, ACS). Observe the following strict formatting and style rules:
+## CHAIN-OF-THOUGHT — How to Construct the Model Answer
+
+Follow these steps in order when generating the model answer (a1Upgrade):
+
+Step 1 — Identify the question type and target LORMS level: Is this a Comparison, Reliability, Purpose, Utility, Inference, SRQ, or SEQ question? Each question type has a different structure requirement (see LORMS matrices above). The model answer should target L4/L5 (top-tier) standard.
+
+Step 2 — Identify the provenance elements: For SBQ questions, identify the author, date, type, audience, and purpose of EACH source you must reference. These provenance elements must be woven into the model answer.
+
+Step 3 — Plan the structure: 
+- For Comparison: State similarity → state difference → explain why the difference matters → conclude
+- For Reliability: Assess strengths (provenance) → cross-reference → assess limitations → overall judgement
+- For Purpose: Identify message → analyse language/technique → identify audience → explain intended outcome
+- For Utility: Content value → provenance limitations → cross-reference → final judgement
+- For SRQ/SEQ: PEEL structure — Point → Evidence → Explanation → Link for each paragraph
+- For Inference: State surface content → infer message → explain significance
+
+Step 4 — Write the answer: Follow the MOE-style formatting rules below. Use the real school model answer example as a template for tone, structure, and LORMS labelling.
+
+Step 5 — Self-check the CRITICAL CHECKLIST (below) before finalising. Ensure every required element is present.
+
+## REAL MOE SCHOOL MODEL ANSWER EXAMPLE — SS Comparison (Victoria School 2020)
+
+This is a real model answer written by MOE teachers. Use it as a template for tone, structure, LORMS labels, and analytical depth:
+
+Question: Study Sources B and C. Does the resident in Source C think that the project in Source B will work? Explain your answer.
+
+"L4 Will work AND Will NOT work based on content (6m):
+Point: The resident in Source C would partially agree that the project in Source B will work, but she ultimately believes it will NOT address the root cause of Singaporeans' poor recycling habits.
+
+Evidence (Will work): The resident acknowledges that many Singaporeans 'are still not very educated about how to recycle properly,' and Source B's project aims to 'increase public awareness about the process of recycling right.' The transparent bin design and eye-level notices directly address this education gap.
+
+Evidence (Will NOT work): However, the resident's core objection is not education but convenience. She asks rhetorically: 'Do you really think that Singaporeans in general will take the time out to do that when they don't even take the time to do simple things?' This reveals her belief that even with better bins, Singaporeans will not change their behaviour because the process remains 'too tedious and time consuming.'
+
+Explanation: Source B's project assumes that better design leads to better behaviour — an assumption that Source C's resident rejects. She is cynical about Singaporeans' willingness to put in effort, regardless of infrastructure improvements. Her perspective is that the root cause is cultural indifference, not poorly designed bins.
+
+Link: Therefore, while the resident concedes the project may help educate, she ultimately does NOT believe it will work because it fails to address the deeper issue of Singaporean attitudes towards recycling."
+
+You MUST provide a comprehensive A1-grade suggested answer that reads EXACTLY like the model answer above — written by a Singapore MOE Humanities teacher for a top-tier school (RI, HCI, ACS). Observe the following strict formatting and style rules:
 
 ## MOE-Style Answer Formatting Rules (MANDATORY — ALL rules MUST be followed)
 

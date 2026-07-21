@@ -428,8 +428,8 @@ export default function SBQReliabilityPage() {
         {/* Next Article */}
         <div className="border-t border-slate-900 pt-8">
           <div className="flex items-center justify-between">
-            <Link href="/tips/sbq-comparison" className="text-xs text-slate-500 hover:text-slate-300 transition font-bold">
-              ← Previous: SBQ Comparison
+            <Link href="/tips/sbq-source-analysis" className="text-xs text-slate-500 hover:text-slate-300 transition font-bold">
+              ← Previous: SBQ Source Analysis
             </Link>
             <Link href="/tips/sbq-purpose" className="text-xs text-indigo-400 hover:text-indigo-300 transition font-bold">
               Next: SBQ Purpose →

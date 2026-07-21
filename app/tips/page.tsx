@@ -16,6 +16,19 @@ export const metadata: Metadata = {
 
 const TIPS: TipEntry[] = [
   {
+    slug: 'sbq-source-analysis',
+    title: 'How to Analyse Sources for SBQ — Complete Framework',
+    description:
+      'The foundational skill behind every SBQ question. Learn provenance analysis, tone analysis, content vs message, and cross-referencing for top-band answers.',
+    icon: '🔬',
+    gradient: 'from-sky-900/40 to-slate-900/40',
+    tag: 'SBQ Guide',
+    tagColor: 'indigo',
+    readTime: '11 min read',
+    type: ['SBQ'],
+    subject: 'Both',
+  },
+  {
     slug: 'sbq-comparison',
     title: 'How to Ace SBQ Comparison Questions (L4/6 Framework)',
     description:
@@ -68,11 +81,50 @@ const TIPS: TipEntry[] = [
     subject: 'Both',
   },
   {
+    slug: 'sbq-templates',
+    title: 'SBQ Sentence Starters & Answer Templates for Every Type',
+    description:
+      'Memorise these ready-to-use answer templates and sentence starters for every SBQ question type — comparison, reliability, purpose, and utility. LORMS-aligned phrasing to boost your score.',
+    icon: '📋',
+    gradient: 'from-cyan-900/40 to-slate-900/40',
+    tag: 'SBQ Guide',
+    tagColor: 'indigo',
+    readTime: '10 min read',
+    type: ['SBQ'],
+    subject: 'Both',
+  },
+  {
+    slug: 'model-sbq-answer',
+    title: 'Model Answer Breakdown: An Annotated L4 SBQ Paper',
+    description:
+      'See a complete O-Level SBQ paper with annotated L4/L5 model answers for every question type. Understand exactly why each sentence scores top band.',
+    icon: '🏅',
+    gradient: 'from-indigo-900/40 to-slate-900/40',
+    tag: 'SBQ Guide',
+    tagColor: 'indigo',
+    readTime: '14 min read',
+    type: ['SBQ'],
+    subject: 'Both',
+  },
+  {
     slug: 'peel-framework',
     title: 'The PEEL Framework: Structuring A1 Humanities Essays',
     description:
       'Point, Evidence, Explanation, Link — master the structure that examiners look for. We break down each component with real Social Studies and History examples.',
     icon: '✍️',
+    gradient: 'from-emerald-900/40 to-slate-900/40',
+    tag: 'Essay Tips',
+    tagColor: 'emerald',
+    readTime: '10 min read',
+    type: ['SRQ', 'SEQ'],
+    subject: 'Both',
+  },
+  {
+    slug: 'intro-conclusions',
+    title: 'How to Write Killer Introductions & Conclusions for SEQ/SRQ',
+    description:
+      'Your intro and conclusion frame the entire essay. Learn the 3-part formula for both, with worked examples for History and Social Studies.',
+    icon: '🎬',
     gradient: 'from-emerald-900/40 to-slate-900/40',
     tag: 'Essay Tips',
     tagColor: 'emerald',
@@ -102,9 +154,22 @@ const TIPS: TipEntry[] = [
     gradient: 'from-teal-900/40 to-slate-900/40',
     tag: 'Essay Tips',
     tagColor: 'emerald',
-    readTime: '11 min read',
+    readTime: '12 min read',
     type: ['SRQ', 'SEQ'],
     subject: 'Both',
+  },
+  {
+    slug: 'seq-history-guide',
+    title: 'How to Answer SEQ Questions for Elective History',
+    description:
+      'Master the SEQ for O-Level History. Learn Part A vs Part B, planning, essay structure with PEEL, CK use, and time management for the highest-value component.',
+    icon: '📜',
+    gradient: 'from-amber-900/40 to-slate-900/40',
+    tag: 'Essay Tips',
+    tagColor: 'emerald',
+    readTime: '12 min read',
+    type: ['SEQ'],
+    subject: 'History',
   },
   {
     slug: 'srq-guide',
@@ -129,6 +194,19 @@ const TIPS: TipEntry[] = [
     tag: 'Study Strategy',
     tagColor: 'amber',
     readTime: '9 min read',
+    type: ['SBQ', 'SRQ', 'SEQ'],
+    subject: 'Both',
+  },
+  {
+    slug: 'common-mistakes',
+    title: '10 Common O-Level Humanities Mistakes (And How to Fix Each One)',
+    description:
+      'The top 10 mistakes students make in SBQ, SEQ, and SRQ answers — and exactly how to fix each one. Covers synthesis, CK, PEEL, time management, and more.',
+    icon: '⚠️',
+    gradient: 'from-amber-900/40 to-slate-900/40',
+    tag: 'Study Strategy',
+    tagColor: 'amber',
+    readTime: '12 min read',
     type: ['SBQ', 'SRQ', 'SEQ'],
     subject: 'Both',
   },
