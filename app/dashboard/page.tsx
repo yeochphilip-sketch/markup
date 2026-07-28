@@ -101,8 +101,6 @@ export default function DashboardPage() {
   const [selectedTopic, setSelectedTopic] = useState('Any Topic (Random Mix)');
   const [selectedSkill, setSelectedSkill] = useState('All Formats (SBCS + SEQ + SRQ Bundle)');
   
-  const [sourceCount, setSourceCount] = useState(5);
-  
   const [isCustomMode, setIsCustomMode] = useState(false);
   const [customPrompt, setCustomPrompt] = useState('');
   
@@ -532,7 +530,25 @@ export default function DashboardPage() {
     };
   }, []);
 
-  // ── Simulated generate progress steps (Sources → Questions → Formatting) ──
+    /** Determine track type from skill name */
+  const getTrackType = useCallback((skill: string): 'all-formats' | 'sbcs' | 'seq' | 'srq' => {
+    const lower = skill.toLowerCase();
+    if (lower.includes('all formats') || lower.includes('bundle')) return 'all-formats';
+    if (lower.startsWith('sbq:')) return 'sbcs';
+    if (lower.startsWith('seq:')) return 'seq';
+    if (lower.startsWith('srq:')) return 'srq';
+    if (lower.includes('seq') || lower.includes('essay')) return 'seq';
+    if (lower.includes('srq') || lower.includes('structured response')) return 'srq';
+    return 'sbcs';
+  }, []);
+
+  const currentTrackType = getTrackType(selectedSkill);
+  const isAllFormats = currentTrackType === 'all-formats';
+  const isSBCSOnly = currentTrackType === 'sbcs';
+  const isSEQOnly = currentTrackType === 'seq';
+  const isSRQOnly = currentTrackType === 'srq';
+
+// ── Simulated generate progress steps (Sources → Questions → Formatting) ──
   useEffect(() => {
     if (isGenerating) {
       const STEPS = ['sources', 'questions', 'formatting'];
@@ -672,7 +688,6 @@ export default function DashboardPage() {
           subject: activeSubject, 
           topic: selectedTopic, 
           questionType: selectedSkill,
-          sourceCount 
         }),
       });
       if (!res.ok) {
@@ -1279,9 +1294,7 @@ export default function DashboardPage() {
           onSetActiveSubject={setActiveSubject}
           onSetSelectedTopic={setSelectedTopic}
           onSetSelectedSkill={setSelectedSkill}
-          sourceCount={sourceCount}
           onSetCustomMode={setIsCustomMode}
-          onSetSourceCount={setSourceCount}
           onSetHasScanned={setHasScanned}
           onGenerate={handleGenerateChallenge}
           onLoadHistoricalItem={loadHistoricalItem}
@@ -1294,73 +1307,78 @@ export default function DashboardPage() {
           }}
         />
 
-        {/* SCROLLABLE Source Material Columns Display Layout */}
+        {/* SCROLLABLE Source Material Columns Display Layout — sources only for SBCS/All Formats */}
         <div className="xl:col-span-2 space-y-4 max-h-[75vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800 select-text">
           <div className="bg-slate-950/40 border border-slate-900 rounded-xl p-4 text-xs space-y-1 hover-lift">
             <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">Contextual Background</span>
             <p className="text-slate-400 leading-relaxed select-text">{isCustomMode ? 'Analyze school assignment files.' : challenge.backgroundContext}</p>
           </div>
           
-          {/* Source A */}
-          <div className="space-y-1.5 hover-lift">
-            <div className="flex items-center gap-2">
-              <span className="text-[8px] font-black bg-indigo-600/20 text-indigo-400 px-2 py-0.5 rounded-full border border-indigo-500/30">Source A</span>
-              <span className="text-[11px] font-bold text-slate-200 block select-text">{isCustomMode ? 'Source A Provenance' : challenge.sourceAProvenance}</span>
-            </div>
-            <div className="bg-transparent border border-slate-800 rounded-xl p-4 text-xs transition hover:border-indigo-900/50 hover:bg-indigo-950/5">
-              <p className="text-slate-300 leading-relaxed select-text whitespace-pre-line font-serif">{isCustomMode ? 'Paste school source texts here...' : challenge.sourceA}</p>
-            </div>
-          </div>
+          {/* Sources only shown for SBCS and All Formats tracks */}
+          {(isSBCSOnly || isAllFormats) && (
+            <>
+              {/* Source A */}
+              <div className="space-y-1.5 hover-lift">
+                <div className="flex items-center gap-2">
+                  <span className="text-[8px] font-black bg-indigo-600/20 text-indigo-400 px-2 py-0.5 rounded-full border border-indigo-500/30">Source A</span>
+                  <span className="text-[11px] font-bold text-slate-200 block select-text">{isCustomMode ? 'Source A Provenance' : challenge.sourceAProvenance}</span>
+                </div>
+                <div className="bg-transparent border border-slate-800 rounded-xl p-4 text-xs transition hover:border-indigo-900/50 hover:bg-indigo-950/5">
+                  <p className="text-slate-300 leading-relaxed select-text whitespace-pre-line font-serif">{isCustomMode ? 'Paste school source texts here...' : challenge.sourceA}</p>
+                </div>
+              </div>
 
-          {/* Source B */}
-          <div className="space-y-1.5 hover-lift">
-            <div className="flex items-center gap-2">
-              <span className="text-[8px] font-black bg-indigo-600/20 text-indigo-400 px-2 py-0.5 rounded-full border border-indigo-500/30">Source B</span>
-              <span className="text-[11px] font-bold text-slate-200 block select-text">{isCustomMode ? 'Source B Provenance' : challenge.sourceBProvenance}</span>
-            </div>
-            <div className="bg-transparent border border-slate-800 rounded-xl p-4 text-xs transition hover:border-indigo-900/50 hover:bg-indigo-950/5">
-              <p className="text-slate-300 leading-relaxed select-text whitespace-pre-line font-serif">{isCustomMode ? 'Reference document texts...' : challenge.sourceB}</p>
-            </div>
-          </div>
+              {/* Source B */}
+              <div className="space-y-1.5 hover-lift">
+                <div className="flex items-center gap-2">
+                  <span className="text-[8px] font-black bg-indigo-600/20 text-indigo-400 px-2 py-0.5 rounded-full border border-indigo-500/30">Source B</span>
+                  <span className="text-[11px] font-bold text-slate-200 block select-text">{isCustomMode ? 'Source B Provenance' : challenge.sourceBProvenance}</span>
+                </div>
+                <div className="bg-transparent border border-slate-800 rounded-xl p-4 text-xs transition hover:border-indigo-900/50 hover:bg-indigo-950/5">
+                  <p className="text-slate-300 leading-relaxed select-text whitespace-pre-line font-serif">{isCustomMode ? 'Reference document texts...' : challenge.sourceB}</p>
+                </div>
+              </div>
 
-          {/* Sources C, D, E — shown only in All Formats mode */}
-          {challenge.isAllFormats && challenge.sourceC && (
-            <div className="space-y-1.5 pt-2 border-t border-slate-800/50">
-              <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Additional Sources</span>
-            </div>
-          )}
-          {challenge.isAllFormats && challenge.sourceC && (
-            <div className="space-y-1.5 hover-lift">
-              <div className="flex items-center gap-2">
-                <span className="text-[8px] font-black bg-amber-600/20 text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/30">Source C</span>
-                <span className="text-[11px] font-bold text-slate-200 block select-text">{challenge.sourceCProvenance || 'Source 3'}</span>
-              </div>
-              <div className="bg-transparent border border-slate-800 rounded-xl p-4 text-xs transition hover:border-amber-900/50 hover:bg-amber-950/5">
-                <p className="text-slate-300 leading-relaxed select-text whitespace-pre-line font-serif">{challenge.sourceC}</p>
-              </div>
-            </div>
-          )}
-          {challenge.isAllFormats && challenge.sourceD && (
-            <div className="space-y-1.5 hover-lift">
-              <div className="flex items-center gap-2">
-                <span className="text-[8px] font-black bg-amber-600/20 text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/30">Source D</span>
-                <span className="text-[11px] font-bold text-slate-200 block select-text">{challenge.sourceDProvenance || 'Source 4'}</span>
-              </div>
-              <div className="bg-transparent border border-slate-800 rounded-xl p-4 text-xs transition hover:border-amber-900/50 hover:bg-amber-950/5">
-                <p className="text-slate-300 leading-relaxed select-text whitespace-pre-line font-serif">{challenge.sourceD}</p>
-              </div>
-            </div>
-          )}
-          {challenge.isAllFormats && challenge.sourceE && (
-            <div className="space-y-1.5 hover-lift">
-              <div className="flex items-center gap-2">
-                <span className="text-[8px] font-black bg-amber-600/20 text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/30">Source E</span>
-                <span className="text-[11px] font-bold text-slate-200 block select-text">{challenge.sourceEProvenance || 'Source 5'}</span>
-              </div>
-              <div className="bg-transparent border border-slate-800 rounded-xl p-4 text-xs transition hover:border-amber-900/50 hover:bg-amber-950/5">
-                <p className="text-slate-300 leading-relaxed select-text whitespace-pre-line font-serif">{challenge.sourceE}</p>
-              </div>
-            </div>
+              {/* Sources C, D, E — shown only when they exist */}
+              {challenge.sourceC && (
+                <>
+                  <div className="space-y-1.5 pt-2 border-t border-slate-800/50">
+                    <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Additional Sources</span>
+                  </div>
+                  <div className="space-y-1.5 hover-lift">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[8px] font-black bg-amber-600/20 text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/30">Source C</span>
+                      <span className="text-[11px] font-bold text-slate-200 block select-text">{challenge.sourceCProvenance || 'Source 3'}</span>
+                    </div>
+                    <div className="bg-transparent border border-slate-800 rounded-xl p-4 text-xs transition hover:border-amber-900/50 hover:bg-amber-950/5">
+                      <p className="text-slate-300 leading-relaxed select-text whitespace-pre-line font-serif">{challenge.sourceC}</p>
+                    </div>
+                  </div>
+                </>
+              )}
+              {challenge.sourceD && (
+                <div className="space-y-1.5 hover-lift">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[8px] font-black bg-amber-600/20 text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/30">Source D</span>
+                    <span className="text-[11px] font-bold text-slate-200 block select-text">{challenge.sourceDProvenance || 'Source 4'}</span>
+                  </div>
+                  <div className="bg-transparent border border-slate-800 rounded-xl p-4 text-xs transition hover:border-amber-900/50 hover:bg-amber-950/5">
+                    <p className="text-slate-300 leading-relaxed select-text whitespace-pre-line font-serif">{challenge.sourceD}</p>
+                  </div>
+                </div>
+              )}
+              {challenge.sourceE && (
+                <div className="space-y-1.5 hover-lift">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[8px] font-black bg-amber-600/20 text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/30">Source E</span>
+                    <span className="text-[11px] font-bold text-slate-200 block select-text">{challenge.sourceEProvenance || 'Source 5'}</span>
+                  </div>
+                  <div className="bg-transparent border border-slate-800 rounded-xl p-4 text-xs transition hover:border-amber-900/50 hover:bg-amber-950/5">
+                    <p className="text-slate-300 leading-relaxed select-text whitespace-pre-line font-serif">{challenge.sourceE}</p>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -1403,7 +1421,7 @@ export default function DashboardPage() {
                   {/* SBCS Segment Block — All Formats: show 5 individual parts */}
                   <div className="bg-slate-950/60 border border-slate-900 p-4 rounded-xl space-y-2">
                     <div className="flex items-center justify-between">
-                      <label className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase font-mono">Section A: Source-Based Case Study (SBCS) — 35 marks</label>
+                      <label className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase font-mono">Question: Source-Based Case Study</label>
                       <div className="flex gap-2">
                         <button onClick={() => handlePasteFromClipboard('sbcs')} type="button" className="text-[10px] text-indigo-400 hover:underline p-1.5 sm:p-1 rounded-lg">📋 Paste</button>
                         <button onClick={() => handleInjectPeelFrame('sbcs')} type="button" className="text-[10px] text-slate-400 hover:underline p-1.5 sm:p-1 rounded-lg">💡 PEEL</button>
@@ -1454,7 +1472,7 @@ export default function DashboardPage() {
                       {/* SS: SRQ Section */}
                       {challenge.srqBackgroundContext && (
                         <div className="bg-emerald-950/20 border border-emerald-900/30 p-4 rounded-xl space-y-3">
-                          <label className="text-[10px] font-bold tracking-widest text-emerald-400 uppercase font-mono">Section B: Structured Response Questions (SRQ) — 15 marks [Social Studies]</label>
+                          <label className="text-[10px] font-bold tracking-widest text-emerald-400 uppercase font-mono">Structured Response Questions (SRQ)</label>
                           
                           {/* Background context */}
                           <div className="bg-slate-950/60 border border-slate-900 rounded-lg p-3">
@@ -1483,7 +1501,7 @@ export default function DashboardPage() {
                       {/* History: SEQ Section */}
                       {challenge.seqQuestion1 && !challenge.srqBackgroundContext && (
                         <div className="bg-amber-950/20 border border-amber-900/30 p-4 rounded-xl space-y-3">
-                          <label className="text-[10px] font-bold tracking-widest text-amber-400 uppercase font-mono">Section B: Structured Essay Questions (SEQ) — 20 marks [Elective History]</label>
+                          <label className="text-[10px] font-bold tracking-widest text-amber-400 uppercase font-mono">Structured Essay Questions (SEQ)</label>
                           <p className="text-[9px] text-slate-500 italic">Answer any ONE of the following three questions.</p>
                           
                           <div className="bg-slate-950/60 border border-slate-900 rounded-lg p-3">
@@ -1505,42 +1523,65 @@ export default function DashboardPage() {
                     </>
                   )}
 
-                  {/* Individual skill tracks: SEQ + SRQ blocks */}
+                  {/* Individual skill tracks: conditional SBCS/SEQ/SRQ blocks */}
                   {!challenge.isAllFormats && (
                     <>
-                      {/* SEQ Segment Block */}
-                      <div className="bg-slate-950/60 border border-slate-900 p-4 rounded-xl space-y-2">
-                        <div className="flex items-center justify-between">
-                          <label className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase font-mono">Section B: Structured Essay Question (SEQ)</label>
-                          <div className="flex gap-2">
-                            <button onClick={() => handlePasteFromClipboard('seq')} type="button" className="text-[10px] text-indigo-400 hover:underline p-1.5 sm:p-1 rounded-lg">📋 Paste</button>
-                            <button onClick={() => handleInjectPeelFrame('seq')} type="button" className="text-[10px] text-slate-400 hover:underline p-1.5 sm:p-1 rounded-lg">💡 PEEL</button>
+                      {/* SBCS Segment Block — shown for SBQ-only tracks */}
+                      {isSBCSOnly && (
+                        <div className="bg-slate-950/60 border border-slate-900 p-4 rounded-xl space-y-2">
+                          <div className="flex items-center justify-between">
+                            <label className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase font-mono">Question: Source-Based Case Study</label>
+                            <div className="flex gap-2">
+                              <button onClick={() => handlePasteFromClipboard('sbcs')} type="button" className="text-[10px] text-indigo-400 hover:underline p-1.5 sm:p-1 rounded-lg">📋 Paste</button>
+                              <button onClick={() => handleInjectPeelFrame('sbcs')} type="button" className="text-[10px] text-slate-400 hover:underline p-1.5 sm:p-1 rounded-lg">💡 PEEL</button>
+                            </div>
+                          </div>
+                          <p className="text-xs font-medium text-slate-300 bg-slate-900/40 p-2.5 rounded-lg border border-slate-800">{challenge.sbcsPrompt}</p>
+                          <textarea value={sbcsAnswer} onChange={(e) => setSbcsAnswer(e.target.value)} placeholder="Type source inference or comparison analysis here..." className="w-full min-h-[140px] bg-transparent text-slate-300 border border-slate-800 p-2.5 font-mono text-xs focus:outline-none focus:border-indigo-600 bg-slate-950 rounded-xl resize-none" />
+                          <div className="flex justify-between text-[8px] text-slate-600 font-mono px-1">
+                            <span>{sbcsAnswer.trim() ? `~${sbcsAnswer.trim().split(/\s+/).length} words` : ''}</span>
+                            <span>{sbcsAnswer.length} chars</span>
                           </div>
                         </div>
-                        <p className="text-xs font-medium text-slate-300 bg-slate-900/40 p-2.5 rounded-lg border border-slate-800">{challenge.seqPrompt}</p>
-                        <textarea value={seqAnswer} onChange={(e) => setSeqAnswer(e.target.value)} placeholder="Draft factor prioritization essay structure here..." className="w-full min-h-[140px] bg-transparent text-slate-300 border border-slate-800 p-2.5 font-mono text-xs focus:outline-none focus:border-indigo-600 bg-slate-950 rounded-xl resize-none" />
-                        <div className="flex justify-between text-[8px] text-slate-600 font-mono px-1">
-                          <span>{seqAnswer.trim() ? `~${seqAnswer.trim().split(/\s+/).length} words` : ''}</span>
-                          <span>{seqAnswer.length} chars</span>
-                        </div>
-                      </div>
+                      )}
 
-                      {/* SRQ Segment Block */}
-                      <div className="bg-slate-950/60 border border-slate-900 p-4 rounded-xl space-y-2">
-                        <div className="flex items-center justify-between">
-                          <label className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase font-mono">Section C: Structured Response Question (SRQ)</label>
-                          <div className="flex gap-2">
-                            <button onClick={() => handlePasteFromClipboard('srq')} type="button" className="text-[10px] text-indigo-400 hover:underline p-1.5 sm:p-1 rounded-lg">📋 Paste</button>
-                            <button onClick={() => handleInjectPeelFrame('srq')} type="button" className="text-[10px] text-slate-400 hover:underline p-1.5 sm:p-1 rounded-lg">💡 PEEL</button>
+                      {/* SEQ Segment Block — shown for SEQ-only tracks */}
+                      {isSEQOnly && (
+                        <div className="bg-slate-950/60 border border-slate-900 p-4 rounded-xl space-y-2">
+                          <div className="flex items-center justify-between">
+                            <label className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase font-mono">Question: Structured Essay (SEQ)</label>
+                            <div className="flex gap-2">
+                              <button onClick={() => handlePasteFromClipboard('seq')} type="button" className="text-[10px] text-indigo-400 hover:underline p-1.5 sm:p-1 rounded-lg">📋 Paste</button>
+                              <button onClick={() => handleInjectPeelFrame('seq')} type="button" className="text-[10px] text-slate-400 hover:underline p-1.5 sm:p-1 rounded-lg">💡 PEEL</button>
+                            </div>
+                          </div>
+                          <p className="text-xs font-medium text-slate-300 bg-slate-900/40 p-2.5 rounded-lg border border-slate-800">{challenge.seqPrompt}</p>
+                          <textarea value={seqAnswer} onChange={(e) => setSeqAnswer(e.target.value)} placeholder="Draft factor prioritization essay structure here..." className="w-full min-h-[140px] bg-transparent text-slate-300 border border-slate-800 p-2.5 font-mono text-xs focus:outline-none focus:border-indigo-600 bg-slate-950 rounded-xl resize-none" />
+                          <div className="flex justify-between text-[8px] text-slate-600 font-mono px-1">
+                            <span>{seqAnswer.trim() ? `~${seqAnswer.trim().split(/\s+/).length} words` : ''}</span>
+                            <span>{seqAnswer.length} chars</span>
                           </div>
                         </div>
-                        <p className="text-xs font-medium text-slate-300 bg-slate-900/40 p-2.5 rounded-lg border border-slate-800">{challenge.srqPrompt}</p>
-                        <textarea value={srqAnswer} onChange={(e) => setSrqAnswer(e.target.value)} placeholder="State your assertions and balanced evaluation judgments here..." className="w-full min-h-[140px] bg-transparent text-slate-300 border border-slate-800 p-2.5 font-mono text-xs focus:outline-none focus:border-indigo-600 bg-slate-950 rounded-xl resize-none" />
-                        <div className="flex justify-between text-[8px] text-slate-600 font-mono px-1">
-                          <span>{srqAnswer.trim() ? `~${srqAnswer.trim().split(/\s+/).length} words` : ''}</span>
-                          <span>{srqAnswer.length} chars</span>
+                      )}
+
+                      {/* SRQ Segment Block — shown for SRQ-only tracks */}
+                      {isSRQOnly && (
+                        <div className="bg-slate-950/60 border border-slate-900 p-4 rounded-xl space-y-2">
+                          <div className="flex items-center justify-between">
+                            <label className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase font-mono">Question: Structured Response (SRQ)</label>
+                            <div className="flex gap-2">
+                              <button onClick={() => handlePasteFromClipboard('srq')} type="button" className="text-[10px] text-indigo-400 hover:underline p-1.5 sm:p-1 rounded-lg">📋 Paste</button>
+                              <button onClick={() => handleInjectPeelFrame('srq')} type="button" className="text-[10px] text-slate-400 hover:underline p-1.5 sm:p-1 rounded-lg">💡 PEEL</button>
+                            </div>
+                          </div>
+                          <p className="text-xs font-medium text-slate-300 bg-slate-900/40 p-2.5 rounded-lg border border-slate-800">{challenge.srqPrompt}</p>
+                          <textarea value={srqAnswer} onChange={(e) => setSrqAnswer(e.target.value)} placeholder="State your assertions and balanced evaluation judgments here..." className="w-full min-h-[140px] bg-transparent text-slate-300 border border-slate-800 p-2.5 font-mono text-xs focus:outline-none focus:border-indigo-600 bg-slate-950 rounded-xl resize-none" />
+                          <div className="flex justify-between text-[8px] text-slate-600 font-mono px-1">
+                            <span>{srqAnswer.trim() ? `~${srqAnswer.trim().split(/\s+/).length} words` : ''}</span>
+                            <span>{srqAnswer.length} chars</span>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </>
                   )}
                 </div>

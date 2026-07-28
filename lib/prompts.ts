@@ -1040,9 +1040,9 @@ Question: Study Sources B and C. Does the resident in Source C think that the pr
 "L4 Will work AND Will NOT work based on content (6m):
 Point: The resident in Source C would partially agree that the project in Source B will work, but she ultimately believes it will NOT address the root cause of Singaporeans' poor recycling habits.
 
-Evidence (Will work): The resident acknowledges that many Singaporeans 'are still not very educated about how to recycle properly,' and Source B's project aims to 'increase public awareness about the process of recycling right.' The transparent bin design and eye-level notices directly address this education gap.
+Evidence (Will work): The resident acknowledges that many Singaporeans "are still not very educated about how to recycle properly," and Source B's project aims to "increase public awareness about the process of recycling right." The transparent bin design and eye-level notices directly address this education gap.
 
-Evidence (Will NOT work): However, the resident's core objection is not education but convenience. She asks rhetorically: 'Do you really think that Singaporeans in general will take the time out to do that when they don't even take the time to do simple things?' This reveals her belief that even with better bins, Singaporeans will not change their behaviour because the process remains 'too tedious and time consuming.'
+Evidence (Will NOT work): However, the resident's core objection is not education but convenience. She asks rhetorically: "Do you really think that Singaporeans in general will take the time out to do that when they don't even take the time to do simple things?" This reveals her belief that even with better bins, Singaporeans will not change their behaviour because the process remains "too tedious and time consuming."
 
 Explanation: Source B's project assumes that better design leads to better behaviour — an assumption that Source C's resident rejects. She is cynical about Singaporeans' willingness to put in effort, regardless of infrastructure improvements. Her perspective is that the root cause is cultural indifference, not poorly designed bins.
 
@@ -1056,7 +1056,7 @@ You MUST provide a comprehensive A1-grade suggested answer that reads EXACTLY li
 2. **Conciseness**: MOE model answers are TIGHT. Aim for 3-5 sentences per paragraph, not 6-8. Every sentence must add analytical value.
 3. **Precision over verbosity**: Use specific phrases like "Source X reveals...", "This implies...", "In contrast...", "This is significant because...". Avoid: "This disparity is significant" (vague). Instead: "This contrast matters because it reveals the fundamental tension between X and Y."
 4. **Exact rubric language — MUST include LORMS level labels**: You MUST include the exact LORMS rubric terminology AND level label in EVERY answer. For example: "L4 Message (4-5m): The message is that..." or "L5 Will not work based on Perspective (7m): The resident would not..." DO NOT just describe the analysis — LABEL the LORMS level explicitly like the real school model answers do. E.g., for comparison, say "core message matching" explicitly and label the level: "L4 — Similarity AND Difference with core message matching."
-5. **Direct quotes from sources — MANDATORY**: You MUST include at least ONE direct quote from the source in EVERY paragraph, enclosed in double quotation marks. E.g., Source 1 states that "the subsidy covers 80% of outpatient costs." Generic paraphrasing without quoted evidence is NOT acceptable for an L4 model answer.
+5. **Direct quotes — DOUBLE QUOTATION MARKS ONLY ("...")**: You MUST include at least ONE direct quote from the source in EVERY paragraph. ALL direct quotes MUST be enclosed in **double quotation marks** ("..."). ⚠️ NEVER use single quotes ('...') for source quotations — only double quotes are acceptable. E.g., Source 1 states that "the subsidy covers 80% of outpatient costs." Generic paraphrasing without quoted evidence is NOT acceptable for an L4 model answer.
 6. **Cross-referencing — MANDATORY for Part (b) and Part (e)**: For comparison and assertion questions, you MUST explicitly compare sources using contrastive language: "whereas", "in contrast", "Source X reveals... while Source Y...", "on the other hand", "similarly". Describing sources separately ("Source A says... Source B says...") is NOT cross-referencing and does NOT meet L3+
 7. **Conclusion/evaluation — MANDATORY for every Part**: Each Part's model answer MUST end with a concluding/evaluative sentence (introduced by "Therefore:", "Thus:", "Hence:", "In conclusion:", "As such:", or similar transition) that provides an evaluative judgment. E.g., "Therefore, this contrast reveals that the government's policy was driven by electoral rather than economic considerations." Answers that end without a conclusion will be marked DOWN.
 8. **No padding**: Do NOT start with "The government's support for businesses, as presented in Source A and Source B, reveals a complex dynamic..." This is filler. Start DIRECTLY with the analysis.
@@ -1073,7 +1073,8 @@ You MUST provide a comprehensive A1-grade suggested answer that reads EXACTLY li
 
 ## What This Should Look Like (Example Structure for Comparison):
 
-"Point: Both Source A and Source B address [topic], but they differ fundamentally in their assessment of [aspect]. Evidence: Source A, a [provenance description], presents [aspect] as [description] — 'direct quote from source.' In contrast, Source B, an [editorial/report from context], argues [aspect] is [description] — 'direct quote from source.' Explanation: Source A's core message is that [X], whereas Source B's core message is that [Y]. This difference is rooted in their contrasting purposes — Source A seeks to [purpose], while Source B aims to [purpose]. Link: This divergence matters because it reveals [broader significance], shaping how a historian/citizen would evaluate [implications]."
+"L4 — Similarity AND Difference with core message matching:
+Point: Both Source A and Source B address [topic], but they differ fundamentally in their assessment of [aspect]. Evidence: Source A, a [provenance description], presents [aspect] as [description] — "direct quote from source." In contrast, Source B, an [editorial/report from context], argues [aspect] is [description] — "direct quote from source." Explanation: Source A's core message is that [X], whereas Source B's core message is that [Y]. This difference is rooted in their contrasting purposes — Source A seeks to [purpose], while Source B aims to [purpose]. Link: This divergence matters because it reveals [broader significance], shaping how a historian/citizen would evaluate [implications]."
 
 CRITICAL: Each section (Part A-E) must have its own complete model answer. Do NOT combine them into one paragraph. Label each part clearly.
 
@@ -1369,11 +1370,24 @@ ${QUALITY_RULES}
 1. Evaluate ONLY the rubric that applies to the selected skill track (${questionType}).
 2. If the skill track is "All Formats", evaluate each section (SBCS sub-parts, SEQ, SRQ) against its own rubric. Output sbcsScore, seqScore, and srqScore with each section's level, marks, maxMarks, and a brief label. Then provide an overall combined scoreLevel and scoreMarks as follows: calculate the weighted average across submitted sections (weight by each section\'s maxMarks), round to the nearest whole level, and set scoreMaxMarks to the sum of all section maxMarks.
 3. The \`critique\` array should contain 3–8 specific, actionable bullet points.
-4. The \`a1Upgrade\` should be a complete rewritten answer demonstrating A1 standard.
+4. The \`a1Upgrade\` must be a complete rewritten answer at A1 (top-tier) standard. CRITICAL format requirements:
+   - FIRST line MUST be a LORMS level label (e.g., \"L4 — Similarity AND Difference with core message matching:\")
+   - ALL source quotes in DOUBLE quotation marks (\"...\") — NEVER single quotes
+   - Every paragraph: **Point:**, **Evidence:**, **Explanation:**, **Link:**
+   - Every paragraph: at least one double-quoted source quote (SEQ: specific evidence instead)
+   - Every Part: end with \"Therefore:\" or \"Thus:\" conclusion
 5. Each \`highlightedSegment\` must include the exact text from the student's answer.
 6. Be encouraging, professional, and diagnostic — no generic fluff.
-7. Under 12 words of actual content → flag as "L0 — Insufficient content" (quality gate applies). 12+ words but not a coherent analytical argument → L1 maximum with note.
+7. Under 12 words of actual content → flag as \"L0 — Insufficient content\" (quality gate applies). 12+ words but not a coherent analytical argument → L1 maximum with note.
 8. Output a \`confidence\` score between 0.0 and 1.0.
+
+## MODEL ANSWER EXAMPLE — MOE Victoria School SS 2020 (template for LORMS + double-quotes + PEEL):
+
+\"L4 Will work AND Will NOT work based on content (6m):
+Point: The resident would partially agree but ultimately believes it will NOT work.
+Evidence: She acknowledges Singaporeans \"are still not very educated about how to recycle properly\" and the project aims to \"increase public awareness.\" However, she asks: \"Do you really think that Singaporeans will take the time out to do that?\" because recycling remains \"too tedious and time consuming.\"
+Explanation: Source B assumes better design = better behaviour; Source C rejects this, seeing the root cause as cultural indifference.
+Link: Therefore, the resident concedes education value but does NOT believe it will work because attitudes, not bin design, are the real barrier.\"
 
 ## SCHOOL BENCHMARKING (MANDATORY)
 
@@ -1449,6 +1463,13 @@ ${combinedAnswer}
 
 Apply the LORMS rubric strictly using the step-by-step rubric resolution process.
 Highlight which segments were correct, which were weak, and which were structural errors.
+
+### CRITICAL — a1Upgrade format requirements (MUST follow):
+- FIRST line MUST be a LORMS level label (e.g., "L4 — Similarity AND Difference with core message matching:")
+- ALL source quotes in DOUBLE quotation marks ("...") — NEVER single quotes
+- Every paragraph: **Point:**, **Evidence:**, **Explanation:**, **Link:**
+- Every paragraph: at least one double-quoted source quote (SEQ: specific evidence instead)
+- Every Part: end with "Therefore:" or "Thus:" conclusion
 
 ## A1 MODEL ANSWER (a1Upgrade) — MOE TEACHER STANDARD
 

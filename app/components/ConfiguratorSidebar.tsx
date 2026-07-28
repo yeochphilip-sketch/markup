@@ -22,7 +22,6 @@ interface ConfiguratorSidebarProps {
   activeSubject: string;
   selectedTopic: string;
   selectedSkill: string;
-  sourceCount: number;
   isCustomMode: boolean;
   isGenerating: boolean;
   generateProgress: string | null;
@@ -34,7 +33,6 @@ interface ConfiguratorSidebarProps {
   onSetActiveSubject: (subject: string) => void;
   onSetSelectedTopic: (topic: string) => void;
   onSetSelectedSkill: (skill: string) => void;
-  onSetSourceCount: (count: number) => void;
   onSetCustomMode: (mode: boolean) => void;
   onSetHasScanned: (scanned: boolean) => void;
   onGenerate: () => void;
@@ -112,7 +110,6 @@ export default function ConfiguratorSidebar({
   activeSubject,
   selectedTopic,
   selectedSkill,
-  sourceCount,
   isCustomMode,
   isGenerating,
   generateProgress,
@@ -124,7 +121,6 @@ export default function ConfiguratorSidebar({
   onSetActiveSubject,
   onSetSelectedTopic,
   onSetSelectedSkill,
-  onSetSourceCount,
   onSetCustomMode,
   onSetHasScanned,
   onGenerate,
@@ -210,17 +206,7 @@ export default function ConfiguratorSidebar({
             </select>
           </div>
 
-          {/* Source count — SBCS always uses 5 sources */}
-          {!isCustomMode && selectedSkill.toLowerCase().includes('all formats') && (
-            <div className="space-y-1">
-              <label className="text-[9px] font-bold uppercase text-slate-500">Number of Sources</label>
-              <div className="bg-slate-900 rounded-xl border border-slate-800 p-2.5 text-center">
-                <span className="text-[11px] font-bold text-amber-400">
-                  5 Sources <span className="text-[9px] text-slate-500 font-normal">(SBCS standard)</span>
-                </span>
-              </div>
-            </div>
-          )}
+
 
           {!isCustomMode && (
             <button

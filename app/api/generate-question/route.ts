@@ -14,37 +14,87 @@ const groq = createOpenAI({
 });
 
 // ────────────────────────────────────────────────────────
-// Schema for individual skill tracks (2 sources)
+// Track type helpers
 // ────────────────────────────────────────────────────────
-const questionSchema = z.object({
+
+type TrackType = 'all-formats' | 'sbcs' | 'seq' | 'srq';
+
+function getTrackType(questionType: string): TrackType {
+  const lower = questionType.toLowerCase();
+  if (lower.includes('all formats') || lower.includes('bundle')) return 'all-formats';
+  if (lower.startsWith('sbq:')) return 'sbcs';
+  if (lower.startsWith('seq:')) return 'seq';
+  if (lower.startsWith('srq:')) return 'srq';
+  // Fallback: check for keywords
+  if (lower.includes('seq') || lower.includes('essay')) return 'seq';
+  if (lower.includes('srq') || lower.includes('structured response')) return 'srq';
+  return 'sbcs'; // Default to SBCS for SBQ-like skills
+}
+
+function getSourceCountForTrack(trackType: TrackType, questionType: string): number {
+  if (trackType === 'all-formats') return 5;
+  if (trackType === 'sbcs') {
+    // Assertion/synthesis → 5 sources, comparison → 2, others → 2
+    const lower = questionType.toLowerCase();
+    if (lower.includes('assertion') || lower.includes('synthesis')) return 5;
+    return 2;
+  }
+  // SEQ / SRQ → no sources
+  return 0;
+}
+
+// ────────────────────────────────────────────────────────
+// Schema for SBCS-only tracks (with sources)
+// ────────────────────────────────────────────────────────
+const sbcsSchema = z.object({
   backgroundContext: z.string().min(10),
   sourceAProvenance: z.string().min(3),
   sourceA: z.string().min(10),
   sourceBProvenance: z.string().min(3),
   sourceB: z.string().min(10),
+  sourceCProvenance: z.string().optional(),
+  sourceC: z.string().optional(),
+  sourceDProvenance: z.string().optional(),
+  sourceD: z.string().optional(),
+  sourceEProvenance: z.string().optional(),
+  sourceE: z.string().optional(),
   questionPrompt: z.string().min(5),
   sbcsPrompt: z.string().min(3),
-  seqPrompt: z.string().min(3),
-  srqPrompt: z.string().min(3),
   suggestedAnswer: z.string().min(10),
 });
 
-/**
- * Build the All Formats schema dynamically based on the requested source count.
- * Sources 1–count are required; any beyond count are optional.
- */
-function createAllFormatsSchema(sourceCount: number) {
+// ────────────────────────────────────────────────────────
+// Schema for SEQ-only track (no sources, just essay Qs)
+// ────────────────────────────────────────────────────────
+const seqSchema = z.object({
+  backgroundContext: z.string().min(10),
+  seqQuestion1: z.string().min(10),
+  seqQuestion2: z.string().min(10),
+  seqQuestion3: z.string().min(10),
+  questionPrompt: z.string().min(5),
+  suggestedAnswer: z.string().min(10),
+});
+
+// ────────────────────────────────────────────────────────
+// Schema for SRQ-only track (no sources, just SRQ Qs)
+// ────────────────────────────────────────────────────────
+const srqSchema = z.object({
+  backgroundContext: z.string().min(10),
+  srqBackgroundContext: z.string().min(3),
+  srqQuestionA: z.string().min(10),
+  srqQuestionB: z.string().min(10),
+  questionPrompt: z.string().min(5),
+  suggestedAnswer: z.string().min(10),
+});
+
+// ────────────────────────────────────────────────────────
+// Schema for All Formats (sources + 5 parts + SEQ/SRQ)
+// ────────────────────────────────────────────────────────
+function createAllFormatsSchema() {
   const sourceFields: Record<string, z.ZodTypeAny> = {};
   for (let i = 1; i <= 5; i++) {
-    const provenanceKey = `source${i}Provenance`;
-    const contentKey = `source${i}`;
-    if (i <= sourceCount) {
-      sourceFields[provenanceKey] = z.string().min(8);
-      sourceFields[contentKey] = z.string().min(60);
-    } else {
-      sourceFields[provenanceKey] = z.string().optional();
-      sourceFields[contentKey] = z.string().optional();
-    }
+    sourceFields[`source${i}Provenance`] = z.string().min(8);
+    sourceFields[`source${i}`] = z.string().min(60);
   }
 
   return z.object({
@@ -66,7 +116,7 @@ function createAllFormatsSchema(sourceCount: number) {
   });
 }
 
-/** Static interface for the All Formats parsed result — mirrors the schema shape */
+/** Static interface for the All Formats parsed result */
 interface AllFormatsData {
   backgroundContext: string;
   source1Provenance: string;
@@ -94,12 +144,8 @@ interface AllFormatsData {
   suggestedAnswer: string;
 }
 
-type QuestionResult = z.infer<typeof questionSchema>;
-
 /**
  * Try each model provider in sequence until one succeeds.
- * If system70B is provided, the first (70B) attempt uses that enriched prompt.
- * If retryModels is provided (e.g., for retry after quality failure), it replaces the default list.
  */
 async function tryGenerateWithFallbacks<T>(
   system: string,
@@ -145,34 +191,59 @@ async function tryGenerateWithFallbacks<T>(
   );
 }
 
-/** JSON field spec for individual skill tracks */
-const INDIVIDUAL_JSON_FIELDS = `{
-  "backgroundContext": "string (the background context paragraph, at least 40 chars)",
-  "sourceAProvenance": "string (provenance of source A, at least 8 chars)",
-  "sourceA": "string (content of source A, at least 60 chars)",
-  "sourceBProvenance": "string (provenance of source B, at least 8 chars)",
-  "sourceB": "string (content of source B, at least 60 chars)",
+/** JSON field spec builders for each track type */
+const SBCS_JSON_FIELDS_2_SRC = `{
+  "backgroundContext": "string (background context for the case study, at least 40 chars)",
+  "sourceAProvenance": "string (provenance of Source A, at least 8 chars)",
+  "sourceA": "string (content of Source A, at least 120 chars)",
+  "sourceBProvenance": "string (provenance of Source B, at least 8 chars)",
+  "sourceB": "string (content of Source B, at least 120 chars)",
   "questionPrompt": "string (the unified question prompt, at least 20 chars)",
-  "sbcsPrompt": "string (SBCS sub-prompt, at least 10 chars)",
-  "seqPrompt": "string (SEQ sub-prompt, at least 10 chars)",
-  "srqPrompt": "string (SRQ sub-prompt, at least 10 chars)",
-  "suggestedAnswer": "string (A1-grade suggested answer, at least 30 chars)"
+  "sbcsPrompt": "string (SBCS question text targeting the skill, at least 20 chars)",
+  "suggestedAnswer": "string (A1-grade model answer, at least 30 chars)"
 }`;
 
-/**
- * Build JSON field spec for All Formats mode based on source count.
- */
-function buildAllFormatsJsonFields(sourceCount: number): string {
+const SBCS_JSON_FIELDS_5_SRC = `{
+  "backgroundContext": "string (background context for the case study, at least 40 chars)",
+  "sourceAProvenance": "string (provenance of Source A, at least 8 chars)",
+  "sourceA": "string (content of Source A, at least 120 chars)",
+  "sourceBProvenance": "string (provenance of Source B, at least 8 chars)",
+  "sourceB": "string (content of Source B, at least 120 chars)",
+  "sourceCProvenance": "string (provenance of Source C, at least 8 chars)",
+  "sourceC": "string (content of Source C, at least 120 chars)",
+  "sourceDProvenance": "string (provenance of Source D, at least 8 chars)",
+  "sourceD": "string (content of Source D, at least 120 chars)",
+  "sourceEProvenance": "string (provenance of Source E, at least 8 chars)",
+  "sourceE": "string (content of Source E, at least 120 chars)",
+  "questionPrompt": "string (the unified question prompt, at least 20 chars)",
+  "sbcsPrompt": "string (SBCS synthesis/assertion question, at least 20 chars)",
+  "suggestedAnswer": "string (A1-grade model answer, at least 30 chars)"
+}`;
+
+const SEQ_JSON_FIELDS = `{
+  "backgroundContext": "string (background context / topic paragraph, at least 40 chars)",
+  "seqQuestion1": "string (SEQ essay question 1, at least 20 chars)",
+  "seqQuestion2": "string (SEQ essay question 2, at least 20 chars)",
+  "seqQuestion3": "string (SEQ essay question 3, at least 20 chars)",
+  "questionPrompt": "string (the overall question header, at least 20 chars)",
+  "suggestedAnswer": "string (A1-grade model essay answer, at least 30 chars)"
+}`;
+
+const SRQ_JSON_FIELDS = `{
+  "backgroundContext": "string (background context for the SRQ scenario, at least 40 chars)",
+  "srqBackgroundContext": "string (SRQ background context introducing the scenario, at least 20 chars)",
+  "srqQuestionA": "string (SRQ part (a) question, at least 20 chars)",
+  "srqQuestionB": "string (SRQ part (b) question, at least 20 chars)",
+  "questionPrompt": "string (the overall question header, at least 20 chars)",
+  "suggestedAnswer": "string (A1-grade model answer for both SRQ parts, at least 30 chars)"
+}`;
+
+function buildAllFormatsJsonFields(): string {
   const lines: string[] = [];
   lines.push(`  "backgroundContext": "string (overall background context for the case study, at least 40 chars)",`);
   for (let i = 1; i <= 5; i++) {
-    if (i <= sourceCount) {
-      lines.push(`  "source${i}Provenance": "string (provenance of Source ${i}, at least 8 chars)",`);
-      lines.push(`  "source${i}": "string (content of Source ${i}, at least 60 chars)",`);
-    } else {
-      lines.push(`  "source${i}Provenance": "string (optional — set to empty string if not needed)",`);
-      lines.push(`  "source${i}": "string (optional — set to empty string if not needed)",`);
-    }
+    lines.push(`  "source${i}Provenance": "string (provenance of Source ${i}, at least 8 chars)",`);
+    lines.push(`  "source${i}": "string (content of Source ${i}, at least 60 chars)",`);
   }
   lines.push(`  "partA_Inference": "string (Part (a) Inference question, at least 15 chars)",`);
   lines.push(`  "partB_Comparison": "string (Part (b) Comparison question, at least 15 chars)",`);
@@ -192,12 +263,12 @@ function buildAllFormatsJsonFields(sourceCount: number): string {
 
 /**
  * Post-generation quality validation.
- * Returns a list of issues found (empty = passed).
  */
 function validateGeneration(
   result: Record<string, any>,
   resolvedSourceCount: number,
   isAllFormats: boolean,
+  trackType: TrackType,
 ): string[] {
   const issues: string[] = [];
 
@@ -206,13 +277,15 @@ function validateGeneration(
     issues.push('backgroundContext is too short or missing (< 40 chars)');
   }
 
-  // 2. Check sources have minimum content length
-  const sourceKeys = ['sourceA', 'sourceB', 'sourceC', 'sourceD', 'sourceE'];
-  for (let i = 0; i < resolvedSourceCount && i < sourceKeys.length; i++) {
-    const key = sourceKeys[i];
-    const content = result[key];
-    if (!content || content.length < 120) {
-      issues.push(`${key} is too short or missing (< 120 chars)`);
+  // 2. Check sources have minimum content length (SBCS / All Formats only)
+  if (trackType === 'sbcs' || trackType === 'all-formats') {
+    const sourceKeys = ['sourceA', 'sourceB', 'sourceC', 'sourceD', 'sourceE'];
+    for (let i = 0; i < resolvedSourceCount && i < sourceKeys.length; i++) {
+      const key = sourceKeys[i];
+      const content = result[key];
+      if (!content || content.length < 120) {
+        issues.push(`${key} is too short or missing (< 120 chars)`);
+      }
     }
   }
 
@@ -221,7 +294,7 @@ function validateGeneration(
     issues.push('suggestedAnswer is too short or missing (< 30 chars)');
   }
 
-  // 4. For All Formats, check LORMS labels are present in suggestedAnswer
+  // 4. For All Formats, check LORMS/PEEL markers
   if (isAllFormats && result.suggestedAnswer && result.suggestedAnswer.length > 30) {
     const hasLORMS = /L[1-6]\s/.test(result.suggestedAnswer);
     if (!hasLORMS) {
@@ -233,7 +306,7 @@ function validateGeneration(
     }
   }
 
-  // 5. Check part questions are non-empty
+  // 5. Check track-specific question fields
   if (isAllFormats) {
     const parts = ['partA_Inference', 'partB_Comparison', 'partC_Purpose', 'partD_Reliability', 'partE_Assertion'];
     for (const part of parts) {
@@ -241,63 +314,146 @@ function validateGeneration(
         issues.push(`${part} is missing or too short`);
       }
     }
+  } else if (trackType === 'sbcs') {
+    if (!result.sbcsPrompt || result.sbcsPrompt.length < 10) {
+      issues.push('sbcsPrompt is missing or too short');
+    }
+  } else if (trackType === 'seq') {
+    for (const q of ['seqQuestion1', 'seqQuestion2', 'seqQuestion3']) {
+      if (!result[q] || result[q].length < 10) {
+        issues.push(`${q} is missing or too short`);
+      }
+    }
+  } else if (trackType === 'srq') {
+    if (!result.srqQuestionA || result.srqQuestionA.length < 10) {
+      issues.push('srqQuestionA is missing or too short');
+    }
+    if (!result.srqQuestionB || result.srqQuestionB.length < 10) {
+      issues.push('srqQuestionB is missing or too short');
+    }
   }
 
   return issues;
 }
 
 /**
- * Normalise All Formats response to include backward-compatible fields.
- * Only exposes sources up to the requested sourceCount.
+ * Normalise All Formats response.
  */
-function normaliseAllFormatsResponse(data: AllFormatsData, sourceCount: number) {
+function normaliseAllFormatsResponse(data: AllFormatsData) {
   const result: Record<string, any> = {
-    // Source A/B are always available (first 2)
     sourceAProvenance: data.source1Provenance,
     sourceA: data.source1,
     sourceBProvenance: data.source2Provenance,
     sourceB: data.source2,
-    // All 5 parts combined into a full SBCS prompt (backward compat)
     sbcsPrompt: `(a) ${data.partA_Inference}\n\n(b) ${data.partB_Comparison}\n\n(c) ${data.partC_Purpose}\n\n(d) ${data.partD_Reliability}\n\n(e) ${data.partE_Assertion}`,
-    // Individual parts for fine-grained display
     partA_Inference: data.partA_Inference,
     partB_Comparison: data.partB_Comparison,
     partC_Purpose: data.partC_Purpose,
     partD_Reliability: data.partD_Reliability,
     partE_Assertion: data.partE_Assertion,
-    // Subject-specific extras
     srqBackgroundContext: data.srqBackgroundContext || '',
     srqQuestionA: data.srqQuestionA || '',
     srqQuestionB: data.srqQuestionB || '',
     seqQuestion1: data.seqQuestion1 || '',
     seqQuestion2: data.seqQuestion2 || '',
     seqQuestion3: data.seqQuestion3 || '',
-    // Core fields
     backgroundContext: data.backgroundContext || '',
     questionPrompt: data.questionPrompt || 'All Formats Comprehensive Examination Package',
-    seqPrompt: data.seqQuestion1 || 'SEQ essay prompt not generated (this is a Social Studies paper)',
-    srqPrompt: data.srqQuestionA || 'SRQ prompt not generated (this is a History paper)',
+    seqPrompt: data.seqQuestion1 || '',
+    srqPrompt: data.srqQuestionA || '',
     suggestedAnswer: data.suggestedAnswer,
-    // Flag for frontend
     isAllFormats: true,
+    sourceCount: 5,
+    sourceCProvenance: data.source3Provenance || '',
+    sourceC: data.source3 || '',
+    sourceDProvenance: data.source4Provenance || '',
+    sourceD: data.source4 || '',
+    sourceEProvenance: data.source5Provenance || '',
+    sourceE: data.source5 || '',
+  };
+  return result;
+}
+
+/**
+ * Build a normalised SBCS response with the correct source count.
+ */
+function normaliseSBCSResponse(data: z.infer<typeof sbcsSchema>, sourceCount: number) {
+  const result: Record<string, any> = {
+    backgroundContext: data.backgroundContext || '',
+    sourceAProvenance: data.sourceAProvenance || '',
+    sourceA: data.sourceA || '',
+    sourceBProvenance: data.sourceBProvenance || '',
+    sourceB: data.sourceB || '',
+    questionPrompt: data.questionPrompt || '',
+    sbcsPrompt: data.sbcsPrompt || '',
+    seqPrompt: '',
+    srqPrompt: '',
+    suggestedAnswer: data.suggestedAnswer || '',
+    isAllFormats: false,
+    trackType: 'sbcs',
     sourceCount,
   };
-
-  // Add sources 3+ only if within the requested count
   if (sourceCount >= 3) {
-    result.sourceCProvenance = data.source3Provenance || '';
-    result.sourceC = data.source3 || '';
+    result.sourceCProvenance = data.sourceCProvenance || '';
+    result.sourceC = data.sourceC || '';
   }
   if (sourceCount >= 4) {
-    result.sourceDProvenance = data.source4Provenance || '';
-    result.sourceD = data.source4 || '';
+    result.sourceDProvenance = data.sourceDProvenance || '';
+    result.sourceD = data.sourceD || '';
   }
   if (sourceCount >= 5) {
-    result.sourceEProvenance = data.source5Provenance || '';
-    result.sourceE = data.source5 || '';
+    result.sourceEProvenance = data.sourceEProvenance || '';
+    result.sourceE = data.sourceE || '';
   }
-
   return result;
+}
+
+/**
+ * Build a normalised SEQ response (no sources).
+ */
+function normaliseSEQResponse(data: z.infer<typeof seqSchema>) {
+  return {
+    backgroundContext: data.backgroundContext || '',
+    sourceAProvenance: '',
+    sourceA: '',
+    sourceBProvenance: '',
+    sourceB: '',
+    questionPrompt: data.questionPrompt || '',
+    sbcsPrompt: '',
+    seqPrompt: data.seqQuestion1 || '',
+    srqPrompt: '',
+    seqQuestion1: data.seqQuestion1 || '',
+    seqQuestion2: data.seqQuestion2 || '',
+    seqQuestion3: data.seqQuestion3 || '',
+    suggestedAnswer: data.suggestedAnswer || '',
+    isAllFormats: false,
+    trackType: 'seq',
+    sourceCount: 0,
+  };
+}
+
+/**
+ * Build a normalised SRQ response (no sources).
+ */
+function normaliseSRQResponse(data: z.infer<typeof srqSchema>) {
+  return {
+    backgroundContext: data.backgroundContext || '',
+    sourceAProvenance: '',
+    sourceA: '',
+    sourceBProvenance: '',
+    sourceB: '',
+    questionPrompt: data.questionPrompt || '',
+    sbcsPrompt: '',
+    seqPrompt: '',
+    srqPrompt: data.srqQuestionA || '',
+    srqBackgroundContext: data.srqBackgroundContext || '',
+    srqQuestionA: data.srqQuestionA || '',
+    srqQuestionB: data.srqQuestionB || '',
+    suggestedAnswer: data.suggestedAnswer || '',
+    isAllFormats: false,
+    trackType: 'srq',
+    sourceCount: 0,
+  };
 }
 
 export const runtime = 'nodejs';
@@ -305,19 +461,18 @@ export const maxDuration = 60;
 
 export async function POST(request: Request) {
   try {
-    // ── Rate limit: 5 requests per 60s per IP ──
+    // ── Rate limit ──
     const rl = await checkSupabaseRateLimit(request, GENERATE_QUESTION_LIMIT);
     if (rl && !rl.allowed) {
       return rateLimitResponse(rl.headers);
     }
 
     const body = await request.json();
-    const { subject, topic, questionType, userId, sourceCount } = body as {
+    const { subject, topic, questionType, userId } = body as {
       subject: string;
       topic: string;
       questionType: string;
       userId?: string;
-      sourceCount?: number;
     };
 
     if (!process.env.GROQ_API_KEY && !process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
@@ -330,11 +485,11 @@ export async function POST(request: Request) {
     const resolvedSubject = subject ?? 'Social Studies';
     const resolvedTopic = topic ?? 'General';
     const resolvedQuestionType = questionType ?? 'All Formats';
-    const isAllFormats = resolvedQuestionType.toLowerCase().includes('all formats') || 
-                         resolvedQuestionType.toLowerCase().includes('bundle');
-    const resolvedSourceCount = isAllFormats
-      ? Math.max(2, Math.min(5, sourceCount ?? 5))
-      : 2; // Individual tracks always get 2 sources
+
+    // ── Determine track type and source count ──
+    const trackType = getTrackType(resolvedQuestionType);
+    const isAllFormats = trackType === 'all-formats';
+    const resolvedSourceCount = getSourceCountForTrack(trackType, resolvedQuestionType);
 
     const systemPrompt = getGenerateSystemPrompt(resolvedSubject, resolvedTopic, resolvedQuestionType);
     const systemPrompt70B = getGenerateSystemPrompt70B(resolvedSubject, resolvedTopic, resolvedQuestionType);
@@ -342,73 +497,114 @@ export async function POST(request: Request) {
     let result;
 
     if (isAllFormats) {
-      const schema = createAllFormatsSchema(resolvedSourceCount);
-      const jsonFields = buildAllFormatsJsonFields(resolvedSourceCount);
-
-      const sourcePrompt = resolvedSourceCount < 5
-        ? `Sources 1-${resolvedSourceCount} are REQUIRED; sources ${resolvedSourceCount + 1}-5 should be set to empty strings.`
-        : 'All 5 sources are required.';
+      const schema = createAllFormatsSchema();
+      const jsonFields = buildAllFormatsJsonFields();
 
       const raw = await tryGenerateWithFallbacks(
         systemPrompt,
         `Generate one complete O-Level ${resolvedSubject} FULL EXAM PACKAGE on the topic "${resolvedTopic}".
-Skill track: All Formats — generate ALL components (${resolvedSourceCount} sources, 5 SBQ questions part A-E, plus subject-specific SRQ/SEQ sections).
-${sourcePrompt}
+Skill track: All Formats — generate ALL components (5 sources, 5 SBQ questions part A-E, plus subject-specific SRQ/SEQ sections).
+All 5 sources are required.
 The sources must be designed to test a RANGE of skills (inference, comparison, purpose, reliability, assertion).
 
 CRITICAL: The suggestedAnswer MUST include LORMS level labels (e.g., "L4 Message (4-5m):") and PEEL structure markers (Point:/Evidence:/Explanation:/Link:) for EVERY part. Each part (a)-(e) must have its OWN model answer — do not combine them.`.trim(),
         schema,
         jsonFields,
-        systemPrompt70B, // Enriched prompt for 70B model
+        systemPrompt70B,
       );
-      result = normaliseAllFormatsResponse(raw as AllFormatsData, resolvedSourceCount);
-    } else {
-      result = await tryGenerateWithFallbacks(
+      result = normaliseAllFormatsResponse(raw as AllFormatsData);
+    } else if (trackType === 'sbcs') {
+      const useFiveSources = resolvedSourceCount >= 5;
+      const jsonFields = useFiveSources ? SBCS_JSON_FIELDS_5_SRC : SBCS_JSON_FIELDS_2_SRC;
+      const sourceCountHint = useFiveSources
+        ? 'Generate EXACTLY 5 sources (A through E) with distinct provenances.'
+        : 'Generate EXACTLY 2 sources (A and B) with distinct provenances.';
+
+      const raw = await tryGenerateWithFallbacks(
         systemPrompt,
-        `Generate one complete O-Level ${resolvedSubject} stimulus package on the topic "${resolvedTopic}".
+        `Generate an O-Level ${resolvedSubject} Source-Based Case Study (SBCS) stimulus package on the topic "${resolvedTopic}".
 Skill track: ${resolvedQuestionType}.
-The sources must be designed specifically to test the ${resolvedQuestionType} skill.`.trim(),
-        questionSchema,
-        INDIVIDUAL_JSON_FIELDS,
-        systemPrompt70B, // Enriched prompt for 70B model
+${sourceCountHint}
+The sources must be designed specifically to test the ${resolvedQuestionType} skill.
+Output only the SBCS question (sbcsPrompt) — do NOT generate SEQ or SRQ questions.`.trim(),
+        sbcsSchema,
+        jsonFields,
+        systemPrompt70B,
       );
+      result = normaliseSBCSResponse(raw, resolvedSourceCount);
+    } else if (trackType === 'seq') {
+      const raw = await tryGenerateWithFallbacks(
+        systemPrompt,
+        `Generate an O-Level ${resolvedSubject} SEQ (Structured Essay Questions) practice set on the topic "${resolvedTopic}".
+Skill track: ${resolvedQuestionType}.
+Generate 3 SEQ essay prompts (seqQuestion1, seqQuestion2, seqQuestion3) with a background context.
+Do NOT generate any sources or SBCS questions — this is a pure essay practice.`.trim(),
+        seqSchema,
+        SEQ_JSON_FIELDS,
+        systemPrompt70B,
+      );
+      result = normaliseSEQResponse(raw);
+    } else if (trackType === 'srq') {
+      const raw = await tryGenerateWithFallbacks(
+        systemPrompt,
+        `Generate an O-Level ${resolvedSubject} SRQ (Structured Response Questions) practice set on the topic "${resolvedTopic}".
+Skill track: ${resolvedQuestionType}.
+Generate a background context (srqBackgroundContext) and 2 SRQ questions (srqQuestionA, srqQuestionB).
+Do NOT generate any sources or SBCS questions — this is a pure SRQ practice.`.trim(),
+        srqSchema,
+        SRQ_JSON_FIELDS,
+        systemPrompt70B,
+      );
+      result = normaliseSRQResponse(raw);
+    } else {
+      // Fallback to SBCS
+      const raw = await tryGenerateWithFallbacks(
+        systemPrompt,
+        `Generate an O-Level ${resolvedSubject} SBCS stimulus package on the topic "${resolvedTopic}".
+Skill track: ${resolvedQuestionType}.
+Generate EXACTLY 2 sources (A and B) with distinct provenances.
+Output only the SBCS question.`.trim(),
+        sbcsSchema,
+        SBCS_JSON_FIELDS_2_SRC,
+        systemPrompt70B,
+      );
+      result = normaliseSBCSResponse(raw, 2);
     }
 
-    // Persist for sidebar history (store full data, including All Formats extras in metadata)
+    // ── Persist for sidebar history ──
     if (userId && process.env.NEXT_PUBLIC_SUPABASE_URL) {
       try {
         const client = process.env.SUPABASE_SERVICE_ROLE_KEY
           ? createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
           : await getServerSupabase();
 
-        // Build comprehensive metadata for All Formats
         const metadata: Record<string, any> = {
           sourceCount: resolvedSourceCount,
-          isAllFormats: isAllFormats || undefined,
+          trackType,
         };
 
+        const resultObj = result as Record<string, any>;
+
         if (isAllFormats) {
-          const allFormatsResult = result as Record<string, any>;
-          if (allFormatsResult.sourceCProvenance) metadata.sourceCProvenance = allFormatsResult.sourceCProvenance;
-          if (allFormatsResult.sourceC) metadata.sourceC = allFormatsResult.sourceC;
-          if (allFormatsResult.sourceDProvenance) metadata.sourceDProvenance = allFormatsResult.sourceDProvenance;
-          if (allFormatsResult.sourceD) metadata.sourceD = allFormatsResult.sourceD;
-          if (allFormatsResult.sourceEProvenance) metadata.sourceEProvenance = allFormatsResult.sourceEProvenance;
-          if (allFormatsResult.sourceE) metadata.sourceE = allFormatsResult.sourceE;
-          if (allFormatsResult.partA_Inference) metadata.partA_Inference = allFormatsResult.partA_Inference;
-          if (allFormatsResult.partB_Comparison) metadata.partB_Comparison = allFormatsResult.partB_Comparison;
-          if (allFormatsResult.partC_Purpose) metadata.partC_Purpose = allFormatsResult.partC_Purpose;
-          if (allFormatsResult.partD_Reliability) metadata.partD_Reliability = allFormatsResult.partD_Reliability;
-          if (allFormatsResult.partE_Assertion) metadata.partE_Assertion = allFormatsResult.partE_Assertion;
-          if (allFormatsResult.srqBackgroundContext) metadata.srqBackgroundContext = allFormatsResult.srqBackgroundContext;
-          if (allFormatsResult.srqQuestionA) metadata.srqQuestionA = allFormatsResult.srqQuestionA;
-          if (allFormatsResult.srqQuestionB) metadata.srqQuestionB = allFormatsResult.srqQuestionB;
-          if (allFormatsResult.seqQuestion1) metadata.seqQuestion1 = allFormatsResult.seqQuestion1;
-          if (allFormatsResult.seqQuestion2) metadata.seqQuestion2 = allFormatsResult.seqQuestion2;
-          if (allFormatsResult.seqQuestion3) metadata.seqQuestion3 = allFormatsResult.seqQuestion3;
-          if (allFormatsResult.sbcsPrompt) metadata.sbcsPrompt = allFormatsResult.sbcsPrompt;
-          if (allFormatsResult.seqPrompt) metadata.seqPrompt = allFormatsResult.seqPrompt;
-          if (allFormatsResult.srqPrompt) metadata.srqPrompt = allFormatsResult.srqPrompt;
+          metadata.isAllFormats = true;
+          if (resultObj.sourceCProvenance) metadata.sourceCProvenance = resultObj.sourceCProvenance;
+          if (resultObj.sourceC) metadata.sourceC = resultObj.sourceC;
+          if (resultObj.sourceDProvenance) metadata.sourceDProvenance = resultObj.sourceDProvenance;
+          if (resultObj.sourceD) metadata.sourceD = resultObj.sourceD;
+          if (resultObj.sourceEProvenance) metadata.sourceEProvenance = resultObj.sourceEProvenance;
+          if (resultObj.sourceE) metadata.sourceE = resultObj.sourceE;
+          if (resultObj.partA_Inference) metadata.partA_Inference = resultObj.partA_Inference;
+          if (resultObj.partB_Comparison) metadata.partB_Comparison = resultObj.partB_Comparison;
+          if (resultObj.partC_Purpose) metadata.partC_Purpose = resultObj.partC_Purpose;
+          if (resultObj.partD_Reliability) metadata.partD_Reliability = resultObj.partD_Reliability;
+          if (resultObj.partE_Assertion) metadata.partE_Assertion = resultObj.partE_Assertion;
+          if (resultObj.srqBackgroundContext) metadata.srqBackgroundContext = resultObj.srqBackgroundContext;
+          if (resultObj.srqQuestionA) metadata.srqQuestionA = resultObj.srqQuestionA;
+          if (resultObj.srqQuestionB) metadata.srqQuestionB = resultObj.srqQuestionB;
+          if (resultObj.seqQuestion1) metadata.seqQuestion1 = resultObj.seqQuestion1;
+          if (resultObj.seqQuestion2) metadata.seqQuestion2 = resultObj.seqQuestion2;
+          if (resultObj.seqQuestion3) metadata.seqQuestion3 = resultObj.seqQuestion3;
+          if (resultObj.sbcsPrompt) metadata.sbcsPrompt = resultObj.sbcsPrompt;
         }
 
         await client.from('generated_questions').insert({
@@ -416,11 +612,11 @@ The sources must be designed specifically to test the ${resolvedQuestionType} sk
           subject: resolvedSubject,
           topic: resolvedTopic,
           question_type: resolvedQuestionType,
-          background_context: result.backgroundContext || '',
-          source_a: result.sourceA || '',
-          source_b: result.sourceB || '',
-          question_prompt: result.questionPrompt || '',
-          suggested_answer: result.suggestedAnswer || '',
+          background_context: resultObj.backgroundContext || '',
+          source_a: resultObj.sourceA || '',
+          source_b: resultObj.sourceB || '',
+          question_prompt: resultObj.questionPrompt || '',
+          suggested_answer: resultObj.suggestedAnswer || '',
           metadata,
         } as never);
       } catch (dbErr) {
@@ -428,37 +624,31 @@ The sources must be designed specifically to test the ${resolvedQuestionType} sk
       }
     }
 
-    // ── Quality validation (post-generation check) ──
+    // ── Quality validation ──
     const resultObj = result as Record<string, any>;
-    const validationIssues = validateGeneration(resultObj, resolvedSourceCount, isAllFormats);
+    const validationIssues = validateGeneration(resultObj, resolvedSourceCount, isAllFormats, trackType);
 
     if (validationIssues.length > 0) {
       console.warn('[generate] Quality validation failed:', validationIssues);
 
-      // One retry with the 70B prompt for better quality
-      console.log('[generate] Retrying generation once for quality (using fallback models)...');
+      console.log('[generate] Retrying generation once for quality...');
       try {
-        // Retry with a different model order: skip 70B (same model that produced the bad result),
-        // start with 8B or Gemini instead for diversity
         const retrySystem = getGenerateSystemPrompt70B(resolvedSubject, resolvedTopic, resolvedQuestionType);
-        if (isAllFormats) {
-          const schema = createAllFormatsSchema(resolvedSourceCount);
-          const jsonFields = buildAllFormatsJsonFields(resolvedSourceCount);
-          const sourcePrompt = resolvedSourceCount < 5
-            ? `Sources 1-${resolvedSourceCount} are REQUIRED; sources ${resolvedSourceCount + 1}-5 should be set to empty strings.`
-            : 'All 5 sources are required.';
 
-          // Use a modified fallback that starts with the 8B model instead of 70B
-          // (70B already failed quality validation, so try a different approach)
-          const retryAttempts = [
-            { model: groq('llama-3.1-8b-instant'), label: 'Groq Llama 3.1 8B', temp: 0.4 },
-            { model: groq('llama-3.3-70b-versatile'), label: 'Groq Llama 3.3 70B', temp: 0.4 },
-          ];
-          if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-            retryAttempts.unshift(
-              { model: google('gemini-2.5-flash'), label: 'Google Gemini 2.5 Flash', temp: 0.3 },
-            );
-          }
+        // Build diversified retry attempts
+        const retryAttempts = [
+          { model: groq('llama-3.1-8b-instant'), label: 'Groq Llama 3.1 8B', temp: 0.4 },
+          { model: groq('llama-3.3-70b-versatile'), label: 'Groq Llama 3.3 70B', temp: 0.4 },
+        ];
+        if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+          retryAttempts.unshift(
+            { model: google('gemini-2.5-flash'), label: 'Google Gemini 2.5 Flash', temp: 0.3 },
+          );
+        }
+
+        if (isAllFormats) {
+          const schema = createAllFormatsSchema();
+          const jsonFields = buildAllFormatsJsonFields();
           const retryRaw = await tryGenerateWithFallbacks(
             systemPrompt,
             `Regenerate a complete O-Level ${resolvedSubject} FULL EXAM PACKAGE on the topic "${resolvedTopic}".
@@ -467,38 +657,50 @@ Ensure ALL sections are complete and LORMS labels are present.`.trim(),
             schema,
             jsonFields,
             retrySystem,
-            retryAttempts, // Use diversified model order for retry
+            retryAttempts,
           );
-          result = normaliseAllFormatsResponse(retryRaw as AllFormatsData, resolvedSourceCount);
-        } else {
-          // For individual tracks, just regenerate with diversified model order
-          const retryAttemptsIndividual = [
-            { model: groq('llama-3.1-8b-instant'), label: 'Groq Llama 3.1 8B', temp: 0.4 },
-            { model: groq('llama-3.3-70b-versatile'), label: 'Groq Llama 3.3 70B', temp: 0.4 },
-          ];
-          if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-            retryAttemptsIndividual.unshift(
-              { model: google('gemini-2.5-flash'), label: 'Google Gemini 2.5 Flash', temp: 0.3 },
-            );
-          }
-          const retryResult = await tryGenerateWithFallbacks(
+          result = normaliseAllFormatsResponse(retryRaw as AllFormatsData);
+        } else if (trackType === 'sbcs') {
+          const useFiveSources = resolvedSourceCount >= 5;
+          const jsonFields = useFiveSources ? SBCS_JSON_FIELDS_5_SRC : SBCS_JSON_FIELDS_2_SRC;
+          const retryRaw = await tryGenerateWithFallbacks(
             systemPrompt,
-            `Regenerate an O-Level ${resolvedSubject} stimulus package on the topic "${resolvedTopic}".
+            `Regenerate an O-Level ${resolvedSubject} SBCS stimulus package on the topic "${resolvedTopic}".
 Previous attempt had issues: ${validationIssues.join('; ')}.
 Skill track: ${resolvedQuestionType}.`.trim(),
-            questionSchema,
-            INDIVIDUAL_JSON_FIELDS,
+            sbcsSchema,
+            jsonFields,
             retrySystem,
-            retryAttemptsIndividual, // Use diversified model order for retry
+            retryAttempts,
           );
-          result = retryResult;
+          result = normaliseSBCSResponse(retryRaw, resolvedSourceCount);
+        } else if (trackType === 'seq') {
+          const retryRaw = await tryGenerateWithFallbacks(
+            systemPrompt,
+            `Regenerate an O-Level ${resolvedSubject} SEQ practice set on the topic "${resolvedTopic}".
+Previous attempt had issues: ${validationIssues.join('; ')}.`.trim(),
+            seqSchema,
+            SEQ_JSON_FIELDS,
+            retrySystem,
+            retryAttempts,
+          );
+          result = normaliseSEQResponse(retryRaw);
+        } else if (trackType === 'srq') {
+          const retryRaw = await tryGenerateWithFallbacks(
+            systemPrompt,
+            `Regenerate an O-Level ${resolvedSubject} SRQ practice set on the topic "${resolvedTopic}".
+Previous attempt had issues: ${validationIssues.join('; ')}.`.trim(),
+            srqSchema,
+            SRQ_JSON_FIELDS,
+            retrySystem,
+            retryAttempts,
+          );
+          result = normaliseSRQResponse(retryRaw);
         }
       } catch (retryErr) {
         console.warn('[generate] Retry also failed, serving original result:', retryErr);
-        // Serve the original result even if retry fails
       }
 
-      // Attach validation issues to response for debugging
       const finalResult = result as Record<string, any>;
       finalResult._validationIssues = validationIssues;
     }
