@@ -3,6 +3,23 @@
 import { useEffect } from 'react';
 import { useAutoDismiss } from '@/lib/useAutoDismiss';
 
+interface SameLevelPeer {
+  xp: number;
+  streak: number;
+}
+
+interface MostImprovedEntry {
+  xpGained: number;
+}
+
+interface LeaderboardEntry {
+  rank: number;
+  userId: string;
+  isMe: boolean;
+  xp: number;
+  level: string;
+}
+
 interface LeaderboardData {
   myRank: number;
   totalUsers: number;
@@ -15,9 +32,9 @@ interface LeaderboardData {
   recentEvalCount: number;
   trendDirection: string;
   sameLevelPeersCount: number;
-  sameLevelPeers: { xp: number; streak: number }[];
-  mostImproved: { xpGained: number }[];
-  leaderboard: { rank: number; userId: string; isMe: boolean; xp: number; level: string }[];
+  sameLevelPeers: SameLevelPeer[];
+  mostImproved: MostImprovedEntry[];
+  leaderboard: LeaderboardEntry[];
   isInTopTwenty: boolean;
 }
 
@@ -127,7 +144,7 @@ export default function LeaderboardDrawer({
             {/* ── Context for weaker students ── */}
             {data.percentile < 40 && (
               <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4">
-                <p className="text-xs text-amber-300 font-bold mb-1">💪 You're building momentum!</p>
+                <p className="text-xs text-amber-300 font-bold mb-1">💪 You&apos;re building momentum!</p>
                 <p className="text-[11px] text-amber-400/70 leading-relaxed">
                   Every paper you submit moves you up. Most high-rankers started where you are now.
                   Your next goal: practice 3 times this week to break into the top half.
@@ -141,10 +158,10 @@ export default function LeaderboardDrawer({
                 <h3 className="text-[10px] font-black tracking-widest text-slate-500 uppercase mb-2">Peers at Your Level</h3>
                 <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-3">
                   <p className="text-[11px] text-slate-400">
-                    {data.sameLevelPeersCount} other {data.myLevel}(s) at similar XP — you're not alone!
+                    {data.sameLevelPeersCount} other {data.myLevel}(s) at similar XP &mdash; you&apos;re not alone!
                   </p>
                   <div className="flex gap-2 mt-2">
-                    {data.sameLevelPeers.slice(0, 3).map((peer: any, i: number) => (
+                    {data.sameLevelPeers.slice(0, 3).map((peer: SameLevelPeer, i: number) => (
                       <div key={i} className="flex-1 bg-slate-800/50 rounded-lg p-2 text-center">
                         <p className="text-[10px] font-mono text-slate-400">{peer.xp}pts</p>
                         <p className="text-[8px] text-slate-600">🔥{peer.streak}d</p>
@@ -160,13 +177,13 @@ export default function LeaderboardDrawer({
               <div>
                 <h3 className="text-[10px] font-black tracking-widest text-emerald-500 uppercase mb-2">📈 Most Improved This Week</h3>
                 <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-3">
-                  {data.mostImproved.map((improver: any, i: number) => (
+                  {data.mostImproved.map((improver: MostImprovedEntry, i: number) => (
                     <div key={i} className="flex items-center gap-2 py-1.5 border-b border-slate-800/50 last:border-0">
                       <span className="text-[10px] font-mono text-emerald-400 font-bold w-8">+{improver.xpGained}</span>
                       <span className="text-[10px] text-slate-500">pts this week</span>
                     </div>
                   ))}
-                  <p className="text-[9px] text-slate-600 mt-2">Others are climbing — so can you! Every submission counts.</p>
+                  <p className="text-[9px] text-slate-600 mt-2">Others are climbing &mdash; so can you! Every submission counts.</p>
                 </div>
               </div>
             )}
@@ -176,7 +193,7 @@ export default function LeaderboardDrawer({
               <div>
                 <h3 className="text-[10px] font-black tracking-widest text-amber-500 uppercase mb-2">🏅 Top Students</h3>
                 <div className="bg-slate-900/40 border border-slate-800 rounded-xl overflow-hidden">
-                  {data.leaderboard.slice(0, 10).map((entry: any) => (
+                  {data.leaderboard.slice(0, 10).map((entry: LeaderboardEntry) => (
                     <div
                       key={entry.rank}
                       className={`flex items-center justify-between px-4 py-2.5 border-b border-slate-800/50 last:border-0 ${
@@ -200,7 +217,7 @@ export default function LeaderboardDrawer({
                   ))}
                 </div>
                 {!data.isInTopTwenty && (
-                  <p className="text-[9px] text-slate-600 text-center mt-2">You're climbing — keep submitting to reach the board!</p>
+                  <p className="text-[9px] text-slate-600 text-center mt-2">You&apos;re climbing &mdash; keep submitting to reach the board!</p>
                 )}
               </div>
             )}
@@ -208,7 +225,7 @@ export default function LeaderboardDrawer({
             {/* ── Motivational Footer ── */}
             <div className="text-center pt-2">
               <p className="text-[10px] text-slate-600 italic">
-                "The only person you should try to be better than is the person you were yesterday."
+                &ldquo;The only person you should try to be better than is the person you were yesterday.&rdquo;
               </p>
             </div>
           </div>

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const url = req.nextUrl.clone();
 
   // Only intercept /admin/* routes – everything else passes through.
@@ -55,7 +55,7 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  // Skip Next internals + static assets to keep middleware cheap.
+  // Skip Next internals + static assets to keep proxy cheap.
   matcher: [
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],

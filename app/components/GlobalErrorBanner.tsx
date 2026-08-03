@@ -12,7 +12,9 @@ interface GlobalErrorBannerProps {
  * Monitors navigator.onLine and dispatches a custom event for API errors.
  */
 export default function GlobalErrorBanner({ onRetry }: GlobalErrorBannerProps) {
-  const [isOffline, setIsOffline] = useState(false);
+  const [isOffline, setIsOffline] = useState(() =>
+    typeof navigator !== 'undefined' ? !navigator.onLine : false,
+  );
   const [apiError, setApiError] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState(false);
 
@@ -28,7 +30,6 @@ export default function GlobalErrorBanner({ onRetry }: GlobalErrorBannerProps) {
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    setIsOffline(!navigator.onLine);
 
     return () => {
       window.removeEventListener('online', handleOnline);

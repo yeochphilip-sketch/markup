@@ -1117,6 +1117,8 @@ const GENERATION_SOURCE_RULES: Record<string, string> = {
     'Sources should be useful for SOME historical inquiries but limited for OTHERS. The content and provenance should create a clear utility trade-off that students can evaluate.',
   seq:
     'The question prompt should ask students to explain or evaluate MULTIPLE FACTORS. Sources are less important than a well-structured essay prompt that requires PEEL structure.',
+  srq:
+    'No sources needed. The prompt should be a standalone structured response question (SRQ) requiring evaluation, recommendation, or judgment. Focus on clear criteria for assessment — evidence, analysis, and balanced judgment.',
 };
 
 function getGenerationSourceRules(questionType: string): string {
@@ -1127,6 +1129,7 @@ function getGenerationSourceRules(questionType: string): string {
   if (type.includes('purpose') || type.includes('target') || type.includes('motive')) return GENERATION_SOURCE_RULES.purpose;
   if (type.includes('utility')) return GENERATION_SOURCE_RULES.utility;
   if (type.includes('seq') || type.includes('essay') || type.includes('factor')) return GENERATION_SOURCE_RULES.seq;
+  if (type.includes('srq') || type.includes('structured response')) return GENERATION_SOURCE_RULES.srq;
   // All Formats — include the full exam package instructions
   return ALL_FORMATS_INSTRUCTIONS;
 }
@@ -1147,9 +1150,24 @@ Assessment Objectives: ${aos}
 Topic: ${topic}
 Target Skill Track: ${questionType}
 
-Produce a complete exam stimulus package: background context, two distinct
-provenance-stamped sources with substantive content, and a unified question
-prompt with per-section sub-prompts (SBCS, SEQ, SRQ).
+## EXAM PACKAGE STRUCTURE (TRACK-DEPENDENT)
+
+The output format depends on the Target Skill Track:
+
+### For SBQ tracks (Inference, Comparison, Purpose, Reliability, Utility, Synthesis):
+Generate: background context, 2 distinct provenance-stamped sources with substantive content, and a single SBCS question prompt. Include additional sources (C, D, E) if the skill is Synthesis/Assertion.
+Do NOT generate SEQ or SRQ content.
+
+### For SRQ tracks (Structured Response Questions):
+Generate: a standalone structured response question prompt with background context. No sources needed.
+Do NOT generate SBCS or SEQ content.
+
+### For SEQ tracks (Structured Essay Questions / Factor Prioritization):
+Generate: 3 distinct essay prompts with a brief stimulus context. No sources needed.
+Do NOT generate SBCS or SRQ content.
+
+### For All Formats (SBCS + SEQ + SRQ Bundle):
+Generate: the full exam package — background context, 5 provenance-stamped sources (A–E), SBCS sub-questions Parts (a)–(e), 2 SRQ prompts, and 3 SEQ essay prompts.
 
 ## SKILL-SPECIFIC SOURCE REQUIREMENTS
 
@@ -1161,10 +1179,6 @@ ${sourceRules}
 - Do not include markdown formatting — plain text only.
 - Match the register and tone of SEAB-produced materials (formal, neutral, precise).
 - The suggested answer should demonstrate A1 standard for the selected skill track.
-- If the skill track is SBQ-only (e.g., Comparison, Inference, Reliability), leave SEQ and SRQ
-  prompts as "Optional: Section deactivated for focused skill strategy simulation."
-- If the skill track is SRQ-only, generate ALL 5 sources + SBQ questions Part (a)-(e) BUT the focus should be on SRQ — ensure the SRQ section is particularly detailed with nuanced, evaluative prompts.
-- If the skill track is SEQ-only (History), generate the 3 SEQ essay prompts with the stimulus context but the main focus is the essay prompts.
 
 ## SCHOOL BENCHMARKING
 

@@ -8,6 +8,7 @@ import { Analytics } from '@vercel/analytics/react';
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.SITE_URL || 'https://markup.app'),
   title: {
     template: '%s | MARKUP',
     default: 'MARKUP — O-Level Humanities AI Practice',
