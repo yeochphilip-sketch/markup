@@ -9,19 +9,24 @@ export const maxDuration = 10;
  * Shared SQL query + response builder for user_skill_metrics.
  * Accepts any Supabase-compatible client (service-role or authenticated).
  */
-const METRICS_SELECT = `
-  email_reminders_enabled,
-  practice_receipt_enabled,
-  ss_goal_level,
-  history_goal_level,
-  takes_history,
-  exam_date,
-  exam_goal_level,
-  current_streak,
-  total_xp,
-  level_title,
-  total_evaluations
-`;
+/** Columns present in every deployed schema. */
+const BASE_METRICS_COLUMNS = [
+  'email_reminders_enabled',
+  'practice_receipt_enabled',
+  'ss_goal_level',
+  'history_goal_level',
+  'takes_history',
+  'exam_date',
+  'exam_goal_level',
+  'current_streak',
+  'total_xp',
+  'level_title',
+  'total_evaluations',
+];
+
+/** Added by supabase/delta_migration.sql — may be absent until it is applied. */
+const METRICS_SELECT = [...BASE_METRICS_COLUMNS, 'history_track'].join(', ');
+const LEGACY_METRICS_SELECT = BASE_METRICS_COLUMNS.join(', ');
 
 function buildMetricsResponse(metrics: Record<string, any> | null) {
   return NextResponse.json({
@@ -29,6 +34,7 @@ function buildMetricsResponse(metrics: Record<string, any> | null) {
     practice_receipt_enabled: metrics?.practice_receipt_enabled ?? true,
     ss_goal_level: metrics?.ss_goal_level ?? null,
     history_goal_level: metrics?.history_goal_level ?? null,
+    history_track: metrics?.history_track ?? null,
     takes_history: metrics?.takes_history ?? false,
     exam_date: metrics?.exam_date ?? null,
     exam_goal_level: metrics?.exam_goal_level ?? null,
@@ -44,11 +50,15 @@ function defaultMetricsResponse() {
 }
 
 async function fetchUserMetrics(supabase: any, userId: string) {
-  const { data: metrics, error } = await supabase
-    .from('user_skill_metrics')
-    .select(METRICS_SELECT)
-    .eq('user_id', userId)
-    .single();
+  const query = (columns: string) =>
+    supabase.from('user_skill_metrics').select(columns).eq('user_id', userId).single();
+
+  let { data: metrics, error } = await query(METRICS_SELECT);
+  // If delta_migration.sql hasn't run yet the optional column is missing; fall
+  // back to the base column set so settings still load with real values.
+  if (error) {
+    ({ data: metrics, error } = await query(LEGACY_METRICS_SELECT));
+  }
   return { metrics, error };
 }
 
@@ -114,6 +124,7 @@ export async function PATCH(request: Request) {
       practice_receipt_enabled?: boolean;
       ss_goal_level?: string | null;
       history_goal_level?: string | null;
+      history_track?: string | null;
       takes_history?: boolean;
       exam_date?: string | null;
       exam_goal_level?: string | null;
@@ -137,6 +148,7 @@ export async function PATCH(request: Request) {
       'practice_receipt_enabled',
       'ss_goal_level',
       'history_goal_level',
+      'history_track',
       'takes_history',
       'exam_date',
       'exam_goal_level',

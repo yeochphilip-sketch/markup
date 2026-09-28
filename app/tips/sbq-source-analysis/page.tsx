@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { breadcrumbJsonLd, jsonLdScript } from '@/lib/structured-data';
 
 export const metadata: Metadata = {
   title: 'How to Analyse Sources for SBQ — A Complete Framework',
+  alternates: { canonical: '/tips/sbq-source-analysis' },
+  robots: { index: true, follow: true },
   description:
     'Master the foundational skill of source analysis for O-Level SBQ. Learn the 5-question provenance framework, tone analysis, content vs message, and cross-referencing techniques that apply to every SBQ question type.',
   openGraph: {
@@ -35,6 +38,19 @@ export default function SBQSourceAnalysisPage() {
           <span>/</span>
           <span className="text-slate-400">Source Analysis</span>
         </nav>
+        {/* BreadcrumbList structured data (matches the visible nav above) */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: jsonLdScript(
+              breadcrumbJsonLd([
+                { name: 'Home', href: '/' },
+                { name: 'Tips & Guides', href: '/tips' },
+                { name: 'Source Analysis', href: '/tips/sbq-source-analysis' },
+              ])
+            ),
+          }}
+        />
 
         {/* Hero */}
         <div className="space-y-4 border-b border-slate-900 pb-8">
@@ -110,7 +126,7 @@ export default function SBQSourceAnalysisPage() {
 
           <div className="bg-indigo-950/30 border border-indigo-900/30 rounded-xl p-4">
             <p className="text-xs text-indigo-300 font-bold">
-              💡 <strong className="text-slate-200">The insight:</strong> Top SBQ students don&apos;t
+              Tip <strong className="text-slate-200">The insight:</strong> Top SBQ students don&apos;t
               just answer the question — they first <em>interrogate the source</em>. The best
               answers show the examiner that you&apos;ve really engaged with the source, not just
               extracted a relevant quote.
@@ -135,7 +151,7 @@ export default function SBQSourceAnalysisPage() {
                   <h3 className="text-sm font-bold text-white">WHO is the author/speaker?</h3>
                   <p className="text-xs text-slate-400 mt-1">Is it an individual? An organisation? A government body? A journalist? An ordinary person? The author&apos;s identity tells you about their potential biases and perspective.</p>
                   <div className="bg-slate-900/70 rounded-lg p-2 mt-2 text-[10px] font-mono text-slate-400">
-                    <p>💡 <em>&ldquo;A British colonial official writing about Malaya&rdquo; vs &ldquo;A Malay nationalist writing about Malaya&rdquo; — same topic, radically different perspective.</em></p>
+                    <p>Tip <em>&ldquo;A British colonial official writing about Malaya&rdquo; vs &ldquo;A Malay nationalist writing about Malaya&rdquo; — same topic, radically different perspective.</em></p>
                   </div>
                 </div>
               </div>
@@ -148,7 +164,7 @@ export default function SBQSourceAnalysisPage() {
                   <h3 className="text-sm font-bold text-white">WHEN was the source created?</h3>
                   <p className="text-xs text-slate-400 mt-1">The date is not just a detail — it&apos;s one of the most important pieces of information. Was it written at the time of the events (contemporary) or later (retrospective)? Was it before, during, or after key events?</p>
                   <div className="bg-slate-900/70 rounded-lg p-2 mt-2 text-[10px] font-mono text-slate-400">
-                    <p>💡 <em>&ldquo;A speech by Lee Kuan Yew in 1965 (just after independence)&rdquo; vs &ldquo;Lee Kuan Yew&apos;s memoirs published in 2000&rdquo; — timing affects perspective and reliability differently.</em></p>
+                    <p>Tip <em>&ldquo;A speech by Lee Kuan Yew in 1965 (just after independence)&rdquo; vs &ldquo;Lee Kuan Yew&apos;s memoirs published in 2000&rdquo; — timing affects perspective and reliability differently.</em></p>
                   </div>
                 </div>
               </div>
@@ -161,7 +177,7 @@ export default function SBQSourceAnalysisPage() {
                   <h3 className="text-sm font-bold text-white">WHAT TYPE of source is it?</h3>
                   <p className="text-xs text-slate-400 mt-1">Is it a government document (official record)? A personal letter (private opinion)? A newspaper article (public communication with possible bias)? A photograph (visual evidence that can be staged)? A speech (performance with audience in mind)?</p>
                   <div className="bg-slate-900/70 rounded-lg p-2 mt-2 text-[10px] font-mono text-slate-400">
-                    <p>💡 <em>A diplomatic cable (private, meant for few eyes) is very different from a political speech (public, meant to persuade). Don&apos;t treat them the same way.</em></p>
+                    <p>Tip <em>A diplomatic cable (private, meant for few eyes) is very different from a political speech (public, meant to persuade). Don&apos;t treat them the same way.</em></p>
                   </div>
                 </div>
               </div>
@@ -174,7 +190,7 @@ export default function SBQSourceAnalysisPage() {
                   <h3 className="text-sm font-bold text-white">WHY was the source created?</h3>
                   <p className="text-xs text-slate-400 mt-1">What was the author trying to achieve? To inform? To persuade? To justify? To criticise? To record? The purpose shapes the content dramatically.</p>
                   <div className="bg-slate-900/70 rounded-lg p-2 mt-2 text-[10px] font-mono text-slate-400">
-                    <p>💡 <em>A company&apos;s annual report (meant to attract investors) will present information differently from an independent journalist&apos;s investigation.</em></p>
+                    <p>Tip <em>A company&apos;s annual report (meant to attract investors) will present information differently from an independent journalist&apos;s investigation.</em></p>
                   </div>
                 </div>
               </div>
@@ -187,7 +203,7 @@ export default function SBQSourceAnalysisPage() {
                   <h3 className="text-sm font-bold text-white">FOR WHOM was the source intended?</h3>
                   <p className="text-xs text-slate-400 mt-1">Who is the intended audience? A domestic audience? An international audience? A specific group or the general public? Audience affects what the author emphasises or omits.</p>
                   <div className="bg-slate-900/70 rounded-lg p-2 mt-2 text-[10px] font-mono text-slate-400">
-                    <p>💡 <em>A speech about democracy aimed at Western audiences will differ from the same leader&apos;s speech on the same topic aimed at a domestic audience — even if the topic is the same.</em></p>
+                    <p>Tip <em>A speech about democracy aimed at Western audiences will differ from the same leader&apos;s speech on the same topic aimed at a domestic audience — even if the topic is the same.</em></p>
                   </div>
                 </div>
               </div>
@@ -196,7 +212,7 @@ export default function SBQSourceAnalysisPage() {
 
           <div className="bg-emerald-950/30 border border-emerald-900/30 rounded-xl p-4">
             <p className="text-xs text-emerald-300 font-bold">
-              🎯 <strong className="text-white">Provenance cheat sheet for exams:</strong> Ask yourself
+              Goal <strong className="text-white">Provenance cheat sheet for exams:</strong> Ask yourself
               &ldquo;What does the provenance tell me about this source&apos;s perspective, reliability,
               and purpose?&rdquo; — then write it down as your opening sentence for the question.
             </p>
@@ -245,9 +261,9 @@ export default function SBQSourceAnalysisPage() {
               complete indifference to the plight of ordinary citizens.&rdquo;
             </blockquote>
             <div className="text-[10px] text-slate-400 mt-2 space-y-1">
-              <p>🔍 Tone: <strong className="text-slate-200">Critical and accusatory</strong></p>
-              <p>🔍 Key language: &ldquo;Reckless&rdquo; (loaded term), &ldquo;untold suffering&rdquo; (emotive exaggeration), &ldquo;complete indifference&rdquo; (absolutist language)</p>
-              <p>🔍 What this reveals: The author is hostile to the government. They are not simply reporting — they are <strong className="text-slate-200">arguing against</strong> the policy. This tells us about their purpose and likely bias.</p>
+              <p>Tone: <strong className="text-slate-200">Critical and accusatory</strong></p>
+              <p>Key language: &ldquo;Reckless&rdquo; (loaded term), &ldquo;untold suffering&rdquo; (emotive exaggeration), &ldquo;complete indifference&rdquo; (absolutist language)</p>
+              <p>What this reveals: The author is hostile to the government. They are not simply reporting — they are <strong className="text-slate-200">arguing against</strong> the policy. This tells us about their purpose and likely bias.</p>
             </div>
           </div>
         </section>
@@ -289,7 +305,7 @@ export default function SBQSourceAnalysisPage() {
 
           <div className="bg-amber-950/30 border border-amber-900/30 rounded-xl p-4">
             <p className="text-xs text-amber-300 font-bold">
-              ⚠️ <strong className="text-white">Critical:</strong> Top-band SBQ answers are built on
+              Warning <strong className="text-white">Critical:</strong> Top-band SBQ answers are built on
               message analysis, not content description. When you write &ldquo;The source shows…&rdquo;
               or &ldquo;The source says…&rdquo;, check whether you&apos;re describing content or
               analysing message. Most students do the former; top students do the latter.
@@ -315,45 +331,45 @@ export default function SBQSourceAnalysisPage() {
 
           <div className="space-y-3">
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <h3 className="text-sm font-bold text-emerald-400">✅ Supporting Cross-Reference</h3>
+              <h3 className="text-sm font-bold text-emerald-400">✓ Supporting Cross-Reference</h3>
               <p className="text-xs text-slate-400 mt-1">
                 Source A says X. Source B also says X, or provides additional evidence consistent
                 with X. This <strong className="text-slate-200">corroboration</strong> makes Source
                 A more likely to be reliable.
               </p>
               <div className="bg-slate-900/70 rounded-lg p-2 mt-2 text-[10px] font-mono text-slate-400">
-                <p>💡 <em>&ldquo;Source A claims that the CIA funded the coup. This is corroborated by Source C, a declassified US Senate report, which states that &lsquo;substantial funds were channelled to opposition groups.&rsquo;&rdquo;</em></p>
+                <p>Tip <em>&ldquo;Source A claims that the CIA funded the coup. This is corroborated by Source C, a declassified US Senate report, which states that &lsquo;substantial funds were channelled to opposition groups.&rsquo;&rdquo;</em></p>
               </div>
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <h3 className="text-sm font-bold text-rose-400">❌ Contradicting Cross-Reference</h3>
+              <h3 className="text-sm font-bold text-rose-400">✗ Contradicting Cross-Reference</h3>
               <p className="text-xs text-slate-400 mt-1">
                 Source A says X, but Source B says Y (something that contradicts X). This raises
                 questions about whose account is more reliable — you need to then evaluate
                 provenance to decide.
               </p>
               <div className="bg-slate-900/70 rounded-lg p-2 mt-2 text-[10px] font-mono text-slate-400">
-                <p>💡 <em>&ldquo;However, Source D, a speech by the prime minister of the time, claims the coup was &lsquo;a spontaneous uprising of the people.&rsquo; This directly contradicts Source A&apos;s claim about CIA involvement. Given that the prime minister had political reasons to deny foreign interference, Source A may be more reliable.&rdquo;</em></p>
+                <p>Tip <em>&ldquo;However, Source D, a speech by the prime minister of the time, claims the coup was &lsquo;a spontaneous uprising of the people.&rsquo; This directly contradicts Source A&apos;s claim about CIA involvement. Given that the prime minister had political reasons to deny foreign interference, Source A may be more reliable.&rdquo;</em></p>
               </div>
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <h3 className="text-sm font-bold text-amber-400">🔍 Complementary Cross-Reference</h3>
+              <h3 className="text-sm font-bold text-amber-400">Complementary Cross-Reference</h3>
               <p className="text-xs text-slate-400 mt-1">
                 Source A says X. Source B doesn&apos;t say X, but provides additional context that
                 helps you understand X better. This is the most sophisticated type of
                 cross-referencing.
               </p>
               <div className="bg-slate-900/70 rounded-lg p-2 mt-2 text-[10px] font-mono text-slate-400">
-                <p>💡 <em>&ldquo;Source A focuses on the economic consequences of the policy. Source B, however, provides the social context — revealing that unemployment had reached 12% — which explains <em>why</em> the economic consequences were so severe.&rdquo;</em></p>
+                <p>Tip <em>&ldquo;Source A focuses on the economic consequences of the policy. Source B, however, provides the social context — revealing that unemployment had reached 12% — which explains <em>why</em> the economic consequences were so severe.&rdquo;</em></p>
               </div>
             </div>
           </div>
 
           <div className="bg-indigo-950/30 border border-indigo-900/30 rounded-xl p-4">
             <p className="text-xs text-indigo-300 font-bold">
-              🎯 <strong className="text-slate-200">Always cross-reference:</strong> Even if the
+              Goal <strong className="text-slate-200">Always cross-reference:</strong> Even if the
               question doesn&apos;t explicitly ask you to compare sources, cross-referencing shows
               the examiner you&apos;re thinking critically about the sources as a set.
             </p>
@@ -370,7 +386,7 @@ export default function SBQSourceAnalysisPage() {
           <div className="space-y-3">
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
               <div className="flex items-center gap-2">
-                <span className="text-indigo-400 text-lg">📖</span>
+                <span className="text-indigo-400 text-lg">Guide</span>
                 <h3 className="text-sm font-bold text-slate-200">Comparison (6-mark)</h3>
               </div>
               <p className="text-xs text-slate-400 mt-1">
@@ -382,7 +398,7 @@ export default function SBQSourceAnalysisPage() {
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
               <div className="flex items-center gap-2">
-                <span className="text-purple-400 text-lg">🔍</span>
+                <span className="text-purple-400 text-lg">Investigate</span>
                 <h3 className="text-sm font-bold text-slate-200">Reliability (5/7-mark)</h3>
               </div>
               <p className="text-xs text-slate-400 mt-1">
@@ -394,7 +410,7 @@ export default function SBQSourceAnalysisPage() {
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
               <div className="flex items-center gap-2">
-                <span className="text-rose-400 text-lg">🎯</span>
+                <span className="text-rose-400 text-lg">Goal</span>
                 <h3 className="text-sm font-bold text-slate-200">Purpose (5/7-mark)</h3>
               </div>
               <p className="text-xs text-slate-400 mt-1">
@@ -406,7 +422,7 @@ export default function SBQSourceAnalysisPage() {
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
               <div className="flex items-center gap-2">
-                <span className="text-violet-400 text-lg">⚡</span>
+                <span className="text-violet-400 text-lg">Fast</span>
                 <h3 className="text-sm font-bold text-slate-200">Utility/Comparison (10-mark)</h3>
               </div>
               <p className="text-xs text-slate-400 mt-1">
@@ -424,7 +440,7 @@ export default function SBQSourceAnalysisPage() {
 
           <div className="space-y-3">
             <div className="bg-indigo-950/30 border border-indigo-900/30 rounded-xl p-5 space-y-3">
-              <h3 className="text-sm font-black text-indigo-300">🎯 Use the 30-Second Provenance Drill</h3>
+              <h3 className="text-sm font-black text-indigo-300">Use the 30-Second Provenance Drill</h3>
               <p className="text-xs text-slate-400">
                 Before you read the content of any source, take 30 seconds to ask the 5 provenance
                 questions. Write down quick notes for each. Then read the source — you&apos;ll be
@@ -433,7 +449,7 @@ export default function SBQSourceAnalysisPage() {
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <h3 className="text-sm font-bold text-slate-200">📝 Source Analysis Template</h3>
+              <h3 className="text-sm font-bold text-slate-200">Source Analysis Template</h3>
               <p className="text-xs text-slate-400 mt-1">
                 Use this template for every source in your practice:
               </p>
@@ -451,7 +467,7 @@ export default function SBQSourceAnalysisPage() {
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <h3 className="text-sm font-bold text-slate-200">📊 Practice with MARKUP</h3>
+              <h3 className="text-sm font-bold text-slate-200">Practice with MARKUP</h3>
               <p className="text-xs text-slate-400 mt-1">
                 Generate SBQ papers in MARKUP and practise your source analysis framework before
                 answering the questions. Use the AI grading feedback to see whether your analysis
@@ -468,7 +484,7 @@ export default function SBQSourceAnalysisPage() {
         </section>
 
         {/* CTA Banner */}
-        <div className="bg-gradient-to-br from-indigo-950/50 to-slate-950/80 border border-indigo-800/50 rounded-2xl p-6 text-center space-y-3">
+        <div className="bg-indigo-950/70 border border-indigo-800/50 rounded-2xl p-6 text-center space-y-3">
           <p className="text-lg font-black text-white">Master SBQ with AI-powered feedback</p>
           <p className="text-xs text-slate-400 max-w-md mx-auto">
             Generate O-Level SBQ papers and get instant LORMS-aligned grading. Focus on one

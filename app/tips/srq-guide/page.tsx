@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { breadcrumbJsonLd, jsonLdScript } from '@/lib/structured-data';
 
 export const metadata: Metadata = {
   title: 'How to Answer SRQ Questions — O-Level Social Studies Guide (L3/8 Framework)',
+  alternates: { canonical: '/tips/srq-guide' },
+  robots: { index: true, follow: true },
   description:
     'Master the SRQ (Structured Response Question) for O-Level Social Studies. Learn the 3-step framework to score L3/8 with PEEL structure, evidence handling, and evaluation techniques.',
   openGraph: {
@@ -35,6 +38,19 @@ export default function SRQGuidePage() {
           <span>/</span>
           <span className="text-slate-400">SRQ Guide</span>
         </nav>
+        {/* BreadcrumbList structured data (matches the visible nav above) */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: jsonLdScript(
+              breadcrumbJsonLd([
+                { name: 'Home', href: '/' },
+                { name: 'Tips & Guides', href: '/tips' },
+                { name: 'SRQ Guide', href: '/tips/srq-guide' },
+              ])
+            ),
+          }}
+        />
 
         {/* Hero */}
         <div className="space-y-4 border-b border-slate-900 pb-8">
@@ -47,9 +63,10 @@ export default function SRQGuidePage() {
             How to Answer SRQ Questions — Social Studies
           </h1>
           <p className="text-lg text-slate-400 leading-relaxed">
-            The SRQ (Structured Response Question) is the essay component of the O-Level Social
-            Studies paper. It tests your ability to construct arguments, use evidence, and make
-            judgements. Here&apos;s the complete framework to score L3/8.
+            The SRQ (Structured Response Question) is the essay section of the O-Level Social
+            Studies paper — Section B, worth 15 marks across Q6 (7 marks) and Q7 (8 marks). It tests
+            your ability to construct arguments, use evidence, and make judgements. Here&apos;s the
+            complete framework to score top LORMS bands.
           </p>
           <div className="flex items-center gap-3 text-xs text-slate-500">
             <div className="w-8 h-8 rounded-full bg-indigo-600/30 border border-indigo-500/30 flex items-center justify-center text-xs font-black text-indigo-400">M</div>
@@ -81,22 +98,23 @@ export default function SRQGuidePage() {
           <p>
             The SRQ (Structured Response Question) is the <strong className="text-slate-200">essay
             component</strong> of the O-Level Social Studies paper. It is typically worth{' '}
-            <strong className="text-slate-200">8 marks</strong> and tests your ability to:
+            <strong className="text-slate-200">15 marks in total</strong> — Q6 (7 marks) and Q7
+            (8 marks) — and tests your ability to:
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-center">
-              <p className="text-2xl mb-1">📝</p>
+              <p className="text-2xl mb-1">Essay</p>
               <h3 className="text-xs font-bold text-slate-200">Construct Arguments</h3>
               <p className="text-[10px] text-slate-400 mt-1">Take a position and defend it with reasoning</p>
             </div>
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-center">
-              <p className="text-2xl mb-1">📊</p>
+              <p className="text-2xl mb-1">Stats</p>
               <h3 className="text-xs font-bold text-slate-200">Use Evidence</h3>
               <p className="text-[10px] text-slate-400 mt-1">Support claims with specific examples and facts</p>
             </div>
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-center">
-              <p className="text-2xl mb-1">⚖️</p>
+              <p className="text-2xl mb-1">Judge</p>
               <h3 className="text-xs font-bold text-slate-200">Evaluate</h3>
               <p className="text-[10px] text-slate-400 mt-1">Make balanced judgements showing different perspectives</p>
             </div>
@@ -159,7 +177,7 @@ export default function SRQGuidePage() {
               <p className="text-xs text-slate-300 mt-1 font-bold">State your argument clearly</p>
               <p className="text-[10px] text-slate-400 mt-1">Start with a clear topic sentence that states your point. This should directly address the question and take a position.</p>
               <div className="bg-slate-900/70 rounded-lg p-2 mt-2 text-[10px] font-mono text-slate-400">
-                <p>💡 <em>&ldquo;One key reason why the policy was effective is that it addressed the root cause of the problem.&rdquo;</em></p>
+                <p>Tip <em>&ldquo;One key reason why the policy was effective is that it addressed the root cause of the problem.&rdquo;</em></p>
               </div>
             </div>
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
@@ -167,7 +185,7 @@ export default function SRQGuidePage() {
               <p className="text-xs text-slate-300 mt-1 font-bold">Support with specific examples</p>
               <p className="text-[10px] text-slate-400 mt-1">Provide concrete evidence: statistics, case studies, named examples, historical facts. Be as specific as possible.</p>
               <div className="bg-slate-900/70 rounded-lg p-2 mt-2 text-[10px] font-mono text-slate-400">
-                <p>💡 <em>&ldquo;For example, after the implementation of [specific policy] in [year], [specific outcome] occurred. This is evidenced by…&rdquo;</em></p>
+                <p>Tip <em>&ldquo;For example, after the implementation of [specific policy] in [year], [specific outcome] occurred. This is evidenced by…&rdquo;</em></p>
               </div>
             </div>
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
@@ -175,7 +193,7 @@ export default function SRQGuidePage() {
               <p className="text-xs text-slate-300 mt-1 font-bold">Explain how the evidence proves your point</p>
               <p className="text-[10px] text-slate-400 mt-1">This is the most important part. Don&apos;t just state evidence — explain <strong className="text-slate-200">why</strong> it supports your argument. Connect the dots for the examiner.</p>
               <div className="bg-slate-900/70 rounded-lg p-2 mt-2 text-[10px] font-mono text-slate-400">
-                <p>💡 <em>&ldquo;This demonstrates effectiveness because it shows that… The reason this matters is…&rdquo;</em></p>
+                <p>Tip <em>&ldquo;This demonstrates effectiveness because it shows that… The reason this matters is…&rdquo;</em></p>
               </div>
             </div>
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
@@ -183,14 +201,14 @@ export default function SRQGuidePage() {
               <p className="text-xs text-slate-300 mt-1 font-bold">Link back to the question</p>
               <p className="text-[10px] text-slate-400 mt-1">End the paragraph by explicitly connecting back to the main question. This shows the examiner you haven&apos;t lost sight of the big picture.</p>
               <div className="bg-slate-900/70 rounded-lg p-2 mt-2 text-[10px] font-mono text-slate-400">
-                <p>💡 <em>&ldquo;Therefore, this supports the view that the policy was effective in achieving its objectives.&rdquo;</em></p>
+                <p>Tip <em>&ldquo;Therefore, this supports the view that the policy was effective in achieving its objectives.&rdquo;</em></p>
               </div>
             </div>
           </div>
 
           <div className="bg-indigo-950/30 border border-indigo-900/30 rounded-xl p-4">
             <p className="text-xs text-indigo-300 font-bold">
-              💡 Aim for <strong className="text-slate-200">3–4 PEEL paragraphs</strong> in your SRQ.
+              Aim for <strong className="text-slate-200">3–4 PEEL paragraphs</strong> in your SRQ.
               Two paragraphs arguing for your position, one paragraph presenting a counter-argument,
               and a conclusion that makes a balanced judgement.
             </p>
@@ -208,21 +226,21 @@ export default function SRQGuidePage() {
 
           <div className="space-y-2">
             <div className="bg-emerald-950/20 border border-emerald-900/30 rounded-xl p-3 flex items-center gap-3">
-              <span className="text-emerald-400 font-bold text-lg">🥇</span>
+              <span className="text-emerald-400 font-bold text-lg">1st</span>
               <div>
                 <p className="text-xs font-bold text-slate-200">Specific statistics &amp; data</p>
                 <p className="text-[10px] text-slate-400">&ldquo;70% of respondents reported…&rdquo; or &ldquo;GDP increased by 5% between 2010 and 2015.&rdquo;</p>
               </div>
             </div>
             <div className="bg-indigo-950/20 border border-indigo-900/30 rounded-xl p-3 flex items-center gap-3">
-              <span className="text-indigo-400 font-bold text-lg">🥈</span>
+              <span className="text-indigo-400 font-bold text-lg">2nd</span>
               <div>
                 <p className="text-xs font-bold text-slate-200">Named examples &amp; case studies</p>
                 <p className="text-[10px] text-slate-400">&ldquo;The SERS programme in Singapore&apos;s Ang Mo Kio estate demonstrated…&rdquo;</p>
               </div>
             </div>
             <div className="bg-amber-950/20 border border-amber-900/30 rounded-xl p-3 flex items-center gap-3">
-              <span className="text-amber-400 font-bold text-lg">🥉</span>
+              <span className="text-amber-400 font-bold text-lg">3rd</span>
               <div>
                 <p className="text-xs font-bold text-slate-200">General trends &amp; patterns</p>
                 <p className="text-[10px] text-slate-400">&ldquo;Many developed countries experienced a rise in… during the post-war period.&rdquo;</p>
@@ -231,7 +249,7 @@ export default function SRQGuidePage() {
           </div>
 
           <div className="bg-red-950/20 border border-red-900/30 rounded-xl p-4">
-            <p className="text-xs text-red-300 font-bold">❌ Avoid vague evidence like &ldquo;many people think&rdquo; or &ldquo;studies show&rdquo; without specifics. The examiner has seen thousands of generic answers — specific evidence is what earns marks.</p>
+            <p className="text-xs text-red-300 font-bold">✗ Avoid vague evidence like &ldquo;many people think&rdquo; or &ldquo;studies show&rdquo; without specifics. The examiner has seen thousands of generic answers — specific evidence is what earns marks.</p>
           </div>
         </section>
 
@@ -246,27 +264,27 @@ export default function SRQGuidePage() {
 
           <div className="space-y-3">
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <h3 className="text-sm font-bold text-slate-200 mb-1">🔄 Address Counter-Arguments</h3>
+              <h3 className="text-sm font-bold text-slate-200 mb-1">Address Counter-Arguments</h3>
               <p className="text-xs text-slate-400">
                 Dedicate one paragraph to the opposing view. This shows the examiner you understand
                 the complexity of the issue. Use phrases like:
               </p>
               <div className="bg-slate-900/70 rounded-lg p-2 mt-2 text-[10px] font-mono text-slate-400">
-                <p>🔹 &ldquo;However, some might argue that…&rdquo;</p>
-                <p>🔹 &ldquo;On the other hand, it could be said that…&rdquo;</p>
-                <p>🔹 &ldquo;A counter-argument to this view is…&rdquo;</p>
+                <p>&ldquo;However, some might argue that…&rdquo;</p>
+                <p>&ldquo;On the other hand, it could be said that…&rdquo;</p>
+                <p>&ldquo;A counter-argument to this view is…&rdquo;</p>
               </div>
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <h3 className="text-sm font-bold text-slate-200 mb-1">⚖️ Weigh the Evidence</h3>
+              <h3 className="text-sm font-bold text-slate-200 mb-1">Weigh the Evidence</h3>
               <p className="text-xs text-slate-400">
                 In your conclusion, don&apos;t just repeat your main points —{' '}
                 <strong className="text-slate-200">weigh</strong> both sides and make a clear
                 judgement. Use a nuanced conclusion:
               </p>
               <div className="bg-slate-900/70 rounded-lg p-2 mt-2 text-[10px] font-mono text-slate-400">
-                <p>✅ <span className="text-emerald-400">&ldquo;On balance, while [counter-argument] has some merit, the evidence strongly supports [my position] because…&rdquo;</span></p>
+                <p>✓ <span className="text-emerald-400">&ldquo;On balance, while [counter-argument] has some merit, the evidence strongly supports [my position] because…&rdquo;</span></p>
               </div>
             </div>
           </div>
@@ -293,10 +311,10 @@ export default function SRQGuidePage() {
                 exams. This is good because it gives everyone a fair chance.&rdquo;
               </p>
               <div className="text-[10px] text-red-400 space-y-1">
-                <p>❌ No clear argument or thesis</p>
-                <p>❌ No specific evidence or examples</p>
-                <p>❌ Descriptive — doesn&apos;t answer &ldquo;most important&rdquo;</p>
-                <p>❌ No evaluation or counter-argument</p>
+                <p>✗ No clear argument or thesis</p>
+                <p>✗ No specific evidence or examples</p>
+                <p>✗ Descriptive — doesn&apos;t answer &ldquo;most important&rdquo;</p>
+                <p>✗ No evaluation or counter-argument</p>
               </div>
             </div>
 
@@ -334,11 +352,11 @@ export default function SRQGuidePage() {
                 through its shift towards SkillsFuture and lifelong learning.
               </p>
               <div className="text-[10px] text-emerald-400 space-y-1 mt-2">
-                <p>✅ Clear thesis with nuanced position</p>
-                <p>✅ PEEL structure in each paragraph</p>
-                <p>✅ Specific evidence (PISA, TIMSS, Edusave, SkillsFuture)</p>
-                <p>✅ Addresses counter-argument (criticism of streaming, inequality)</p>
-                <p>✅ Strong, balanced conclusion</p>
+                <p>✓ Clear thesis with nuanced position</p>
+                <p>✓ PEEL structure in each paragraph</p>
+                <p>✓ Specific evidence (PISA, TIMSS, Edusave, SkillsFuture)</p>
+                <p>✓ Addresses counter-argument (criticism of streaming, inequality)</p>
+                <p>✓ Strong, balanced conclusion</p>
               </div>
             </div>
           </div>
@@ -350,7 +368,7 @@ export default function SRQGuidePage() {
 
           <div className="space-y-3">
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg">🚫</span>
+              <span className="text-red-400 text-lg">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">No thesis statement</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -361,7 +379,7 @@ export default function SRQGuidePage() {
               </div>
             </div>
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg">🚫</span>
+              <span className="text-red-400 text-lg">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">One-sided arguments</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -372,7 +390,7 @@ export default function SRQGuidePage() {
               </div>
             </div>
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg">🚫</span>
+              <span className="text-red-400 text-lg">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">Weak conclusion</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -383,7 +401,7 @@ export default function SRQGuidePage() {
               </div>
             </div>
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg">🚫</span>
+              <span className="text-red-400 text-lg">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">Vague or generic evidence</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -401,7 +419,7 @@ export default function SRQGuidePage() {
           <h2 className="text-xl font-black text-white">8. How to Practice Effectively</h2>
 
           <div className="bg-indigo-950/30 border border-indigo-900/30 rounded-xl p-5 space-y-3">
-            <h3 className="text-sm font-black text-indigo-300">🎯 Use MARKUP&apos;s Essay Generator</h3>
+            <h3 className="text-sm font-black text-indigo-300">Use MARKUP&apos;s Essay Generator</h3>
             <p className="text-xs text-slate-400">
               Generate unlimited SRQ questions on every O-Level Social Studies topic. Write your
               essay in the canvas, then get instant LORMS-aligned grading with feedback on your
@@ -421,14 +439,14 @@ export default function SRQGuidePage() {
               <li>Spend 3 minutes planning before writing — thesis, 3 body points, counter-argument, conclusion</li>
               <li>Use PEEL for every body paragraph — mark P, E, E, L in the margin if it helps</li>
               <li>Include at least one specific named example per paragraph</li>
-              <li>Keep to a 20-minute timer — that&apos;s your exam pace for an 8-mark SRQ</li>
+              <li>Keep to a 15-minute timer — that&apos;s your exam pace for an 8-mark SRQ</li>
               <li>Review your graded essays — did you evaluate or just argue? Was your evidence specific enough?</li>
             </ul>
           </div>
         </section>
 
         {/* CTA Banner */}
-        <div className="bg-gradient-to-br from-indigo-950/50 to-slate-950/80 border border-indigo-800/50 rounded-2xl p-6 text-center space-y-3">
+        <div className="bg-indigo-950/70 border border-indigo-800/50 rounded-2xl p-6 text-center space-y-3">
           <p className="text-lg font-black text-white">Master SRQs with AI-powered practice</p>
           <p className="text-xs text-slate-400 max-w-md mx-auto">
             MARKUP generates unlimited SRQ prompts, grades your essays, and gives you specific

@@ -4,7 +4,7 @@
  * Tracks request counts per IP address within a sliding window.
  * Resets automatically when the window expires.
  *
- * ⚠️ Note: In-memory only — not shared across serverless instances.
+ * Note: In-memory only — not shared across serverless instances.
  * For production with multiple Vercel instances, use Vercel KV or
  * a database-backed rate limiter instead. This is sufficient for beta.
  */
@@ -53,8 +53,7 @@ export const GENEROUS_RATE_LIMIT: RateLimitConfig = {
  * Tries common headers used by Vercel, Cloudflare, and local dev.
  */
 function getClientIp(request: Request): string {
-  return (
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+return (request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
     request.headers.get('x-real-ip') ??
     request.headers.get('cf-connecting-ip') ??
     '127.0.0.1'
@@ -66,8 +65,7 @@ function getClientIp(request: Request): string {
  *
  * @returns An object with `allowed` (boolean) and `headers` (response headers).
  */
-export function checkRateLimit(
-  request: Request,
+ export function checkRateLimit(request: Request,
   config: RateLimitConfig = DEFAULT_RATE_LIMIT,
 ): { allowed: boolean; headers: Record<string, string> } {
   const ip = getClientIp(request);
@@ -112,8 +110,7 @@ export function checkRateLimit(
  * Returns a 429 Response when a request is rate-limited.
  */
 export function rateLimitResponse(headers: Record<string, string>): Response {
-  return new Response(
-    JSON.stringify({
+return new Response(JSON.stringify({
       error: 'Too many requests. Please slow down and try again.',
       retryAfter: headers['Retry-After'] ?? '60',
     }),

@@ -31,9 +31,8 @@ async function requireAdmin(): Promise<{ supabase: ReturnType<typeof createClien
     return { supabase: null as any, error: NextResponse.json({ error: 'Authentication check failed' }, { status: 403 }) };
   }
 
-  const isAdmin =
-    user?.app_metadata?.is_admin === true ||
-    user?.user_metadata?.is_admin === true;
+  // app_metadata only — user_metadata is end-user-editable.
+  const isAdmin = user?.app_metadata?.is_admin === true;
 
   if (!user || !isAdmin) {
     return { supabase: null as any, error: NextResponse.json({ error: 'Unauthorized — admin access required' }, { status: 403 }) };
@@ -46,7 +45,7 @@ async function requireAdmin(): Promise<{ supabase: ReturnType<typeof createClien
 
 export async function POST(request: Request) {
   try {
-    // ⚠️ Admin authorization check
+    // Admin authorization check
     const { error: authError } = await requireAdmin();
     if (authError) return authError;
 
@@ -164,7 +163,7 @@ export async function POST(request: Request) {
 // GET all ambassadors
 export async function GET() {
   try {
-    // ⚠️ Admin authorization check
+    // Admin authorization check
     const { error: authError } = await requireAdmin();
     if (authError) return authError;
 

@@ -53,14 +53,14 @@ export default function LevelUpModal({
 
         {/* Progress bar at top */}
         <div className="absolute top-0 left-0 right-0 h-0.5 bg-indigo-950/50">
-          <div className={`h-full bg-gradient-to-r from-indigo-400 to-purple-500 animate-shrink-width ${isHovered ? 'animate-paused' : ''}`} />
+          <div className={`h-full bg-indigo-400 animate-shrink-width ${isHovered ? 'animate-paused' : ''}`} />
         </div>
         
         <div className="relative z-10">
           <div className="text-5xl mb-3 animate-bounce">
             {getLevelConfig(levelUpInfo.to).icon}
           </div>
-          <h2 className="text-lg font-black text-white mb-1">🎉 Level Up!</h2>
+          <h2 className="text-lg font-black text-white mb-1">Level Up!</h2>
           <p className="text-sm text-slate-400 mb-4">
             You advanced from{' '}
             <span className="font-bold text-slate-300">{levelUpInfo.from}</span>
@@ -87,7 +87,7 @@ export default function LevelUpModal({
               e.stopPropagation();
               dismiss();
             }}
-            className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs px-6 py-2.5 rounded-xl transition shadow-lg"
+            className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-6 py-2.5 rounded-xl transition shadow-lg"
           >
             Continue
           </button>

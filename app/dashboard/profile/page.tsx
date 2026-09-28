@@ -196,7 +196,7 @@ export default function ProfilePage() {
         </div>
       </header>          <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-5 sm:space-y-6">
         {/* ── Overview Card ── */}
-        <div className="bg-gradient-to-br from-indigo-600/5 to-purple-600/5 border border-indigo-500/20 rounded-3xl p-4 sm:p-6">
+        <div className="bg-indigo-950/40 border border-indigo-500/20 rounded-3xl p-4 sm:p-6">
           <div className="flex items-center gap-5">
             <div className="text-5xl">{getLevelConfig(levelTitle).icon}</div>
             <div className="flex-1">
@@ -218,7 +218,7 @@ export default function ProfilePage() {
               </div>
               <div className="h-2.5 bg-slate-800 rounded-full overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-700"
+                  className="h-full rounded-full bg-indigo-500 transition-all duration-700"
                   style={{ width: `${Math.min((xpProgress.current / Math.max(xpProgress.nextLevel, 1)) * 100, 100)}%` }}
                 />
               </div>
@@ -228,7 +228,7 @@ export default function ProfilePage() {
           {/* Decay warning */}
           {calcDecay > 0 && (
             <div className="mt-3 bg-rose-500/10 border border-rose-500/20 rounded-xl p-3 flex items-center gap-2">
-              <span className="text-lg">⚠️</span>
+              <span className="text-lg">Warning</span>
               <p className="text-[11px] text-rose-400 font-medium">
                 {calcDecay} XP decayed from inactivity. Practice to earn it back!
               </p>
@@ -262,7 +262,7 @@ export default function ProfilePage() {
         {/* ── XP Breakdown ── */}
         <div className="bg-slate-950/80 border border-slate-900 rounded-2xl p-5">
           <h3 className="text-[10px] font-black tracking-widest text-slate-400 uppercase mb-4 flex items-center gap-2">
-            📊 XP Breakdown
+            XP Breakdown
           </h3>
 
           {(() => {
@@ -366,7 +366,7 @@ export default function ProfilePage() {
                   <div className="h-20 sm:h-24 bg-slate-800 rounded-lg overflow-hidden relative flex items-end">
                     <div
                       className={`w-full rounded-t transition-all duration-700 ${
-                        val >= Math.ceil(skill.max / 2) ? 'bg-gradient-to-t from-indigo-500 to-purple-500' : 'bg-gradient-to-t from-rose-500 to-orange-500'
+                        val >= Math.ceil(skill.max / 2) ? 'bg-indigo-500' : 'bg-rose-500'
                       }`}
                       style={{ height: `${pct}%` }}
                     />
@@ -383,7 +383,7 @@ export default function ProfilePage() {
         {/* ── Achievements ── */}
         <div className="bg-slate-950/80 border border-slate-900 rounded-2xl p-5">
           <h3 className="text-[10px] font-black tracking-widest text-slate-400 uppercase mb-4">
-            🏅 Achievements ({unlockedCount}/{totalCount})
+            Achievements ({unlockedCount}/{totalCount})
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             {ACHIEVEMENT_DEFS.map((ach) => {
@@ -404,7 +404,7 @@ export default function ProfilePage() {
                     </p>
                     <p className="text-[9px] text-slate-500 truncate">{ach.description}</p>
                   </div>
-                  {unlocked && <span className="text-[9px] text-emerald-400">✅</span>}
+                  {unlocked && <span className="text-[9px] text-emerald-400">✓</span>}
                 </div>
               );
             })}
@@ -412,9 +412,9 @@ export default function ProfilePage() {
         </div>
 
         {/* ── Referral Programme ── */}
-        <div className="bg-gradient-to-br from-indigo-600/5 to-emerald-600/5 border border-indigo-500/20 rounded-2xl p-5">
+        <div className="bg-indigo-950/40 border border-indigo-500/20 rounded-2xl p-5">
           <h3 className="text-[10px] font-black tracking-widest text-indigo-400 uppercase mb-4">
-            🎉 Referral Programme
+            Referral Programme
           </h3>
           
           <div className="space-y-4">
@@ -435,7 +435,7 @@ export default function ProfilePage() {
                   }}
                   className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs px-4 rounded-xl transition"
                 >
-                  {copied ? '✅' : '📋'}
+                  {copied ? '✓' : 'Copy'}
                 </button>
               </div>
               {referralLink && (
@@ -521,7 +521,7 @@ export default function ProfilePage() {
             {referredBy && (
               <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 text-center">
                 <p className="text-[9px] text-emerald-400 font-bold">
-                  ✅ You were referred by code <span className="font-mono">{referredBy}</span>
+                  ✓ You were referred by code <span className="font-mono">{referredBy}</span>
                 </p>
                 <p className="text-[9px] text-slate-500 mt-1">
                   Share your own code above to earn referral XP!
@@ -542,7 +542,7 @@ export default function ProfilePage() {
 
         {/* ── Recent Activity ── */}
         <div className="bg-slate-950/80 border border-slate-900 rounded-2xl p-5">
-          <h3 className="text-[10px] font-black tracking-widest text-slate-400 uppercase mb-4">📝 Recent Evaluations</h3>
+          <h3 className="text-[10px] font-black tracking-widest text-slate-400 uppercase mb-4">Recent Evaluations</h3>
           {recentEvaluations.length === 0 ? (
             <p className="text-xs text-slate-600 font-mono italic">No evaluations yet. Start practicing!</p>
           ) : (
@@ -551,7 +551,7 @@ export default function ProfilePage() {
                 <div key={i} className="bg-slate-900/30 border border-slate-800/50 rounded-xl p-3 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span className="text-[9px] bg-slate-900 px-2 py-0.5 rounded text-indigo-400 font-bold uppercase">
-                      {ev.subject === 'Social Studies' ? 'SS' : 'HIST'}
+                      {ev.subject === 'Social Studies' ? 'SS' : ev.subject === 'Pure History' ? 'PH' : 'HIST'}
                     </span>
                     <div>
                       <p className="text-[10px] text-slate-400 font-medium">{ev.question_type || 'General'}</p>

@@ -1,6 +1,26 @@
 'use client';
 
 import { SKILL_LABELS, TOPIC_SUMMARIES, detectSubTopic, isCustomTopic } from '@/lib/summary-utils';
+import { MARK_GUIDE, type SyllabusSubject } from '@/lib/syllabus';
+
+/** Subjects shown in the configurator toggle, in display order. */
+const SUBJECT_OPTIONS: { id: string; short: string; full: string }[] = [
+  { id: 'Social Studies', short: 'SS', full: 'Social Studies — Paper 1 (2261)' },
+  { id: 'Elective History', short: 'History', full: 'Elective History — Paper 2 (2261)' },
+  { id: 'Pure History', short: 'Pure Hist', full: 'Pure History — Papers 1 & 2 (2174)' },
+];
+
+/** First entry of every subject's topic list — practice across any topic. */
+const ANY_TOPIC = 'Any Topic (Random Mix)';
+
+/** Shorten a canonical topic for display only; the option value stays canonical. */
+function displayTopic(topic: string, groupLabel?: string): string {
+  // Inside an Issue group, the Issue title itself just means "the whole issue".
+  if (groupLabel && topic === groupLabel) return 'Whole issue — all guiding questions';
+  return topic
+    .replace(/^Issue \d+ · /, '') // the group label already names the Issue
+    .replace('Case Study: ', '');
+}
 
 interface HistoryItem {
   id: string;
@@ -29,7 +49,7 @@ interface ConfiguratorSidebarProps {
   hasMoreHistory: boolean;
   isLoadingMore: boolean;
   historyPage: number;
-  syllabusMap: Record<string, { topics: string[]; skills: string[] }>;
+  syllabusMap: Record<string, SyllabusSubject>;
   onSetActiveSubject: (subject: string) => void;
   onSetSelectedTopic: (topic: string) => void;
   onSetSelectedSkill: (skill: string) => void;
@@ -39,6 +59,14 @@ interface ConfiguratorSidebarProps {
   onLoadHistoricalItem: (item: HistoryItem) => void;
   onLoadMoreHistory: () => void;
   onJumpToRecent: () => void;
+  /** Beta trial gate: tries used out of the limit (e.g. 2/3) */
+  trialTriesUsed?: number;
+  /** Beta trial gate: max free tries */
+  trialLimit?: number;
+  /** Beta trial gate: true once the user joined the waitlist (7-day unlock) */
+  trialUnlocked?: boolean;
+  /** Beta trial gate: called when a blocked user clicks Generate */
+  onTrialBlocked?: () => void;
 }
 
 /** Generate a short readable summary of what the practice was about.
@@ -63,8 +91,8 @@ function getTopicSummary(item: HistoryItem): string {
 
   let base = TOPIC_SUMMARIES[topic] || topic || 'General practice';
 
-  // For 'Any Topic (Random Mix)', append part of background context
-  if (topic === 'Any Topic (Random Mix)' && ctx) {
+  // For any mixed-topic option (including the Pure History per-paper ones), append context
+  if (topic.startsWith('Any Topic') && ctx) {
     base = ctx.replace(/\s+/g, ' ').slice(0, 60).trim() + (ctx.length > 60 ? '…' : '');
   }
 
@@ -127,7 +155,18 @@ export default function ConfiguratorSidebar({
   onLoadHistoricalItem,
   onLoadMoreHistory,
   onJumpToRecent,
+  trialTriesUsed = 0,
+  trialLimit = 3,
+  trialUnlocked = false,
+  onTrialBlocked,
 }: ConfiguratorSidebarProps) {
+  const subjectConfig = syllabusMap[activeSubject];
+  // Pure History is examined as two separate papers. The active paper is derived
+  // from the selected topic rather than held as separate state, so the paper
+  // selector and the topic list can never disagree.
+  const papers = subjectConfig?.papers;
+  const activePaper = papers?.find((paper) => paper.topics.includes(selectedTopic)) ?? papers?.[0];
+
   return (
     <div className="xl:col-span-1 flex flex-col space-y-4 overflow-y-auto pr-1" data-section="configurator">
       {/* Configurator Card */}
@@ -137,25 +176,44 @@ export default function ConfiguratorSidebar({
         {/* Subject Toggle */}
         <div className="flex flex-col space-y-1">
           <label className="text-[9px] font-bold uppercase text-slate-500">Syllabus Subject</label>
-          <div className="grid grid-cols-2 bg-slate-900 p-1 rounded-xl border border-slate-800">
-            <button
-              onClick={() => onSetActiveSubject('Social Studies')}
-              className={`text-[10px] font-bold py-2 rounded-lg transition ${
-                activeSubject === 'Social Studies' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              SS
-            </button>
-            <button
-              onClick={() => onSetActiveSubject('Elective History')}
-              className={`text-[10px] font-bold py-2 rounded-lg transition ${
-                activeSubject === 'Elective History' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              History
-            </button>
+          <div className="grid grid-cols-3 gap-0.5 bg-slate-900 p-1 rounded-xl border border-slate-800">
+            {SUBJECT_OPTIONS.map((option) => (
+              <button
+                key={option.id}
+                onClick={() => onSetActiveSubject(option.id)}
+                title={option.full}
+                aria-pressed={activeSubject === option.id}
+                className={`text-[10px] font-bold py-2 rounded-lg transition whitespace-nowrap ${
+                  activeSubject === option.id ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                {option.short}
+              </button>
+            ))}
           </div>
         </div>
+
+        {/* Paper Selector — only for subjects examined as more than one paper */}
+        {papers && papers.length > 1 && (
+          <div className="flex flex-col space-y-1">
+            <label className="text-[9px] font-bold uppercase text-slate-500">Exam Paper</label>
+            <div className="grid grid-cols-2 bg-slate-900 p-1 rounded-xl border border-slate-800">
+              {papers.map((paper) => (
+                <button
+                  key={paper.id}
+                  onClick={() => onSetSelectedTopic(paper.topics[0])}
+                  title={paper.markGuide}
+                  aria-pressed={activePaper?.id === paper.id}
+                  className={`text-[10px] font-bold py-2 rounded-lg transition whitespace-nowrap ${
+                    activePaper?.id === paper.id ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  {paper.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* AI Paper / Vet Homework toggle */}
         <div className="grid grid-cols-2 bg-slate-900 p-1 rounded-xl border border-slate-800">
@@ -185,11 +243,38 @@ export default function ConfiguratorSidebar({
               onChange={(e) => onSetSelectedTopic(e.target.value)}
               className="w-full bg-slate-900 border border-slate-800 p-2.5 rounded-xl text-xs font-medium text-slate-200 focus:outline-none"
             >
-              {syllabusMap[activeSubject]?.topics.map(topic => (
-                <option key={topic} value={topic}>
-                  {topic.replace('Issue ', 'Is. ').replace('Case Study: ', '')}
-                </option>
-              ))}
+              {activePaper
+                ? /* Paper-scoped list (Pure History) — the paper's own "any topic" option leads. */
+                  activePaper.topics.map((topic) => (
+                    <option key={topic} value={topic}>
+                      {displayTopic(topic)}
+                    </option>
+                  ))
+                : (
+                    <>
+                      {/* "Any Topic" stays outside the groups so it always sits on top. */}
+                      {subjectConfig?.topics.includes(ANY_TOPIC) && (
+                        <option value={ANY_TOPIC}>Any Topic (Random Mix)</option>
+                      )}
+                      {subjectConfig?.groups
+                        ? subjectConfig.groups.map((group) => (
+                            <optgroup key={group.label} label={group.label}>
+                              {group.topics.map((topic) => (
+                                <option key={topic} value={topic}>
+                                  {displayTopic(topic, group.label)}
+                                </option>
+                              ))}
+                            </optgroup>
+                          ))
+                        : subjectConfig?.topics
+                            .filter((topic) => topic !== ANY_TOPIC)
+                            .map((topic) => (
+                              <option key={topic} value={topic}>
+                                {displayTopic(topic)}
+                              </option>
+                            ))}
+                    </>
+                  )}
             </select>
           </div>
 
@@ -200,21 +285,56 @@ export default function ConfiguratorSidebar({
               onChange={(e) => onSetSelectedSkill(e.target.value)}
               className="w-full bg-slate-900 border border-slate-800 p-2.5 rounded-xl text-xs font-medium text-slate-200 focus:outline-none"
             >
-              {syllabusMap[activeSubject]?.skills.map(skill => (
-                <option key={skill} value={skill}>{skill}</option>
+              {subjectConfig?.skills.map(skill => (
+                <option key={skill} value={skill}>{SKILL_LABELS[skill] || skill}</option>
               ))}
             </select>
           </div>
 
+          {/* Official paper format — marks and timing for the selected subject */}
+          {(activePaper?.markGuide ?? MARK_GUIDE[activeSubject]) && (
+            <p className="text-[9px] leading-relaxed text-slate-600 font-medium">
+              {activePaper?.markGuide ?? MARK_GUIDE[activeSubject]}
+            </p>
+          )}
 
+
+
+          {/* Beta trial gate — remaining tries indicator */}
+          {!isCustomMode && !trialUnlocked && trialTriesUsed >= 1 && (
+            <div className={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl border text-[10px] font-bold ${
+              trialTriesUsed >= trialLimit
+                ? 'bg-rose-950/40 border-rose-500/30 text-rose-300'
+                : 'bg-amber-950/30 border-amber-500/20 text-amber-300'
+            }`}>
+ <span>Free tries</span>
+              <span className="font-mono">
+                {trialTriesUsed >= trialLimit ? 'Used up' : `${trialTriesUsed}/${trialLimit} used`}
+              </span>
+            </div>
+          )}
 
           {!isCustomMode && (
             <button
-              onClick={onGenerate}
+              onClick={() => {
+                if (!trialUnlocked && trialTriesUsed >= trialLimit) {
+                  onTrialBlocked?.();
+                  return;
+                }
+                onGenerate();
+              }}
+              // NOTE: not disabled when blocked — the click routes to onTrialBlocked() so the
+              // user can always reopen the gate modal after dismissing it.
               disabled={isGenerating}
-              className="w-full bg-indigo-600 text-white text-xs font-bold py-2.5 rounded-xl transition disabled:opacity-50 mt-1 flex items-center justify-center gap-2"
+              className={`w-full text-white text-xs font-bold py-2.5 rounded-xl transition mt-1 flex items-center justify-center gap-2 ${
+                !trialUnlocked && trialTriesUsed >= trialLimit
+                  ? 'bg-slate-800 text-slate-400 hover:bg-slate-700 cursor-pointer'
+                  : 'bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50'
+              }`}
             >
-              {isGenerating ? (
+              {!trialUnlocked && trialTriesUsed >= trialLimit ? (
+ <span className="inline-flex items-center gap-2">Join Waitlist to Continue</span>
+              ) : isGenerating ? (
                 <span className="inline-flex flex-col items-center gap-1 w-full">
                   <span className="inline-flex items-center gap-2 text-[10px]">
                     <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin-fast shrink-0" />
@@ -244,7 +364,7 @@ export default function ConfiguratorSidebar({
                     }`}>FMT</span>
                   </span>
                 </span>
-              ) : '⚡ Generate Practice'}
+              ) : 'Generate Practice'}
             </button>
           )}
         </div>
@@ -272,7 +392,7 @@ export default function ConfiguratorSidebar({
                   >
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-[9px] bg-slate-900 px-2 py-0.5 rounded text-indigo-400 font-bold uppercase">
-                        {item.subject === 'Social Studies' ? 'SS' : 'HIST'}
+                        {item.subject === 'Social Studies' ? 'SS' : item.subject === 'Pure History' ? 'PH' : 'HIST'}
                       </span>
                       {isAllFormats && (
                         <span className="text-[8px] bg-amber-900/40 text-amber-400 px-1.5 py-0.5 rounded font-bold">
@@ -296,7 +416,7 @@ export default function ConfiguratorSidebar({
                   disabled={isLoadingMore}
                   className="w-full text-[9px] font-bold text-slate-500 hover:text-indigo-400 bg-slate-900/50 hover:bg-slate-900 border border-slate-800 py-2 rounded-lg transition disabled:opacity-40"
                 >
-                  {isLoadingMore ? 'Loading...' : '⬇ Load More'}
+                  {isLoadingMore ? 'Loading...' : 'Load More'}
                 </button>
               )}
               {historyPage > 0 && (

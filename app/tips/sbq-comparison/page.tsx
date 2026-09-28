@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { breadcrumbJsonLd, jsonLdScript } from '@/lib/structured-data';
 
 export const metadata: Metadata = {
   title: 'How to Ace SBQ Comparison Questions (L4/6 Framework)',
+  alternates: { canonical: '/tips/sbq-comparison' },
+  robots: { index: true, follow: true },
   description:
     'Master the SBQ Comparison & Contrast question for O-Level Social Studies and History. Learn the 3-step L4/6 framework used by top students, with real SEAB-style examples.',
   openGraph: {
@@ -35,6 +38,19 @@ export default function SBQComparisonPage() {
           <span>/</span>
           <span className="text-slate-400">SBQ Comparison</span>
         </nav>
+        {/* BreadcrumbList structured data (matches the visible nav above) */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: jsonLdScript(
+              breadcrumbJsonLd([
+                { name: 'Home', href: '/' },
+                { name: 'Tips & Guides', href: '/tips' },
+                { name: 'SBQ Comparison', href: '/tips/sbq-comparison' },
+              ])
+            ),
+          }}
+        />
 
         {/* Hero */}
         <div className="space-y-4 border-b border-slate-900 pb-8">
@@ -79,7 +95,7 @@ export default function SBQComparisonPage() {
             In the O-Level Social Studies and Elective History papers, the SBQ Comparison question
             asks you to <strong className="text-slate-200">compare and contrast</strong> two sources
             on a specific aspect. It typically appears as part (a) of the SBQ section and is worth
-            <strong className="text-slate-200"> 6 marks</strong>.
+            <strong className="text-slate-200"> 5–7 marks</strong>.
           </p>
           <p>
             The question usually takes the form:
@@ -174,8 +190,8 @@ export default function SBQComparisonPage() {
                 Use comparative language:
               </p>
               <div className="bg-slate-900/70 rounded-lg p-3 text-[10px] font-mono text-slate-400 mt-2 space-y-1">
-                <p>✅ <span className="text-emerald-400">Both</span> sources acknowledge that X was effective, <span className="text-amber-400">but</span> Source A emphasises Y <span className="text-amber-400">while</span> Source B focuses on Z.</p>
-                <p className="text-slate-600 mt-1">❌ Source A says X. Source B says Y.</p>
+                <p>✓ <span className="text-emerald-400">Both</span> sources acknowledge that X was effective, <span className="text-amber-400">but</span> Source A emphasises Y <span className="text-amber-400">while</span> Source B focuses on Z.</p>
+                <p className="text-slate-600 mt-1">✗ Source A says X. Source B says Y.</p>
               </div>
             </div>
           </div>
@@ -204,9 +220,9 @@ export default function SBQComparisonPage() {
                 also talks about the New Deal. Both sources are about the New Deal.&rdquo;
               </p>
               <div className="text-[10px] text-red-400 space-y-1">
-                <p>❌ No specific evidence from sources</p>
-                <p>❌ Describes sources separately, no synthesis</p>
-                <p>❌ No mention of difference</p>
+                <p>✗ No specific evidence from sources</p>
+                <p>✗ Describes sources separately, no synthesis</p>
+                <p>✗ No mention of difference</p>
               </div>
             </div>
 
@@ -223,10 +239,10 @@ export default function SBQComparisonPage() {
                 to different aspects of its legacy.&rdquo;
               </p>
               <div className="text-[10px] text-emerald-400 space-y-1">
-                <p>✅ Specific evidence with quotes</p>
-                <p>✅ Both similarity AND difference addressed</p>
-                <p>✅ Evidence synthesised in each paragraph</p>
-                <p>✅ Significance of the comparison explained</p>
+                <p>✓ Specific evidence with quotes</p>
+                <p>✓ Both similarity AND difference addressed</p>
+                <p>✓ Evidence synthesised in each paragraph</p>
+                <p>✓ Significance of the comparison explained</p>
               </div>
             </div>
           </div>
@@ -238,7 +254,7 @@ export default function SBQComparisonPage() {
 
           <div className="space-y-3">
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg">🚫</span>
+              <span className="text-red-400 text-lg">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">Treating it as two separate descriptions</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -250,7 +266,7 @@ export default function SBQComparisonPage() {
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg">🚫</span>
+              <span className="text-red-400 text-lg">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">Ignoring differences</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -262,7 +278,7 @@ export default function SBQComparisonPage() {
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg">🚫</span>
+              <span className="text-red-400 text-lg">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">Vague statements without evidence</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -273,7 +289,7 @@ export default function SBQComparisonPage() {
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg">🚫</span>
+              <span className="text-red-400 text-lg">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">No concluding judgement</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -296,7 +312,7 @@ export default function SBQComparisonPage() {
           </p>
 
           <div className="bg-indigo-950/30 border border-indigo-900/30 rounded-xl p-5 space-y-3">
-            <h3 className="text-sm font-black text-indigo-300">🎯 Use MARKUP&apos;s SBQ Generator</h3>
+            <h3 className="text-sm font-black text-indigo-300">Use MARKUP&apos;s SBQ Generator</h3>
             <p className="text-xs text-slate-400">
               Generate unlimited SBQ practice papers with fresh sources on every O-Level topic.
               Write your answer in the canvas, then get instant LORMS-aligned grading with
@@ -323,7 +339,7 @@ export default function SBQComparisonPage() {
         </section>
 
         {/* CTA Banner */}
-        <div className="bg-gradient-to-br from-indigo-950/50 to-slate-950/80 border border-indigo-800/50 rounded-2xl p-6 text-center space-y-3">
+        <div className="bg-indigo-950/70 border border-indigo-800/50 rounded-2xl p-6 text-center space-y-3">
           <p className="text-lg font-black text-white">Ready to practise?</p>
           <p className="text-xs text-slate-400 max-w-md mx-auto">
             Generate an SBQ paper right now with a single click. MARKUP creates fresh O-Level

@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { breadcrumbJsonLd, jsonLdScript } from '@/lib/structured-data';
 
 export const metadata: Metadata = {
   title: 'SBQ Sentence Starters & Answer Templates for Every Question Type',
+  alternates: { canonical: '/tips/sbq-templates' },
+  robots: { index: true, follow: true },
   description:
     'Memorise these SBQ answer templates and sentence starters for O-Level Social Studies and History. Covers comparison, reliability, purpose, and utility questions with LORMS-aligned phrasing.',
   openGraph: {
@@ -30,6 +33,19 @@ export default function SBQTemplatesPage() {
           <span>/</span>
           <span className="text-slate-400">SBQ Templates</span>
         </nav>
+        {/* BreadcrumbList structured data (matches the visible nav above) */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: jsonLdScript(
+              breadcrumbJsonLd([
+                { name: 'Home', href: '/' },
+                { name: 'Tips & Guides', href: '/tips' },
+                { name: 'SBQ Templates', href: '/tips/sbq-templates' },
+              ])
+            ),
+          }}
+        />
 
         {/* Hero */}
         <div className="space-y-4 border-b border-slate-900 pb-8">
@@ -81,38 +97,38 @@ export default function SBQTemplatesPage() {
           <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
             <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Opening — State the Dimension</p>
             <div className="bg-slate-900/70 rounded-lg p-3 mt-2 text-[10px] font-mono text-slate-400 space-y-2">
-              <p>🔹 <em>&ldquo;Both sources offer a [similar/contrasting] view of [topic].&rdquo;</em></p>
-              <p>🔹 <em>&ldquo;With regard to [specific aspect], the sources [largely agree/share some similarities but also differ].&rdquo;</em></p>
+              <p>• <em>&ldquo;Both sources offer a [similar/contrasting] view of [topic].&rdquo;</em></p>
+              <p>• <em>&ldquo;With regard to [specific aspect], the sources [largely agree/share some similarities but also differ].&rdquo;</em></p>
             </div>
           </div>
 
           <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
             <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Similarity Paragraph</p>
             <div className="bg-slate-900/70 rounded-lg p-3 mt-2 text-[10px] font-mono text-slate-400 space-y-2">
-              <p>🔹 <em>&ldquo;Both sources suggest that [claim]. Source A states that &lsquo;[quote]&rsquo; while Source B similarly notes that &lsquo;[quote]&rsquo;.&rdquo;</em></p>
-              <p>🔹 <em>&ldquo;A key similarity is that [both sources agree on X]. For instance, Source A highlights [detail] and this is echoed by Source B which states [detail].&rdquo;</em></p>
+              <p>• <em>&ldquo;Both sources suggest that [claim]. Source A states that &lsquo;[quote]&rsquo; while Source B similarly notes that &lsquo;[quote]&rsquo;.&rdquo;</em></p>
+              <p>• <em>&ldquo;A key similarity is that [both sources agree on X]. For instance, Source A highlights [detail] and this is echoed by Source B which states [detail].&rdquo;</em></p>
             </div>
           </div>
 
           <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
             <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest">Difference Paragraph</p>
             <div className="bg-slate-900/70 rounded-lg p-3 mt-2 text-[10px] font-mono text-slate-400 space-y-2">
-              <p>🔹 <em>&ldquo;However, the sources differ in their emphasis. Source A focuses on [aspect] while Source B highlights [different aspect].&rdquo;</em></p>
-              <p>🔹 <em>&ldquo;A noticeable difference is that Source A [claim], whereas Source B [contrasting claim]. Source A states &lsquo;[quote]&rsquo; but Source B takes a different view, arguing &lsquo;[quote]&rsquo;.&rdquo;</em></p>
+              <p>• <em>&ldquo;However, the sources differ in their emphasis. Source A focuses on [aspect] while Source B highlights [different aspect].&rdquo;</em></p>
+              <p>• <em>&ldquo;A noticeable difference is that Source A [claim], whereas Source B [contrasting claim]. Source A states &lsquo;[quote]&rsquo; but Source B takes a different view, arguing &lsquo;[quote]&rsquo;.&rdquo;</em></p>
             </div>
           </div>
 
           <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
             <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest">Conclusion — Make a Judgement</p>
             <div className="bg-slate-900/70 rounded-lg p-3 mt-2 text-[10px] font-mono text-slate-400 space-y-2">
-              <p>🔹 <em>&ldquo;Overall, the sources are [largely similar / more different than similar / partially similar] because [reason].&rdquo;</em></p>
-              <p>🔹 <em>&ldquo;In conclusion, while both sources acknowledge [shared view], they differ significantly on [aspect], making them [judgement].&rdquo;</em></p>
+              <p>• <em>&ldquo;Overall, the sources are [largely similar / more different than similar / partially similar] because [reason].&rdquo;</em></p>
+              <p>• <em>&ldquo;In conclusion, while both sources acknowledge [shared view], they differ significantly on [aspect], making them [judgement].&rdquo;</em></p>
             </div>
           </div>
 
           <div className="bg-indigo-950/30 border border-indigo-900/30 rounded-xl p-4">
             <p className="text-xs text-indigo-300 font-bold">
-              💡 <strong className="text-slate-200">Key to L4/6:</strong> Every paragraph must
+              Tip <strong className="text-slate-200">Key to L4/6:</strong> Every paragraph must
               weave evidence from <strong className="text-slate-200">both sources together</strong>.
               Never write a paragraph about Source A followed by a paragraph about Source B.
             </p>
@@ -133,44 +149,44 @@ export default function SBQTemplatesPage() {
           <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
             <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest">Opening — Define the Issue</p>
             <div className="bg-slate-900/70 rounded-lg p-3 mt-2 text-[10px] font-mono text-slate-400 space-y-2">
-              <p>🔹 <em>&ldquo;Source [X] provides [useful/limited] evidence for understanding [topic]. Its reliability depends on an assessment of its provenance and the extent to which it is corroborated by other sources.&rdquo;</em></p>
+              <p>• <em>&ldquo;Source [X] provides [useful/limited] evidence for understanding [topic]. Its reliability depends on an assessment of its provenance and the extent to which it is corroborated by other sources.&rdquo;</em></p>
             </div>
           </div>
 
           <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
             <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Strength 1 — Provenance (Reliable Aspects)</p>
             <div className="bg-slate-900/70 rounded-lg p-3 mt-2 text-[10px] font-mono text-slate-400 space-y-2">
-              <p>🔹 <em>&ldquo;One reason to find Source [X] reliable is its provenance. As [author/position], the author [had access to first-hand information / was an eyewitness to events].&rdquo;</em></p>
-              <p>🔹 <em>&ldquo;Furthermore, the source was written [in date], which is [contemporary to the events / close in time], making it likely to be a [genuine record / credible account].&rdquo;</em></p>
+              <p>• <em>&ldquo;One reason to find Source [X] reliable is its provenance. As [author/position], the author [had access to first-hand information / was an eyewitness to events].&rdquo;</em></p>
+              <p>• <em>&ldquo;Furthermore, the source was written [in date], which is [contemporary to the events / close in time], making it likely to be a [genuine record / credible account].&rdquo;</em></p>
             </div>
           </div>
 
           <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
             <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest">Strength 2 — Cross-Referencing</p>
             <div className="bg-slate-900/70 rounded-lg p-3 mt-2 text-[10px] font-mono text-slate-400 space-y-2">
-              <p>🔹 <em>&ldquo;The source&apos;s reliability is further supported by cross-referencing. Source [Y] corroborates [specific claim] by stating &lsquo;[quote]&rsquo;.&rdquo;</em></p>
-              <p>🔹 <em>&ldquo;This consistency across different sources [with different perspectives] strengthens the reliability of Source [X]&apos;s account.&rdquo;</em></p>
+              <p>• <em>&ldquo;The source&apos;s reliability is further supported by cross-referencing. Source [Y] corroborates [specific claim] by stating &lsquo;[quote]&rsquo;.&rdquo;</em></p>
+              <p>• <em>&ldquo;This consistency across different sources [with different perspectives] strengthens the reliability of Source [X]&apos;s account.&rdquo;</em></p>
             </div>
           </div>
 
           <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
             <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest">Limitation — Bias or Weakness</p>
             <div className="bg-slate-900/70 rounded-lg p-3 mt-2 text-[10px] font-mono text-slate-400 space-y-2">
-              <p>🔹 <em>&ldquo;However, the source&apos;s reliability is limited by [the author&apos;s perspective / purpose]. As [a government official / political figure], the author may have been motivated to [portray events in a certain way / justify their actions].&rdquo;</em></p>
-              <p>🔹 <em>&ldquo;Additionally, Source [Z] contradicts Source [X] on [specific point], stating &lsquo;[quote]&rsquo;. This discrepancy suggests that Source [X] may be [presenting a partial view / omitting key information].&rdquo;</em></p>
+              <p>• <em>&ldquo;However, the source&apos;s reliability is limited by [the author&apos;s perspective / purpose]. As [a government official / political figure], the author may have been motivated to [portray events in a certain way / justify their actions].&rdquo;</em></p>
+              <p>• <em>&ldquo;Additionally, Source [Z] contradicts Source [X] on [specific point], stating &lsquo;[quote]&rsquo;. This discrepancy suggests that Source [X] may be [presenting a partial view / omitting key information].&rdquo;</em></p>
             </div>
           </div>
 
           <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
             <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest">Overall Judgement</p>
             <div className="bg-slate-900/70 rounded-lg p-3 mt-2 text-[10px] font-mono text-slate-400 space-y-2">
-              <p>🔹 <em>&ldquo;On balance, Source [X] is [partially reliable / reliable in some aspects but limited in others / of limited reliability] as evidence for [topic]. It is useful for [purpose] but must be treated with caution regarding [specific limitation].&rdquo;</em></p>
+              <p>• <em>&ldquo;On balance, Source [X] is [partially reliable / reliable in some aspects but limited in others / of limited reliability] as evidence for [topic]. It is useful for [purpose] but must be treated with caution regarding [specific limitation].&rdquo;</em></p>
             </div>
           </div>
 
           <div className="bg-indigo-950/30 border border-indigo-900/30 rounded-xl p-4">
             <p className="text-xs text-indigo-300 font-bold">
-              💡 <strong className="text-slate-200">Key to L5/7:</strong> You need{' '}
+              Tip <strong className="text-slate-200">Key to L5/7:</strong> You need{' '}
               <strong className="text-slate-200">both</strong> provenance analysis AND
               cross-referencing. A nuanced judgement (not just &ldquo;reliable&rdquo; or
               &ldquo;unreliable&rdquo;) is essential.
@@ -192,32 +208,32 @@ export default function SBQTemplatesPage() {
           <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
             <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest">Opening — Identify the Message</p>
             <div className="bg-slate-900/70 rounded-lg p-3 mt-2 text-[10px] font-mono text-slate-400 space-y-2">
-              <p>🔹 <em>&ldquo;The purpose of Source [X] is to [persuade / justify / criticise / inform / warn] its audience about [topic].&rdquo;</em></p>
-              <p>🔹 <em>&ldquo;Source [X] was created to convey the message that [message]. The author achieves this through [language / tone / selection of evidence].&rdquo;</em></p>
+              <p>• <em>&ldquo;The purpose of Source [X] is to [persuade / justify / criticise / inform / warn] its audience about [topic].&rdquo;</em></p>
+              <p>• <em>&ldquo;Source [X] was created to convey the message that [message]. The author achieves this through [language / tone / selection of evidence].&rdquo;</em></p>
             </div>
           </div>
 
           <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
             <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Body — Analyse How the Purpose Is Achieved</p>
             <div className="bg-slate-900/70 rounded-lg p-3 mt-2 text-[10px] font-mono text-slate-400 space-y-2">
-              <p>🔹 <em>&ldquo;The author employs [emotive language / rhetorical questions / exaggeration] to [evoke sympathy / create urgency / persuade the reader]. For example, the phrase &lsquo;[quote]&rsquo; suggests [analysis].&rdquo;</em></p>
-              <p>🔹 <em>&ldquo;The choice to [include specific details / omit certain facts / appeal to emotion] reveals that the author&apos;s intention is to [shape the reader&apos;s view / justify a position / discredit an opponent].&rdquo;</em></p>
-              <p>🔹 <em>&ldquo;The tone of the source is [tone], which supports the purpose of [purpose]. A [neutral / critical / supportive] tone helps the author [achieve their goal].&rdquo;</em></p>
+              <p>• <em>&ldquo;The author employs [emotive language / rhetorical questions / exaggeration] to [evoke sympathy / create urgency / persuade the reader]. For example, the phrase &lsquo;[quote]&rsquo; suggests [analysis].&rdquo;</em></p>
+              <p>• <em>&ldquo;The choice to [include specific details / omit certain facts / appeal to emotion] reveals that the author&apos;s intention is to [shape the reader&apos;s view / justify a position / discredit an opponent].&rdquo;</em></p>
+              <p>• <em>&ldquo;The tone of the source is [tone], which supports the purpose of [purpose]. A [neutral / critical / supportive] tone helps the author [achieve their goal].&rdquo;</em></p>
             </div>
           </div>
 
           <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
             <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest">Intended Audience</p>
             <div className="bg-slate-900/70 rounded-lg p-3 mt-2 text-[10px] font-mono text-slate-400 space-y-2">
-              <p>🔹 <em>&ldquo;The intended audience appears to be [audience]. This is evident from [the language used / the publication context / the assumptions made].&rdquo;</em></p>
-              <p>🔹 <em>&ldquo;By targeting [specific audience], the author aims to [achieve specific effect — e.g., sway public opinion / justify policy to voters / reassure allies].&rdquo;</em></p>
+              <p>• <em>&ldquo;The intended audience appears to be [audience]. This is evident from [the language used / the publication context / the assumptions made].&rdquo;</em></p>
+              <p>• <em>&ldquo;By targeting [specific audience], the author aims to [achieve specific effect — e.g., sway public opinion / justify policy to voters / reassure allies].&rdquo;</em></p>
             </div>
           </div>
 
           <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
             <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest">Conclusion — Overall Purpose</p>
             <div className="bg-slate-900/70 rounded-lg p-3 mt-2 text-[10px] font-mono text-slate-400 space-y-2">
-              <p>🔹 <em>&ldquo;In summary, Source [X]&apos;s primary purpose is to [overall purpose]. The author achieves this through [key techniques], targeting [audience] with the message that [message].&rdquo;</em></p>
+              <p>• <em>&ldquo;In summary, Source [X]&apos;s primary purpose is to [overall purpose]. The author achieves this through [key techniques], targeting [audience] with the message that [message].&rdquo;</em></p>
             </div>
           </div>
         </section>
@@ -236,31 +252,31 @@ export default function SBQTemplatesPage() {
           <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
             <p className="text-[10px] font-black text-violet-400 uppercase tracking-widest">Opening</p>
             <div className="bg-slate-900/70 rounded-lg p-3 mt-2 text-[10px] font-mono text-slate-400 space-y-2">
-              <p>🔹 <em>&ldquo;The sources [largely agree / partially agree / disagree] on [topic]. However, their utility depends on what aspect of the topic we are investigating and the strengths and limitations of each source.&rdquo;</em></p>
+              <p>• <em>&ldquo;The sources [largely agree / partially agree / disagree] on [topic]. However, their utility depends on what aspect of the topic we are investigating and the strengths and limitations of each source.&rdquo;</em></p>
             </div>
           </div>
 
           <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
             <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Comparison Section</p>
             <div className="bg-slate-900/70 rounded-lg p-3 mt-2 text-[10px] font-mono text-slate-400 space-y-2">
-              <p>🔹 <em>&ldquo;The sources agree on [point]. Source [A] states &lsquo;[quote]&rsquo; and Source [B] similarly argues &lsquo;[quote]&rsquo;.&rdquo;</em></p>
-              <p>🔹 <em>&ldquo;However, they differ on [aspect]. Source [A] emphasises [X] while Source [B] focuses on [Y], suggesting [interpretation].&rdquo;</em></p>
+              <p>• <em>&ldquo;The sources agree on [point]. Source [A] states &lsquo;[quote]&rsquo; and Source [B] similarly argues &lsquo;[quote]&rsquo;.&rdquo;</em></p>
+              <p>• <em>&ldquo;However, they differ on [aspect]. Source [A] emphasises [X] while Source [B] focuses on [Y], suggesting [interpretation].&rdquo;</em></p>
             </div>
           </div>
 
           <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
             <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest">Utility Section — Source by Source</p>
             <div className="bg-slate-900/70 rounded-lg p-3 mt-2 text-[10px] font-mono text-slate-400 space-y-2">
-              <p>🔹 <em>&ldquo;Source [A] is particularly useful for understanding [specific aspect] because [reason — e.g., first-hand account, specific data, expert perspective].&rdquo;</em></p>
-              <p>🔹 <em>&ldquo;However, its utility is limited when investigating [different aspect] because [limitation — e.g., bias, narrow perspective, lack of evidence on that point].&rdquo;</em></p>
-              <p>🔹 <em>&ldquo;Source [B] complements Source [A] by providing [different perspective / additional information] on [aspect]. Together, they offer a [more comprehensive / contrasting] picture.&rdquo;</em></p>
+              <p>• <em>&ldquo;Source [A] is particularly useful for understanding [specific aspect] because [reason — e.g., first-hand account, specific data, expert perspective].&rdquo;</em></p>
+              <p>• <em>&ldquo;However, its utility is limited when investigating [different aspect] because [limitation — e.g., bias, narrow perspective, lack of evidence on that point].&rdquo;</em></p>
+              <p>• <em>&ldquo;Source [B] complements Source [A] by providing [different perspective / additional information] on [aspect]. Together, they offer a [more comprehensive / contrasting] picture.&rdquo;</em></p>
             </div>
           </div>
 
           <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
             <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest">Conclusion — Overall Judgement</p>
             <div className="bg-slate-900/70 rounded-lg p-3 mt-2 text-[10px] font-mono text-slate-400 space-y-2">
-              <p>🔹 <em>&ldquo;In conclusion, the sources [largely agree / partially agree] on [topic]. Their combined utility is [high / moderate / limited]. For a historian studying [specific aspect], they provide [valuable / partial] evidence, particularly for [purpose], though they must be supplemented by [other sources / contextual knowledge] for a complete picture.&rdquo;</em></p>
+              <p>• <em>&ldquo;In conclusion, the sources [largely agree / partially agree] on [topic]. Their combined utility is [high / moderate / limited]. For a historian studying [specific aspect], they provide [valuable / partial] evidence, particularly for [purpose], though they must be supplemented by [other sources / contextual knowledge] for a complete picture.&rdquo;</em></p>
             </div>
           </div>
         </section>
@@ -333,7 +349,7 @@ export default function SBQTemplatesPage() {
 
           <div className="bg-indigo-950/30 border border-indigo-900/30 rounded-xl p-4">
             <p className="text-xs text-indigo-300 font-bold">
-              🎯 <strong className="text-slate-200">How to use this guide:</strong> Pick ONE
+              Goal <strong className="text-slate-200">How to use this guide:</strong> Pick ONE
               template per practice session. Write 2-3 answers using it until the structure feels
               automatic. Then move to the next template. By exam day, these structures should be
               second nature.
@@ -342,7 +358,7 @@ export default function SBQTemplatesPage() {
         </section>
 
         {/* CTA */}
-        <div className="bg-gradient-to-br from-indigo-950/50 to-slate-950/80 border border-indigo-800/50 rounded-2xl p-6 text-center space-y-3">
+        <div className="bg-indigo-950/70 border border-indigo-800/50 rounded-2xl p-6 text-center space-y-3">
           <p className="text-lg font-black text-white">Practise using these templates</p>
           <p className="text-xs text-slate-400 max-w-md mx-auto">
             Generate an SBQ paper in MARKUP, pick ONE template, and write your answer using its

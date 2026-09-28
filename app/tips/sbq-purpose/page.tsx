@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { breadcrumbJsonLd, jsonLdScript } from '@/lib/structured-data';
 
 export const metadata: Metadata = {
   title: 'How to Ace SBQ Purpose Questions (L5/7 Framework)',
+  alternates: { canonical: '/tips/sbq-purpose' },
+  robots: { index: true, follow: true },
   description:
     'Master the SBQ Purpose / Author Intent question for O-Level Social Studies and Elective History. Learn the 4-step L5/7 framework to analyse why a source was created — with real SEAB-style examples.',
   openGraph: {
@@ -35,6 +38,19 @@ export default function SBQPurposePage() {
           <span>/</span>
           <span className="text-slate-400">SBQ Purpose</span>
         </nav>
+        {/* BreadcrumbList structured data (matches the visible nav above) */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: jsonLdScript(
+              breadcrumbJsonLd([
+                { name: 'Home', href: '/' },
+                { name: 'Tips & Guides', href: '/tips' },
+                { name: 'SBQ Purpose', href: '/tips/sbq-purpose' },
+              ])
+            ),
+          }}
+        />
 
         {/* Hero */}
         <div className="space-y-4 border-b border-slate-900 pb-8">
@@ -79,7 +95,7 @@ export default function SBQPurposePage() {
           <p>
             The SBQ Purpose question asks you to identify <strong className="text-slate-200">why</strong>{' '}
             a source was created and <strong className="text-slate-200">what the author intended</strong>{' '}
-            to achieve. It is worth <strong className="text-slate-200">7 marks</strong> and is one of
+            to achieve. It is typically worth <strong className="text-slate-200">5–7 marks</strong> and is one of
             the most challenging SBQ skills because it requires you to infer the author&apos;s motivation
             from the source itself.
           </p>
@@ -153,7 +169,7 @@ export default function SBQPurposePage() {
                 just the facts they mention.
               </p>
               <div className="bg-slate-900/70 rounded-lg p-3 text-[10px] font-mono text-slate-400 mt-2">
-                <p>💡 Example: A 1950s poster about Singapore&apos;s housing estates isn&apos;t just showing buildings — it&apos;s saying &ldquo;the government is improving your life.&rdquo;</p>
+                <p>Example: A 1950s poster about Singapore&apos;s housing estates isn&apos;t just showing buildings — it&apos;s saying &ldquo;the government is improving your life.&rdquo;</p>
               </div>
             </div>
 
@@ -168,7 +184,7 @@ export default function SBQPurposePage() {
                 have very different purposes even if they are on the same topic.
               </p>
               <div className="bg-slate-900/70 rounded-lg p-3 text-[10px] font-mono text-slate-400 mt-2 space-y-1">
-                <p>🎯 Audience categories to consider:</p>
+                <p>Audience categories to consider:</p>
                 <p>• Domestic vs. international audience</p>
                 <p>• Supporters vs. opponents vs. neutral observers</p>
                 <p>• Elite (government, academics) vs. general public</p>
@@ -256,9 +272,9 @@ export default function SBQPurposePage() {
               audience</strong> is the general public, not just union members — the source wants to
               put pressure on employers by shaping public opinion.&rdquo;
             </p>
-            <p className="text-[9px] text-emerald-400">✔ Identifies the specific technique (emotional language)</p>
-            <p className="text-[9px] text-emerald-400">✔ Quotes evidence from the source</p>
-            <p className="text-[9px] text-emerald-400">✔ Links technique to intended effect on the audience</p>
+            <p className="text-[9px] text-emerald-400">✓ Identifies the specific technique (emotional language)</p>
+            <p className="text-[9px] text-emerald-400">✓ Quotes evidence from the source</p>
+            <p className="text-[9px] text-emerald-400">✓ Links technique to intended effect on the audience</p>
           </div>
         </section>
 
@@ -286,10 +302,10 @@ export default function SBQPurposePage() {
                 Singapore is now independent and the people should be proud.&rdquo;
               </p>
               <div className="text-[10px] text-red-400 space-y-1">
-                <p>❌ Confuses content with purpose (describing ≠ analysing)</p>
-                <p>❌ No mention of audience</p>
-                <p>❌ No persuasive techniques identified</p>
-                <p>❌ No link to historical context</p>
+                <p>✗ Confuses content with purpose (describing ≠ analysing)</p>
+                <p>✗ No mention of audience</p>
+                <p>✗ No persuasive techniques identified</p>
+                <p>✗ No link to historical context</p>
               </div>
             </div>
 
@@ -317,10 +333,10 @@ export default function SBQPurposePage() {
                 the government&apos;s vision.&rdquo;
               </p>
               <div className="text-[10px] text-emerald-400 space-y-1 mt-2">
-                <p>✅ Identifies specific purpose (reassure + justify)</p>
-                <p>✅ Identifies audience and their concerns</p>
-                <p>✅ Analyses persuasive techniques with quotes</p>
-                <p>✅ Links to historical context (1965 separation)</p>
+                <p>✓ Identifies specific purpose (reassure + justify)</p>
+                <p>✓ Identifies audience and their concerns</p>
+                <p>✓ Analyses persuasive techniques with quotes</p>
+                <p>✓ Links to historical context (1965 separation)</p>
               </div>
             </div>
           </div>
@@ -332,7 +348,7 @@ export default function SBQPurposePage() {
 
           <div className="space-y-3">
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg">🚫</span>
+              <span className="text-red-400 text-lg">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">Describing content instead of analysing purpose</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -344,7 +360,7 @@ export default function SBQPurposePage() {
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg">🚫</span>
+              <span className="text-red-400 text-lg">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">Vague purpose statements</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -356,7 +372,7 @@ export default function SBQPurposePage() {
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg">🚫</span>
+              <span className="text-red-400 text-lg">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">Ignoring the audience</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -368,7 +384,7 @@ export default function SBQPurposePage() {
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg">🚫</span>
+              <span className="text-red-400 text-lg">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">No reference to persuasive techniques</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -386,7 +402,7 @@ export default function SBQPurposePage() {
           <h2 className="text-xl font-black text-white">7. How to Practice Effectively</h2>
 
           <div className="bg-indigo-950/30 border border-indigo-900/30 rounded-xl p-5 space-y-3">
-            <h3 className="text-sm font-black text-indigo-300">🎯 Use MARKUP&apos;s SBQ Generator</h3>
+            <h3 className="text-sm font-black text-indigo-300">Use MARKUP&apos;s SBQ Generator</h3>
             <p className="text-xs text-slate-400">
               Generate unlimited SBQ papers with purpose-focused questions. MARKUP sources include
               rich provenance information and authentic O-Level style content. After writing your
@@ -414,7 +430,7 @@ export default function SBQPurposePage() {
         </section>
 
         {/* CTA Banner */}
-        <div className="bg-gradient-to-br from-indigo-950/50 to-slate-950/80 border border-indigo-800/50 rounded-2xl p-6 text-center space-y-3">
+        <div className="bg-indigo-950/70 border border-indigo-800/50 rounded-2xl p-6 text-center space-y-3">
           <p className="text-lg font-black text-white">Master purpose analysis with AI</p>
           <p className="text-xs text-slate-400 max-w-md mx-auto">
             MARKUP grades your purpose analysis and gives you specific feedback on whether you

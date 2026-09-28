@@ -64,7 +64,7 @@ export default function AuthPage() {
         options: { emailRedirectTo: `${window.location.origin}${redirectTo}` },
       });
       if (error) throw error;
-      setMessage('✅ Magic link sent! Check your email (and spam folder).');
+      setMessage('✓ Magic link sent! Check your email (and spam folder).');
       setIsMagicLink(false);
     } catch (err: unknown) {
       setMessage(err instanceof Error ? err.message : 'Failed to send magic link.');
@@ -102,7 +102,7 @@ export default function AuthPage() {
       if (error) throw error;
       setMfaVerified(true);
       setShowMfaSetup(false);
-      setMessage('✅ Two-factor authentication enabled successfully!');
+      setMessage('✓ Two-factor authentication enabled successfully!');
     } catch (err: unknown) {
       setMessage(err instanceof Error ? err.message : 'Invalid code. Try again.');
     }
@@ -136,7 +136,7 @@ export default function AuthPage() {
           // Extract the username part from the email (e.g., "alex" from "alex@school.com")
           const fallbackName = email.split('@')[0];
 
-          // 🚀 Manually seed their matching public profile tracking metrics row
+          // Manually seed their matching public profile tracking metrics row
           await supabase.from('user_profiles').insert([{
             id: data.user.id,
             full_name: fallbackName,
@@ -146,7 +146,7 @@ export default function AuthPage() {
             account_status: 'Active'
           }]);
 
-          // 🎯 Auto-claim referral code if present
+          // Auto-claim referral code if present
           const codeToClaim = referralCodeInput.trim().toUpperCase();
           if (codeToClaim && data.user.id) {
             fetch('/api/referral', {
@@ -216,7 +216,7 @@ export default function AuthPage() {
           onClick={() => { setIsMagicLink(true); setMessage(''); }}
           className="w-full bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition text-xs"
         >
-          ✉️ Send Magic Link
+          Send Magic Link
         </button>
 
         <div className="flex flex-col space-y-4 pt-2 border-t border-slate-900">
@@ -300,7 +300,7 @@ export default function AuthPage() {
             </>
           ) : showMfaSetup ? (
             <div className="space-y-4">
-              <h3 className="text-xs font-bold text-indigo-400 text-center">🔐 Set Up Two-Factor Authentication</h3>
+              <h3 className="text-xs font-bold text-indigo-400 text-center">Set Up Two-Factor Authentication</h3>
               {mfaQrCode ? (
                 <div className="flex flex-col items-center gap-3">
                   <div className="bg-white p-4 rounded-xl" dangerouslySetInnerHTML={{ __html: mfaQrCode }} />
@@ -370,7 +370,7 @@ export default function AuthPage() {
                       maxLength={8}
                     />
                     {referralCodeInput && (
-                      <p className="text-[8px] text-emerald-500 mt-1 text-center">🎉 You and your friend both get bonus XP!</p>
+                      <p className="text-[8px] text-emerald-500 mt-1 text-center">You and your friend both get bonus XP!</p>
                     )}
                   </div>
                 )}
@@ -420,7 +420,7 @@ export default function AuthPage() {
                   }}
                   className="block w-full text-xs text-slate-500 hover:text-emerald-400 underline underline-offset-4 transition"
                 >
-                  🔐 Enable Two-Factor Authentication (2FA)
+                  Enable Two-Factor Authentication (2FA)
                 </button>
               </div>
             </>

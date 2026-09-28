@@ -79,7 +79,7 @@ export default function GlobalErrorBanner({ onRetry }: GlobalErrorBannerProps) {
       {isOffline ? (
         <div className="bg-rose-950/90 border-b border-rose-500/30 px-4 py-2.5 flex items-center justify-between gap-3 backdrop-blur-md">
           <div className="flex items-center gap-2 text-xs text-rose-200">
-            <span className="text-lg">📡</span>
+            <span className="text-lg">Offline</span>
             <span><strong className="text-rose-300">No internet connection.</strong> Your work will be saved locally.</span>
           </div>
           <button
@@ -93,7 +93,7 @@ export default function GlobalErrorBanner({ onRetry }: GlobalErrorBannerProps) {
       ) : apiError ? (
         <div className="bg-amber-950/90 border-b border-amber-500/30 px-4 py-2.5 flex items-center justify-between gap-3 backdrop-blur-md">
           <div className="flex items-center gap-2 text-xs text-amber-200">
-            <span className="text-lg">⚠️</span>
+            <span className="text-lg">Warning</span>
             <span>{apiError}</span>
           </div>
           <div className="flex items-center gap-2 shrink-0">

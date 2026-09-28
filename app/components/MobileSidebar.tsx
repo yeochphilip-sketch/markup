@@ -140,13 +140,13 @@ export default function MobileSidebar({
                 onClick={() => { onOpenLeaderboard?.(); onClose(); }}
                 className="text-[9px] text-indigo-400 hover:text-indigo-300 font-bold p-1.5 rounded-lg hover:bg-indigo-950/30"
               >
-                🏆 Leaderboard
+                Leaderboard
               </button>
             </div>
             
             {/* Level + XP */}
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-lg">{'🎯'}</span>
+              <span className="text-lg">{'Goal'}</span>
               <div className="flex-1">
                 <span className="text-[10px] font-bold text-indigo-400">{levelTitle}</span>
                 <span className="text-sm font-black text-white font-mono ml-1">{masteryPoints ?? 0} <span className="text-[9px] text-slate-500 font-normal">XP</span></span>
@@ -158,7 +158,7 @@ export default function MobileSidebar({
               <div className="mb-2">
                 <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all"
+                    className="h-full rounded-full bg-indigo-500 transition-all"
                     style={{ width: `${Math.min((xpProgress.current / Math.max(xpProgress.nextLevel, 1)) * 100, 100)}%` }}
                   />
                 </div>
@@ -168,18 +168,18 @@ export default function MobileSidebar({
             {/* Streak + Daily goal row */}
             <div className="flex gap-3 text-[10px]">
               <div className="flex items-center gap-1">
-                <span>{streakData && streakData.current > 0 ? '🔥' : '📅'}</span>
+                <span>{streakData && streakData.current > 0 ? 'Streak' : 'Date'}</span>
                 <span className="text-slate-300 font-bold font-mono">{streakData?.current ?? 0}d</span>
               </div>
               <div className="flex items-center gap-1">
-                <span>{dailyGoalMet ? '✅' : '📋'}</span>
+                <span>{dailyGoalMet ? '✓' : 'Copy'}</span>
                 <span className={`font-bold ${dailyGoalMet ? 'text-emerald-400' : 'text-slate-500'}`}>
                   {dailyGoalMet ? 'Done' : 'Goal'}
                 </span>
               </div>
               {decayWarning?.show && (
                 <div className="flex items-center gap-1">
-                  <span>⚠️</span>
+                  <span>Warning</span>
                   <span className={`font-bold ${decayWarning.severity === 'danger' ? 'text-rose-400' : 'text-amber-400'}`}>
                     Decay
                   </span>
@@ -195,42 +195,42 @@ export default function MobileSidebar({
             onClick={() => { router.push('/dashboard'); onClose(); }}
             className="w-full text-left text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-900 px-3 py-2.5 rounded-xl transition flex items-center gap-3"
           >
-            📝 Dashboard
+            Dashboard
           </button>
 
           <button
             onClick={() => { router.push('/tips'); onClose(); }}
             className="w-full text-left text-sm font-semibold text-indigo-400 hover:text-indigo-300 hover:bg-indigo-950/30 px-3 py-2.5 rounded-xl transition flex items-center gap-3"
           >
-            📖 Tips & Guides
+            Tips & Guides
           </button>
 
           <button
             onClick={() => { router.push('/dashboard/settings'); onClose(); }}
             className="w-full text-left text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-900 px-3 py-2.5 rounded-xl transition flex items-center gap-3"
           >
-            ⚙️ Settings
+            Settings
           </button>
 
           <button
             onClick={() => { onOpenStudyGroups(); onClose(); }}
             className="w-full text-left text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-900 px-3 py-2.5 rounded-xl transition flex items-center gap-3"
           >
-            👥 Study Groups
+            Study Groups
           </button>
 
           <button
             onClick={() => { onOpenAchievements(); onClose(); }}
             className="w-full text-left text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-900 px-3 py-2.5 rounded-xl transition flex items-center gap-3"
           >
-            🏅 Achievements ({achievementsCount}/{totalAchievements})
+            Achievements ({achievementsCount}/{totalAchievements})
           </button>
 
           <button
             onClick={() => { onToggleSound(); }}
             className="w-full text-left text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-900 px-3 py-2.5 rounded-xl transition flex items-center gap-3"
           >
-            {isSoundEnabled ? '🔊 Sound On' : '🔇 Sound Off'}
+            {isSoundEnabled ? 'Sound On' : 'Sound Off'}
           </button>
 
           {isAdmin && (
@@ -239,7 +239,7 @@ export default function MobileSidebar({
               onClick={onClose}
               className="block text-sm font-semibold text-indigo-400 hover:text-indigo-300 hover:bg-indigo-950/30 px-3 py-2.5 rounded-xl transition flex items-center gap-3"
             >
-              📊 Platform Insights
+              Platform Insights
             </Link>
           )}
 
@@ -249,14 +249,14 @@ export default function MobileSidebar({
             onClick={() => { onOpenFeedback(); onClose(); }}
             className="w-full text-left text-sm font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-900 px-3 py-2.5 rounded-xl transition flex items-center gap-3"
           >
-            🐛 Submit Feedback
+            Submit Feedback
           </button>
 
           <button
             onClick={() => { onSignOut(); onClose(); }}
             className="w-full text-left text-sm font-semibold text-rose-400 hover:text-rose-300 hover:bg-rose-950/20 px-3 py-2.5 rounded-xl transition flex items-center gap-3 mt-2"
           >
-            🚪 Sign Out
+            Sign Out
           </button>
         </div>
 

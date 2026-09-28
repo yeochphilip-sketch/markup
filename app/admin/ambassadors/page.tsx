@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/utils/supabase';
 import { useRouter } from 'next/navigation';
 import LoadingSpinner from '@/app/components/LoadingSpinner';
@@ -25,14 +25,26 @@ export default function AdminAmbassadorsPage() {
   const [promoting, setPromoting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
 
+  const fetchAmbassadors = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/promote-ambassador');
+      if (res.ok) {
+        const data = await res.json();
+        setAmbassadors(data.ambassadors ?? []);
+      }
+    } catch {
+      // silent
+    }
+  }, []);
+
   useEffect(() => {
     async function bootstrap() {
       const { data: sessionData } = await supabase.auth.getSession();
       const user = sessionData.session?.user;
 
+      // app_metadata only — user_metadata is end-user-editable.
       const adminFlag =
         user?.app_metadata?.is_admin === true ||
-        user?.user_metadata?.is_admin === true ||
         user?.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL;
 
       if (!user || !adminFlag) {
@@ -45,19 +57,7 @@ export default function AdminAmbassadorsPage() {
       setLoading(false);
     }
     bootstrap();
-  }, []);
-
-  const fetchAmbassadors = async () => {
-    try {
-      const res = await fetch('/api/admin/promote-ambassador');
-      if (res.ok) {
-        const data = await res.json();
-        setAmbassadors(data.ambassadors ?? []);
-      }
-    } catch {
-      // silent
-    }
-  };
+  }, [fetchAmbassadors]);
 
   const handlePromote = async () => {
     if (!promoteEmail.trim()) return;
@@ -92,7 +92,7 @@ export default function AdminAmbassadorsPage() {
         const data = await promoteRes.json();
         setMessage({
           type: 'success',
-          text: `✅ ${user.full_name || user.email_address} is now an ambassador! Referral code: ${data.ambassador?.referral_code || 'N/A'}`,
+          text: `✓ ${user.full_name || user.email_address} is now an ambassador! Referral code: ${data.ambassador?.referral_code || 'N/A'}`,
         });
         setPromoteEmail('');
         await fetchAmbassadors();
@@ -149,7 +149,7 @@ export default function AdminAmbassadorsPage() {
         <div className="flex justify-between items-center border-b border-slate-900 pb-5">
           <div>
             <h1 className="text-2xl font-black text-indigo-400 tracking-tight">
-              🤝 Ambassador Program
+              Ambassador Program
             </h1>
             <p className="text-xs text-slate-400 mt-1">
               Manage influencers who promote MARKUP — they get free premium access + earn XP for referrals
@@ -176,7 +176,7 @@ export default function AdminAmbassadorsPage() {
 
         {/* Promote user form */}
         <div className="bg-slate-950 border border-indigo-500/20 rounded-2xl p-5">
-          <h2 className="text-sm font-bold text-slate-200 mb-4">✨ Promote a User to Ambassador</h2>
+          <h2 className="text-sm font-bold text-slate-200 mb-4">Promote a User to Ambassador</h2>
           <div className="flex flex-col sm:flex-row gap-3">
             <input
               type="email"
@@ -192,7 +192,7 @@ export default function AdminAmbassadorsPage() {
             >
               {promoting ? (
                 <><div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin-fast" /> Promoting...</>
-              ) : '🚀 Promote to Ambassador'}
+              ) : 'Promote to Ambassador'}
             </button>
           </div>
           <p className="text-[9px] text-slate-600 mt-2">
@@ -216,7 +216,7 @@ export default function AdminAmbassadorsPage() {
         <div className="bg-slate-950 border border-emerald-500/20 rounded-2xl overflow-hidden">
           <div className="p-5 border-b border-slate-900 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <h2 className="text-sm font-bold text-slate-200">👑 Current Ambassadors</h2>
+              <h2 className="text-sm font-bold text-slate-200">Current Ambassadors</h2>
               <span className="text-[10px] text-slate-500 font-mono bg-slate-900 px-2 py-0.5 rounded-full">
                 {ambassadors.length} ambassador{ambassadors.length !== 1 ? 's' : ''}
               </span>
@@ -235,7 +235,7 @@ export default function AdminAmbassadorsPage() {
             </div>
           ) : ambassadors.length === 0 ? (
             <div className="p-8 text-center">
-              <p className="text-4xl mb-3">🤝</p>
+              <p className="text-4xl mb-3">Partners</p>
               <p className="text-xs text-slate-500 font-mono">No ambassadors yet. Promote your first user above.</p>
             </div>
           ) : (
@@ -272,7 +272,7 @@ export default function AdminAmbassadorsPage() {
                                 onClick={() => copyToClipboard(referralLink)}
                                 className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 px-2 py-0.5 rounded transition"
                               >
-                                📋 Copy Link
+                                Copy Link
                               </button>
                             </div>
                           ) : (
@@ -308,20 +308,20 @@ export default function AdminAmbassadorsPage() {
 
         {/* How it works */}
         <div className="bg-slate-950 border border-slate-800 rounded-2xl p-5">
-          <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3">📖 How It Works</h3>
+          <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3">How It Works</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-[10px] text-slate-400 leading-relaxed">
             <div className="bg-slate-900/40 rounded-xl p-3">
-              <span className="text-lg block mb-1">1️⃣</span>
+              <span className="text-lg block mb-1">1</span>
               <strong className="text-indigo-400">Promote</strong> — Enter the influencer&apos;s email above and promote them to ambassador.
               They get free premium access (Scholar Pass equivalent).
             </div>
             <div className="bg-slate-900/40 rounded-xl p-3">
-              <span className="text-lg block mb-1">2️⃣</span>
+              <span className="text-lg block mb-1">2</span>
               <strong className="text-indigo-400">Share</strong> — Copy their referral link and send it to them. They share it with their
-              audience: <code className="text-emerald-400 font-mono">markup.app?ref=CODE</code>
+              audience: <code className="text-emerald-400 font-mono">markup-five.vercel.app?ref=CODE</code>
             </div>
             <div className="bg-slate-900/40 rounded-xl p-3">
-              <span className="text-lg block mb-1">3️⃣</span>
+              <span className="text-lg block mb-1">3</span>
               <strong className="text-indigo-400">Track</strong> — See how many signups each ambassador drives. They earn XP
               for each referral (and you get free marketing!).
             </div>

@@ -251,7 +251,7 @@ export async function POST() {
           body: JSON.stringify({
             from: process.env.SEND_FROM_EMAIL || 'MARKUP <onboarding@resend.dev>',
             to: profile.email_address,
-            subject: `📊 Your MARKUP Week — ${weeklyEvals} essays, +${weeklyXp} XP`,
+            subject: `Your MARKUP Week — ${weeklyEvals} essays, +${weeklyXp} XP`,
             html,
           }),
         });

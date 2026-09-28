@@ -38,12 +38,12 @@ export default function AchievementsDrawer({
       >
         {/* Progress bar at top */}
         <div className="absolute top-0 left-0 right-0 h-0.5 bg-slate-800/30">
-          <div className={`h-full bg-gradient-to-r from-amber-400 to-orange-500 animate-shrink-width-12s ${isHovered ? 'animate-paused' : ''}`} />
+          <div className={`h-full bg-amber-400 animate-shrink-width-12s ${isHovered ? 'animate-paused' : ''}`} />
         </div>
         {/* Scrollable content wrapper */}
         <div className="overflow-y-auto max-h-[80vh] p-6">
           <div className="flex justify-between items-center mb-5">
-            <h2 className="text-sm font-black tracking-widest text-slate-300 uppercase">🏅 Achievements</h2>
+            <h2 className="text-sm font-black tracking-widest text-slate-300 uppercase">Achievements</h2>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -78,7 +78,7 @@ export default function AchievementsDrawer({
                     </p>
                     <p className="text-[10px] text-slate-500 truncate">{ach.description}</p>
                   </div>
-                  {unlocked && <span className="text-[9px] text-emerald-400">✅</span>}
+                  {unlocked && <span className="text-[9px] text-emerald-400">✓</span>}
                 </div>
               );
             })}

@@ -30,7 +30,14 @@ to even apply for these schemes. Without bridging this gap, the policy risks
 widening the inequality it claims to address."
 `;
 
-describe('Model Answer Inspector', () => {
+// Skip when no AI API key is available (e.g. CI without secrets) — these tests
+// call the LIVE grading API, so they need GROQ_API_KEY (loaded from .env.local
+// by vitest.setup.ts in local development).
+const hasApiKey = Boolean(
+  process.env.GROQ_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+);
+
+describe.skipIf(!hasApiKey)('Model Answer Inspector', () => {
   it('inspect a1Upgrade output from grading AI', async () => {
     const sbcsAnswer = `Both sources address the government's approach to business support during the economic slowdown, but they differ fundamentally in their assessment.
 

@@ -1,18 +1,27 @@
 'use client';
 
 import { useState } from 'react';
+import { HISTORY_TRACKS, type HistoryTrack } from '@/lib/syllabus';
 
+// Display-only countdown targets. These are estimates — confirm them against
+// the official SEAB examination calendar each year. Elective History (2261/02)
+// and Pure History (2174) are separate papers and are not necessarily sat on
+// the same day.
 const SS_EXAM_DATE = '2026-10-26';
-const HISTORY_EXAM_DATE = '2026-10-20';
+const HISTORY_EXAM_DATES: Record<HistoryTrack, string> = {
+  'Elective History': '2026-10-20',
+  'Pure History': '2026-10-22',
+};
 
 interface ExamCountdownProps {
   userId: string | null;
   ssGoalLevel: string | null;
   historyGoalLevel: string | null;
-  takesHistory: boolean;
+  /** Which History paper the student takes, or null if they take neither. */
+  historyTrack: HistoryTrack | null;
   currentLevel: string;
   onSetGoal: (subject: 'ss' | 'history', goalLevel: string) => void;
-  onSetTakesHistory: (takes: boolean) => void;
+  onSetHistoryTrack: (track: HistoryTrack | null) => void;
 }
 
 const LEVEL_TARGETS = [
@@ -70,7 +79,7 @@ function CountdownWidget({
       onClick={onClick}
     >
       <span className={`text-2xl ${isCritical ? 'animate-pulse' : ''}`}>
-        {needsGoal ? '🎯' : icon}
+        {needsGoal ? 'Goal' : icon}
       </span>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
@@ -87,7 +96,7 @@ function CountdownWidget({
             <div className="text-right shrink-0">
               <p className="text-[8px] text-slate-600 uppercase tracking-widest">Status</p>
               <p className={`text-xs font-black font-mono ${reached ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {reached ? '✅ On Track' : `⬆ ${gap} level${gap > 1 ? 's' : ''}`}
+                {reached ? '✓ On Track' : `${gap} level${gap > 1 ? 's' : ''}`}
               </p>
             </div>
           )}
@@ -106,10 +115,10 @@ export default function ExamCountdown({
   userId,
   ssGoalLevel,
   historyGoalLevel,
-  takesHistory,
+  historyTrack,
   currentLevel,
   onSetGoal,
-  onSetTakesHistory,
+  onSetHistoryTrack,
 }: ExamCountdownProps) {
   const [showGoalModal, setShowGoalModal] = useState<'ss' | 'history' | null>(null);
   const [goalLevel, setGoalLevel] = useState('Scholar');
@@ -134,8 +143,8 @@ export default function ExamCountdown({
     setShowGoalModal(subject);
   };
 
-  const goalSubject = showGoalModal === 'ss' ? 'Social Studies' : 'History';
-  const goalDate = showGoalModal === 'ss' ? SS_EXAM_DATE : HISTORY_EXAM_DATE;
+  const goalSubject = showGoalModal === 'ss' ? 'Social Studies' : historyTrack ?? 'History';
+  const goalDate = showGoalModal === 'ss' ? SS_EXAM_DATE : HISTORY_EXAM_DATES[historyTrack ?? 'Elective History'];
 
   return (
     <>
@@ -146,40 +155,42 @@ export default function ExamCountdown({
         goalLevel={ssGoalLevel}
         currentLevel={currentLevel}
         onClick={() => openGoalModal('ss')}
-        icon="📅"
+        icon="Date"
         isMandatory={true}
       />
 
-      {/* History countdown — only if user takes it */}
-      {takesHistory ? (
+      {/* History countdown — only if the student takes a History paper */}
+      {historyTrack ? (
         <CountdownWidget
-          subjectLabel="Elective History"
-          examDate={HISTORY_EXAM_DATE}
+          subjectLabel={historyTrack}
+          examDate={HISTORY_EXAM_DATES[historyTrack]}
           goalLevel={historyGoalLevel}
           currentLevel={currentLevel}
           onClick={() => openGoalModal('history')}
-          icon="📖"
+          icon="Guide"
           isMandatory={true}
         />
       ) : (
-        <div
-          className="md:col-span-2 border border-dashed border-slate-800 rounded-2xl p-4 flex items-center gap-4 cursor-pointer hover:bg-slate-900/30 transition group"
-          onClick={async () => {
-            if (userId) {
-              await onSetTakesHistory(true);
-            }
-          }}
-        >
-          <span className="text-2xl text-slate-500 group-hover:text-slate-300 transition">📖</span>
+        <div className="md:col-span-2 border border-dashed border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center gap-4">
+          <span className="text-2xl text-slate-500">Guide</span>
           <div className="flex-1">
-            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Elective History</p>
-            <p className="text-[11px] text-slate-600 mt-0.5 group-hover:text-slate-400 transition">
-              Click here if you take History — set your exam goal and track progress
+            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">History</p>
+            <p className="text-[11px] text-slate-600 mt-0.5">
+              Do you take Elective or Pure History? Pick one to set your exam goal and track progress.
             </p>
           </div>
-          <span className="text-[10px] text-indigo-400 font-bold opacity-0 group-hover:opacity-100 transition">
-            + Add →
-          </span>
+          <div className="flex gap-2 shrink-0">
+            {HISTORY_TRACKS.map((track) => (
+              <button
+                key={track}
+                onClick={() => onSetHistoryTrack(track)}
+                disabled={!userId}
+                className="text-[10px] font-bold px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:border-indigo-500 hover:text-white transition disabled:opacity-40"
+              >
+                {track === 'Elective History' ? 'Elective' : 'Pure'}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -192,7 +203,7 @@ export default function ExamCountdown({
           >
             <div className="flex justify-between items-center mb-5">
               <h3 className="text-sm font-black tracking-widest text-slate-300 uppercase">
-                🎯 {goalSubject} Goal
+                {goalSubject} Goal
               </h3>
               <button onClick={() => setShowGoalModal(null)} className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-white hover:bg-slate-900 transition text-sm font-bold">✕</button>
             </div>
@@ -244,7 +255,7 @@ export default function ExamCountdown({
                   disabled={settingGoal}
                   className="flex-[2] bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-2.5 rounded-xl transition disabled:opacity-50"
                 >
-                  {settingGoal ? 'Saving...' : '💾 Save Goal'}
+                  {settingGoal ? 'Saving...' : 'Save Goal'}
                 </button>
               </div>
             </div>

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import TipsGrid from '@/app/components/TipsGrid';
+import { breadcrumbJsonLd, jsonLdScript } from '@/lib/structured-data';
 import type { TipEntry } from '@/app/components/TipsGrid';
 
 export const metadata: Metadata = {
@@ -12,6 +13,8 @@ export const metadata: Metadata = {
     description:
       'Free study guides for O-Level Humanities. Learn SBQ techniques, PEEL essay structure, and exam strategies with AI-powered practice tips from experienced educators.',
   },
+  alternates: { canonical: '/tips' },
+  robots: { index: true, follow: true },
 };
 
 const TIPS: TipEntry[] = [
@@ -20,8 +23,8 @@ const TIPS: TipEntry[] = [
     title: 'How to Analyse Sources for SBQ — Complete Framework',
     description:
       'The foundational skill behind every SBQ question. Learn provenance analysis, tone analysis, content vs message, and cross-referencing for top-band answers.',
-    icon: '🔬',
-    gradient: 'from-sky-900/40 to-slate-900/40',
+    icon: 'Analyse',
+    bg: 'bg-sky-900/40',
     tag: 'SBQ Guide',
     tagColor: 'indigo',
     readTime: '11 min read',
@@ -30,11 +33,11 @@ const TIPS: TipEntry[] = [
   },
   {
     slug: 'sbq-comparison',
-    title: 'How to Ace SBQ Comparison Questions (L4/6 Framework)',
+    title: 'How to Ace SBQ Comparison Questions (Top-Band Framework)',
     description:
-      'The SBQ comparison question is one of the most predictable parts of the paper. Learn the 3-step framework that top students use to consistently score L4/6.',
-    icon: '📖',
-    gradient: 'from-indigo-900/40 to-slate-900/40',
+      'The SBQ comparison question is one of the most predictable parts of the paper. Learn the 3-step framework that top students use to consistently score the top band.',
+    icon: 'Guide',
+    bg: 'bg-indigo-900/40',
     tag: 'SBQ Guide',
     tagColor: 'indigo',
     readTime: '8 min read',
@@ -46,8 +49,8 @@ const TIPS: TipEntry[] = [
     title: 'How to Ace SBQ Reliability Questions (L5/7 Framework)',
     description:
       'Master provenance analysis, cross-referencing, and evaluative judgement. The complete guide to scoring L5/7 on the highest-value SBQ question.',
-    icon: '🔍',
-    gradient: 'from-purple-900/40 to-slate-900/40',
+    icon: 'Investigate',
+    bg: 'bg-purple-900/40',
     tag: 'SBQ Guide',
     tagColor: 'indigo',
     readTime: '9 min read',
@@ -59,8 +62,8 @@ const TIPS: TipEntry[] = [
     title: 'How to Ace SBQ Purpose Questions (L5/7 Framework)',
     description:
       'Learn the 4-step method to analyse author intent. Identify message, audience, intention, and persuasive techniques to unlock top-band marks.',
-    icon: '🎯',
-    gradient: 'from-rose-900/40 to-slate-900/40',
+    icon: 'Goal',
+    bg: 'bg-rose-900/40',
     tag: 'SBQ Guide',
     tagColor: 'indigo',
     readTime: '9 min read',
@@ -69,11 +72,11 @@ const TIPS: TipEntry[] = [
   },
   {
     slug: 'sbq-utility-comparison',
-    title: 'How to Ace the SBQ 10-Mark Comparison/Utility Question (L5/8)',
+    title: 'How to Ace the 10-Mark Multi-Source SBQ Question (Q5)',
     description:
-      'The highest-value SBQ question — learn the 4-step method to assess how far sources agree, evaluate utility, and score the top L5/8 band.',
-    icon: '⚡',
-    gradient: 'from-violet-900/40 to-slate-900/40',
+      'The highest-value SBQ question in Social Studies — learn the 4-step method to weigh multiple sources, consider a different perspective, and score the top band.',
+    icon: 'Fast',
+    bg: 'bg-violet-900/40',
     tag: 'SBQ Guide',
     tagColor: 'indigo',
     readTime: '10 min read',
@@ -85,8 +88,8 @@ const TIPS: TipEntry[] = [
     title: 'SBQ Sentence Starters & Answer Templates for Every Type',
     description:
       'Memorise these ready-to-use answer templates and sentence starters for every SBQ question type — comparison, reliability, purpose, and utility. LORMS-aligned phrasing to boost your score.',
-    icon: '📋',
-    gradient: 'from-cyan-900/40 to-slate-900/40',
+    icon: 'Copy',
+    bg: 'bg-cyan-900/40',
     tag: 'SBQ Guide',
     tagColor: 'indigo',
     readTime: '10 min read',
@@ -98,8 +101,8 @@ const TIPS: TipEntry[] = [
     title: 'Model Answer Breakdown: An Annotated L4 SBQ Paper',
     description:
       'See a complete O-Level SBQ paper with annotated L4/L5 model answers for every question type. Understand exactly why each sentence scores top band.',
-    icon: '🏅',
-    gradient: 'from-indigo-900/40 to-slate-900/40',
+    icon: 'Badge',
+    bg: 'bg-indigo-900/40',
     tag: 'SBQ Guide',
     tagColor: 'indigo',
     readTime: '14 min read',
@@ -111,8 +114,8 @@ const TIPS: TipEntry[] = [
     title: 'The PEEL Framework: Structuring A1 Humanities Essays',
     description:
       'Point, Evidence, Explanation, Link — master the structure that examiners look for. We break down each component with real Social Studies and History examples.',
-    icon: '✍️',
-    gradient: 'from-emerald-900/40 to-slate-900/40',
+    icon: 'Writing',
+    bg: 'bg-emerald-900/40',
     tag: 'Essay Tips',
     tagColor: 'emerald',
     readTime: '10 min read',
@@ -124,8 +127,8 @@ const TIPS: TipEntry[] = [
     title: 'How to Write Killer Introductions & Conclusions for SEQ/SRQ',
     description:
       'Your intro and conclusion frame the entire essay. Learn the 3-part formula for both, with worked examples for History and Social Studies.',
-    icon: '🎬',
-    gradient: 'from-emerald-900/40 to-slate-900/40',
+    icon: 'Intro',
+    bg: 'bg-emerald-900/40',
     tag: 'Essay Tips',
     tagColor: 'emerald',
     readTime: '10 min read',
@@ -137,8 +140,8 @@ const TIPS: TipEntry[] = [
     title: 'How to Ace SEQ Evaluation Questions (L5/7 Framework)',
     description:
       'The SEQ Evaluation question tests your ability to make judgements. Learn how to argue, evaluate, and conclude at the highest LORMS band.',
-    icon: '⚖️',
-    gradient: 'from-blue-900/40 to-slate-900/40',
+    icon: 'Judge',
+    bg: 'bg-blue-900/40',
     tag: 'Essay Tips',
     tagColor: 'emerald',
     readTime: '10 min read',
@@ -150,8 +153,8 @@ const TIPS: TipEntry[] = [
     title: 'How to Use Historical Context in Your Humanities Essays',
     description:
       'Don\'t just describe — contextualise. Learn how to weave contextual knowledge (CK) into your essays to deepen your analysis and score top L3/7 bands.',
-    icon: '🌐',
-    gradient: 'from-teal-900/40 to-slate-900/40',
+    icon: 'Web',
+    bg: 'bg-teal-900/40',
     tag: 'Essay Tips',
     tagColor: 'emerald',
     readTime: '12 min read',
@@ -162,9 +165,9 @@ const TIPS: TipEntry[] = [
     slug: 'seq-history-guide',
     title: 'How to Answer SEQ Questions for Elective History',
     description:
-      'Master the SEQ for O-Level History. Learn Part A vs Part B, planning, essay structure with PEEL, CK use, and time management for the highest-value component.',
-    icon: '📜',
-    gradient: 'from-amber-900/40 to-slate-900/40',
+      'Master the SEQ for O-Level History. Learn explanation vs evaluation questions, planning, essay structure with PEEL, CK use, and time management.',
+    icon: 'Source',
+    bg: 'bg-amber-900/40',
     tag: 'Essay Tips',
     tagColor: 'emerald',
     readTime: '12 min read',
@@ -176,8 +179,8 @@ const TIPS: TipEntry[] = [
     title: 'How to Answer SRQ Questions — Social Studies Guide',
     description:
       'Master the SRQ (Structured Response Question) for O-Level Social Studies. 3-step L3/8 framework with PEEL structure, evidence handling, and evaluation techniques.',
-    icon: '📝',
-    gradient: 'from-sky-900/40 to-slate-900/40',
+    icon: 'Essay',
+    bg: 'bg-sky-900/40',
     tag: 'SRQ Guide',
     tagColor: 'indigo',
     readTime: '11 min read',
@@ -189,8 +192,8 @@ const TIPS: TipEntry[] = [
     title: 'How to Use AI Practice Tools to Maximise Your Score',
     description:
       'Don\'t just generate and grade mindlessly. Learn how top students use AI to target weak skills, build streaks, and track their improvement over time.',
-    icon: '🧠',
-    gradient: 'from-amber-900/40 to-slate-900/40',
+    icon: 'Think',
+    bg: 'bg-amber-900/40',
     tag: 'Study Strategy',
     tagColor: 'amber',
     readTime: '9 min read',
@@ -202,8 +205,8 @@ const TIPS: TipEntry[] = [
     title: '10 Common O-Level Humanities Mistakes (And How to Fix Each One)',
     description:
       'The top 10 mistakes students make in SBQ, SEQ, and SRQ answers — and exactly how to fix each one. Covers synthesis, CK, PEEL, time management, and more.',
-    icon: '⚠️',
-    gradient: 'from-amber-900/40 to-slate-900/40',
+    icon: 'Warning',
+    bg: 'bg-amber-900/40',
     tag: 'Study Strategy',
     tagColor: 'amber',
     readTime: '12 min read',
@@ -215,8 +218,8 @@ const TIPS: TipEntry[] = [
     title: 'Exam Week Strategy: Your 7-Day Humanities Playbook',
     description:
       'The week before your O-Level Humanities paper can make or break your score. Day-by-day plan, time management per question, and mental prep techniques.',
-    icon: '🏆',
-    gradient: 'from-orange-900/40 to-slate-900/40',
+    icon: 'Ranking',
+    bg: 'bg-orange-900/40',
     tag: 'Study Strategy',
     tagColor: 'amber',
     readTime: '10 min read',
@@ -228,8 +231,8 @@ const TIPS: TipEntry[] = [
     title: 'How to Study for History vs Social Studies',
     description:
       'Head-to-head comparison of content, exam format, skills, and study strategies. Learn how to ace both subjects and make the most of your study time.',
-    icon: '🎓',
-    gradient: 'from-cyan-900/40 to-slate-900/40',
+    icon: 'Study',
+    bg: 'bg-cyan-900/40',
     tag: 'Study Strategy',
     tagColor: 'amber',
     readTime: '10 min read',
@@ -241,6 +244,17 @@ const TIPS: TipEntry[] = [
 export default function TipsPage() {
   return (
     <main className="min-h-screen bg-[#07090e] text-slate-100 font-sans selection:bg-indigo-500/30">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLdScript(
+            breadcrumbJsonLd([
+              { name: 'Home', href: '/' },
+              { name: 'Tips & Guides', href: '/tips' },
+            ])
+          ),
+        }}
+      />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 space-y-12">
         {/* Header */}
         <div className="flex items-center gap-4 mb-4">
@@ -256,7 +270,7 @@ export default function TipsPage() {
         {/* Hero */}
         <div className="text-center space-y-4 pt-4">
           <span className="inline-flex items-center gap-2 text-[10px] font-black text-emerald-400 tracking-widest uppercase bg-emerald-950/50 border border-emerald-900/50 px-3 py-1 rounded-full">
-            📝 Tips & Guides
+            Tips & Guides
           </span>
           <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-[1.1] text-white">
             Master the O-Level Humanities
@@ -271,18 +285,26 @@ export default function TipsPage() {
         <TipsGrid tips={TIPS} />
 
         {/* Trust & CTA Section */}
-        <div className="bg-gradient-to-br from-slate-950/80 to-slate-950/50 border border-slate-900 rounded-2xl p-8 text-center space-y-4 mt-8">
+        <div className="bg-slate-950/70 border border-slate-900 rounded-2xl p-8 text-center space-y-4 mt-8">
           <h2 className="text-xl font-black text-white">Practise what you learn</h2>
           <p className="text-xs text-slate-400 max-w-lg mx-auto">
             Every guide pairs perfectly with MARKUP&apos;s AI practice system. Read a technique, then
             immediately try it on a real O-Level paper with instant LORMS grading.
           </p>
-          <Link
-            href="/dashboard"
-            className="inline-block bg-indigo-600 hover:bg-indigo-500 text-white font-black px-8 py-3 rounded-xl text-sm transition shadow-lg shadow-indigo-500/20"
-          >
-            Start Practising — Free
-          </Link>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link
+              href="/dashboard"
+              className="inline-block bg-indigo-600 hover:bg-indigo-500 text-white font-black px-8 py-3 rounded-xl text-sm transition shadow-lg shadow-indigo-500/20"
+            >
+              Start Practising — Free
+            </Link>
+            <Link
+              href="/resources/sbq-template"
+              className="inline-block bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 font-black px-8 py-3 rounded-xl text-sm transition"
+            >
+ Free SBQ Template
+            </Link>
+          </div>
         </div>
 
         {/* Footer */}

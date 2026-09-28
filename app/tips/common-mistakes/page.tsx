@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { breadcrumbJsonLd, jsonLdScript } from '@/lib/structured-data';
 
 export const metadata: Metadata = {
   title: '10 Common O-Level Humanities Mistakes (And How to Fix Each One)',
+  alternates: { canonical: '/tips/common-mistakes' },
+  robots: { index: true, follow: true },
   description:
     'The top 10 mistakes students make in O-Level Social Studies and Elective History — and exactly how to fix them. Covers SBQ, SEQ, SRQ, PEEL, CK, and time management.',
   openGraph: {
@@ -30,6 +33,19 @@ export default function CommonMistakesPage() {
           <span>/</span>
           <span className="text-slate-400">Common Mistakes</span>
         </nav>
+        {/* BreadcrumbList structured data (matches the visible nav above) */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: jsonLdScript(
+              breadcrumbJsonLd([
+                { name: 'Home', href: '/' },
+                { name: 'Tips & Guides', href: '/tips' },
+                { name: 'Common Mistakes', href: '/tips/common-mistakes' },
+              ])
+            ),
+          }}
+        />
 
         {/* Hero */}
         <div className="space-y-4 border-b border-slate-900 pb-8">
@@ -74,11 +90,11 @@ export default function CommonMistakesPage() {
               evidence from both sources together <strong className="text-slate-200">within the same sentence</strong>.
             </p>
             <div className="bg-slate-900/70 rounded-lg p-2 mt-2 text-[10px] font-mono text-slate-400">
-              <p>✅ <em>&ldquo;Both sources acknowledge that X was effective, but Source A emphasises Y while Source B focuses on Z.&rdquo;</em></p>
+              <p>✓ <em>&ldquo;Both sources acknowledge that X was effective, but Source A emphasises Y while Source B focuses on Z.&rdquo;</em></p>
             </div>
           </div>
           <p className="text-[10px] text-indigo-400 font-bold">
-            📖 Related: <Link href="/tips/sbq-comparison" className="underline underline-offset-2">SBQ Comparison Guide</Link>
+            Related: <Link href="/tips/sbq-comparison" className="underline underline-offset-2">SBQ Comparison Guide</Link>
           </p>
         </section>
 
@@ -103,11 +119,11 @@ export default function CommonMistakesPage() {
               A strong CK statement includes a date, a name or policy, and a statistic or key detail.
             </p>
             <div className="bg-slate-900/70 rounded-lg p-2 mt-2 text-[10px] font-mono text-slate-400">
-              <p>✅ <em>&ldquo;The Marshall Plan (1948) injected $13 billion into Western Europe, requiring recipients to adopt free-market policies — effectively locking them into the American economic sphere.&rdquo;</em></p>
+              <p>✓ <em>&ldquo;The Marshall Plan (1948) injected $13 billion into Western Europe, requiring recipients to adopt free-market policies — effectively locking them into the American economic sphere.&rdquo;</em></p>
             </div>
           </div>
           <p className="text-[10px] text-indigo-400 font-bold">
-            📖 Related: <Link href="/tips/historical-context-essays" className="underline underline-offset-2">Historical Context Guide</Link>
+            Related: <Link href="/tips/historical-context-essays" className="underline underline-offset-2">Historical Context Guide</Link>
           </p>
         </section>
 
@@ -131,11 +147,11 @@ export default function CommonMistakesPage() {
               not by source. Each paragraph should discuss one aspect and draw evidence from both sources.
             </p>
             <div className="bg-slate-900/70 rounded-lg p-2 mt-2 text-[10px] font-mono text-slate-400">
-              <p>✅ <em>Paragraph on &ldquo;economic impact&rdquo;: uses Source A quote + Source B quote within the same argument.</em></p>
+              <p>✓ <em>Paragraph on &ldquo;economic impact&rdquo;: uses Source A quote + Source B quote within the same argument.</em></p>
             </div>
           </div>
           <p className="text-[10px] text-indigo-400 font-bold">
-            📖 Related: <Link href="/tips/sbq-comparison" className="underline underline-offset-2">SBQ Comparison Guide</Link>
+            Related: <Link href="/tips/sbq-comparison" className="underline underline-offset-2">SBQ Comparison Guide</Link>
           </p>
         </section>
 
@@ -161,11 +177,11 @@ export default function CommonMistakesPage() {
               or retrospective? What type of source is it? Then <strong className="text-slate-200">cross-reference</strong>.
             </p>
             <div className="bg-slate-900/70 rounded-lg p-2 mt-2 text-[10px] font-mono text-slate-400">
-              <p>✅ <em>&ldquo;As a British colonial official writing in 1955, the author had a vested interest in portraying colonial rule positively. However, his first-hand access to government records makes his factual claims about economic development more reliable.&rdquo;</em></p>
+              <p>✓ <em>&ldquo;As a British colonial official writing in 1955, the author had a vested interest in portraying colonial rule positively. However, his first-hand access to government records makes his factual claims about economic development more reliable.&rdquo;</em></p>
             </div>
           </div>
           <p className="text-[10px] text-indigo-400 font-bold">
-            📖 Related: <Link href="/tips/sbq-reliability" className="underline underline-offset-2">SBQ Reliability Guide</Link>
+            Related: <Link href="/tips/sbq-reliability" className="underline underline-offset-2">SBQ Reliability Guide</Link>
           </p>
         </section>
 
@@ -190,7 +206,7 @@ export default function CommonMistakesPage() {
               What does it reveal about the author&apos;s motives? Why does it matter for the question?
             </p>
             <div className="bg-slate-900/70 rounded-lg p-2 mt-2 text-[10px] font-mono text-slate-400">
-              <p>✅ <em>&ldquo;The source&apos;s emphasis on suffering serves a purpose — it justifies the nationalist struggle against the Japanese and later the returning colonial powers.&rdquo;</em></p>
+              <p>✓ <em>&ldquo;The source&apos;s emphasis on suffering serves a purpose — it justifies the nationalist struggle against the Japanese and later the returning colonial powers.&rdquo;</em></p>
             </div>
           </div>
         </section>
@@ -218,11 +234,11 @@ export default function CommonMistakesPage() {
               my thesis?&rdquo;
             </p>
             <div className="bg-slate-900/70 rounded-lg p-2 mt-2 text-[10px] font-mono text-slate-400">
-              <p>✅ <em>&ldquo;Therefore, the EIP demonstrates that deliberate state intervention was effective in preventing ethnic enclaves, supporting the view that government policy can successfully manage diversity.&rdquo;</em></p>
+              <p>✓ <em>&ldquo;Therefore, the EIP demonstrates that deliberate state intervention was effective in preventing ethnic enclaves, supporting the view that government policy can successfully manage diversity.&rdquo;</em></p>
             </div>
           </div>
           <p className="text-[10px] text-indigo-400 font-bold">
-            📖 Related: <Link href="/tips/peel-framework" className="underline underline-offset-2">PEEL Framework Guide</Link>
+            Related: <Link href="/tips/peel-framework" className="underline underline-offset-2">PEEL Framework Guide</Link>
           </p>
         </section>
 
@@ -249,11 +265,11 @@ export default function CommonMistakesPage() {
               judgement.
             </p>
             <div className="bg-slate-900/70 rounded-lg p-2 mt-2 text-[10px] font-mono text-slate-400">
-              <p>✅ <em>&ldquo;On balance, economic factors were more significant than ideological ones because they created material conditions that made compromise impossible — while ideology provided the rhetoric, economics provided the structural conflict.&rdquo;</em></p>
+              <p>✓ <em>&ldquo;On balance, economic factors were more significant than ideological ones because they created material conditions that made compromise impossible — while ideology provided the rhetoric, economics provided the structural conflict.&rdquo;</em></p>
             </div>
           </div>
           <p className="text-[10px] text-indigo-400 font-bold">
-            📖 Related: <Link href="/tips/seq-evaluation" className="underline underline-offset-2">SEQ Evaluation Guide</Link>
+            Related: <Link href="/tips/seq-evaluation" className="underline underline-offset-2">SEQ Evaluation Guide</Link>
           </p>
         </section>
 
@@ -279,11 +295,11 @@ export default function CommonMistakesPage() {
               cross-reference to make a nuanced judgement.
             </p>
             <div className="bg-slate-900/70 rounded-lg p-2 mt-2 text-[10px] font-mono text-slate-400">
-              <p>✅ <em>&ldquo;Source C&apos;s claim that the policy was successful is corroborated by Source D, which provides specific statistics showing a 30% increase. However, Source E contradicts this, suggesting the data was selectively presented.&rdquo;</em></p>
+              <p>✓ <em>&ldquo;Source C&apos;s claim that the policy was successful is corroborated by Source D, which provides specific statistics showing a 30% increase. However, Source E contradicts this, suggesting the data was selectively presented.&rdquo;</em></p>
             </div>
           </div>
           <p className="text-[10px] text-indigo-400 font-bold">
-            📖 Related: <Link href="/tips/sbq-source-analysis" className="underline underline-offset-2">SBQ Source Analysis Guide</Link>
+            Related: <Link href="/tips/sbq-source-analysis" className="underline underline-offset-2">SBQ Source Analysis Guide</Link>
           </p>
         </section>
 
@@ -308,11 +324,11 @@ export default function CommonMistakesPage() {
               than one sentence, your point is probably not focused enough.
             </p>
             <div className="bg-slate-900/70 rounded-lg p-2 mt-2 text-[10px] font-mono text-slate-400">
-              <p>✅ <em>&ldquo;The USSR&apos;s demand for $20 billion in reparations from Germany was the most immediate economic cause of Cold War tensions.&rdquo;</em> ← One sentence, clear claim.</p>
+              <p>✓ <em>&ldquo;The USSR&apos;s demand for $20 billion in reparations from Germany was the most immediate economic cause of Cold War tensions.&rdquo;</em> ← One sentence, clear claim.</p>
             </div>
           </div>
           <p className="text-[10px] text-indigo-400 font-bold">
-            📖 Related: <Link href="/tips/peel-framework" className="underline underline-offset-2">PEEL Framework Guide</Link>
+            Related: <Link href="/tips/peel-framework" className="underline underline-offset-2">PEEL Framework Guide</Link>
           </p>
         </section>
 
@@ -325,9 +341,9 @@ export default function CommonMistakesPage() {
           <div className="bg-red-950/20 border border-red-900/30 rounded-xl p-4">
             <p className="text-[10px] font-black text-red-400 uppercase tracking-widest">The Mistake</p>
             <p className="text-xs text-slate-400 italic mt-1">
-              Spending too long on the first SBQ question (comparison, 6 marks) and running out
-              of time for the last SBQ question (utility/comparison, 10 marks). Or spending so
-              long on SBQ that your SEQ answers are rushed.
+              Spending too long on an early SBQ question (e.g. comparison, 5–7 marks) and running
+              out of time for the final 10-mark multi-source question. Or spending so long on SBQ
+              that your essay answers are rushed.
             </p>
           </div>
           <div className="bg-emerald-950/20 border border-emerald-900/30 rounded-xl p-4">
@@ -338,19 +354,19 @@ export default function CommonMistakesPage() {
               comparison: 10-12 minutes. Total SBQ: ~50 min. Total SEQ (2 essays): ~50 min.
             </p>
             <div className="bg-slate-900/70 rounded-lg p-2 mt-2 text-[10px] font-mono text-slate-400">
-              <p>💡 <em>Set a mental checkpoint at the 50-minute mark — if you&apos;re not done with
+              <p>Tip <em>Set a mental checkpoint at the 50-minute mark — if you&apos;re not done with
               SBQ, force yourself to move to SEQ. A rushed SEQ answer scored L3 is better than
               a perfect SBQ with an unfinished SEQ.</em></p>
             </div>
           </div>
           <p className="text-[10px] text-indigo-400 font-bold">
-            📖 Related: <Link href="/tips/seq-history-guide" className="underline underline-offset-2">SEQ Time Management</Link>
+            Related: <Link href="/tips/seq-history-guide" className="underline underline-offset-2">SEQ Time Management</Link>
           </p>
         </section>
 
         {/* Summary table */}
         <div className="bg-slate-950/80 border border-slate-900 rounded-xl p-5">
-          <h2 className="text-sm font-black text-white mb-3">📊 Quick Reference: All 10 Mistakes</h2>
+          <h2 className="text-sm font-black text-white mb-3">Quick Reference: All 10 Mistakes</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-[10px] border-collapse">
               <thead>
@@ -377,7 +393,7 @@ export default function CommonMistakesPage() {
         </div>
 
         {/* CTA */}
-        <div className="bg-gradient-to-br from-amber-950/50 to-slate-950/80 border border-amber-800/50 rounded-2xl p-6 text-center space-y-3">
+        <div className="bg-amber-950/70 border border-amber-800/50 rounded-2xl p-6 text-center space-y-3">
           <p className="text-lg font-black text-white">Check for these mistakes in your own answers</p>
           <p className="text-xs text-slate-400 max-w-md mx-auto">
             Write an answer in MARKUP and get instant LORMS-aligned grading. The AI feedback

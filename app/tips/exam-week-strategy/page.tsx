@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { breadcrumbJsonLd, jsonLdScript } from '@/lib/structured-data';
 
 export const metadata: Metadata = {
   title: 'Exam Week Strategy Guide — How to Ace Your Humanities Papers',
+  alternates: { canonical: '/tips/exam-week-strategy' },
+  robots: { index: true, follow: true },
   description:
     'Your complete exam week playbook for O-Level Social Studies and Elective History. Learn the 7-day revision plan, morning-of strategies, time management per question type, and how to stay calm under pressure.',
   openGraph: {
@@ -35,6 +38,19 @@ export default function ExamWeekStrategyPage() {
           <span>/</span>
           <span className="text-slate-400">Exam Week Strategy</span>
         </nav>
+        {/* BreadcrumbList structured data (matches the visible nav above) */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: jsonLdScript(
+              breadcrumbJsonLd([
+                { name: 'Home', href: '/' },
+                { name: 'Tips & Guides', href: '/tips' },
+                { name: 'Exam Week Strategy', href: '/tips/exam-week-strategy' },
+              ])
+            ),
+          }}
+        />
 
         {/* Hero */}
         <div className="space-y-4 border-b border-slate-900 pb-8">
@@ -86,23 +102,23 @@ export default function ExamWeekStrategyPage() {
             <h3 className="text-sm font-bold text-slate-200">What to prepare before exam week:</h3>
             <ul className="space-y-2 text-xs">
               <li className="flex gap-2">
-                <span className="text-emerald-400">✅</span>
+                <span className="text-emerald-400">✓</span>
                 <span><strong className="text-slate-200">Topic summaries</strong> — one page per chapter covering key events, dates, and vocabulary</span>
               </li>
               <li className="flex gap-2">
-                <span className="text-emerald-400">✅</span>
+                <span className="text-emerald-400">✓</span>
                 <span><strong className="text-slate-200">SBQ cheat sheet</strong> — the LORMS framework for each question type (Comparison, Reliability, Purpose, Utility)</span>
               </li>
               <li className="flex gap-2">
-                <span className="text-emerald-400">✅</span>
+                <span className="text-emerald-400">✓</span>
                 <span><strong className="text-slate-200">Essay structure templates</strong> — PEEL for SRQs, TEAC for SEQs, your go-to introductions and conclusions</span>
               </li>
               <li className="flex gap-2">
-                <span className="text-emerald-400">✅</span>
+                <span className="text-emerald-400">✓</span>
                 <span><strong className="text-slate-200">Past paper folder</strong> — 3–5 completed papers with marked feedback so you know your weak spots</span>
               </li>
               <li className="flex gap-2">
-                <span className="text-emerald-400">✅</span>
+                <span className="text-emerald-400">✓</span>
                 <span><strong className="text-slate-200">Exam kit</strong> — extra pens, water, watch (not a smartwatch), tissues, and any allowed materials</span>
               </li>
             </ul>
@@ -199,7 +215,7 @@ export default function ExamWeekStrategyPage() {
 
           <div className="bg-amber-950/20 border border-amber-900/30 rounded-xl p-4">
             <p className="text-xs text-amber-300 font-bold">
-              ⚡ Key principle: Active practice beats passive reading every time. Generating and
+              Key principle: Active practice beats passive reading every time. Generating and
               grading papers on MARKUP is worth 3x more than re-reading your textbook.
             </p>
           </div>
@@ -279,7 +295,7 @@ export default function ExamWeekStrategyPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="bg-emerald-950/20 border border-emerald-900/30 rounded-xl p-4">
-              <h3 className="text-xs font-bold text-emerald-400 mb-2">✅ Do</h3>
+              <h3 className="text-xs font-bold text-emerald-400 mb-2">✓ Do</h3>
               <ul className="space-y-1.5 text-[10px] text-slate-400">
                 <li>Wake up early enough to eat a proper breakfast</li>
                 <li>Review your SBQ cheat sheet once (10 min, no more)</li>
@@ -289,7 +305,7 @@ export default function ExamWeekStrategyPage() {
               </ul>
             </div>
             <div className="bg-red-950/20 border border-red-900/30 rounded-xl p-4">
-              <h3 className="text-xs font-bold text-red-400 mb-2">❌ Don&apos;t</h3>
+              <h3 className="text-xs font-bold text-red-400 mb-2">✗ Don&apos;t</h3>
               <ul className="space-y-1.5 text-[10px] text-slate-400">
                 <li>Cram new content — it increases anxiety, not performance</li>
                 <li>Discuss the paper with friends before entering</li>
@@ -381,7 +397,7 @@ export default function ExamWeekStrategyPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <h3 className="text-xs font-bold text-indigo-400 mb-1">🧘 During the Exam</h3>
+              <h3 className="text-xs font-bold text-indigo-400 mb-1">During the Exam</h3>
               <ul className="space-y-1.5 text-[10px] text-slate-400">
                 <li>Feel panic? Close your eyes and take 3 deep breaths (4 sec in, 4 sec hold, 4 sec out)</li>
                 <li>If your mind goes blank on a question, move to an easier one and come back</li>
@@ -390,7 +406,7 @@ export default function ExamWeekStrategyPage() {
               </ul>
             </div>
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <h3 className="text-xs font-bold text-emerald-400 mb-1">🌙 The Night Before</h3>
+              <h3 className="text-xs font-bold text-emerald-400 mb-1">The Night Before</h3>
               <ul className="space-y-1.5 text-[10px] text-slate-400">
                 <li>Stop studying by 8 PM at the latest</li>
                 <li>Do something relaxing — watch a show, talk to family, stretch</li>
@@ -402,7 +418,7 @@ export default function ExamWeekStrategyPage() {
 
           <div className="bg-indigo-950/30 border border-indigo-900/30 rounded-xl p-4">
             <p className="text-xs text-indigo-300 font-bold text-center">
-              💡 The students who score the highest aren&apos;t the ones who know the most content —
+              The students who score the highest aren&apos;t the ones who know the most content —
               they&apos;re the ones who execute their plan calmly under pressure.
             </p>
           </div>
@@ -452,7 +468,7 @@ export default function ExamWeekStrategyPage() {
         </section>
 
         {/* CTA Banner */}
-        <div className="bg-gradient-to-br from-amber-950/50 to-slate-950/80 border border-amber-800/50 rounded-2xl p-6 text-center space-y-3">
+        <div className="bg-amber-950/70 border border-amber-800/50 rounded-2xl p-6 text-center space-y-3">
           <p className="text-lg font-black text-white">Train like you&apos;ll fight</p>
           <p className="text-xs text-slate-400 max-w-md mx-auto">
             The best exam preparation is realistic practice under timed conditions. Use MARKUP

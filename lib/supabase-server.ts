@@ -3,15 +3,15 @@ import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 
 // ───────────────────────────────────────────────────────────────────────────
-//  Supabase server utilities
+// Supabase server utilities
 //
-//  These provide a fallback when SUPABASE_SERVICE_ROLE_KEY is not configured
-//  (or is incorrect). Routes that only need to read/write the authenticated
-//  user's own data can use getServerSupabase() + getAuthUserId() instead.
+// These provide a fallback when SUPABASE_SERVICE_ROLE_KEY is not configured
+// (or is incorrect). Routes that only need to read/write the authenticated
+// user's own data can use getServerSupabase() + getAuthUserId() instead.
 //
-//  The RLS policies in schema.sql / delta_migration.sql already allow users
-//  to SELECT / INSERT / UPDATE their own rows in user_skill_metrics and
-//  user_notifications — so the anon key + session cookies work fine.
+// The RLS policies in schema.sql / delta_migration.sql already allow users
+// to SELECT / INSERT / UPDATE their own rows in user_skill_metrics and
+// user_notifications — so the anon key + session cookies work fine.
 // ───────────────────────────────────────────────────────────────────────────
 
 export type ServerSupabase = ReturnType<typeof createServerClient>;
@@ -24,8 +24,7 @@ export type ServerSupabase = ReturnType<typeof createServerClient>;
  */
 export async function getServerSupabase(): Promise<ServerSupabase> {
   const cookieStore = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  return createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {

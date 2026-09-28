@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getStripe } from '@/lib/stripe';
+import { SHOW_POST_BETA_PRICING } from '@/lib/beta-flags';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -9,10 +10,17 @@ export const maxDuration = 30;
  * POST /api/webhooks/stripe
  *
  * Handles Stripe webhook events:
- *  - checkout.session.completed  → update user subscription, link waitlist discount
- *  - customer.subscription.updated  → sync subscription tier changes
- *  - customer.subscription.deleted  → revert user to free tier
- *  - invoice.paid  → refresh billing_rate
+ * - checkout.session.completed → update user subscription, link waitlist discount
+ * - customer.subscription.updated → sync subscription tier changes
+ * - customer.subscription.deleted → revert user to free tier
+ * - invoice.paid → refresh billing_rate
+ *
+ * Security: the Stripe signature is ALWAYS verified first (HMAC-SHA256 with
+ * STRIPE_WEBHOOK_SECRET) — this is the anti-spoofing boundary and it applies
+ * in every mode, beta included. Only after a valid signature is confirmed do
+ * we apply the beta guard below (events are acknowledged but ignored during
+ * the waitlist beta, since no legitimate subscription can exist while
+ * checkout is blocked).
  */
 export async function POST(request: Request) {
   try {
@@ -31,6 +39,18 @@ export async function POST(request: Request) {
       event = stripe.webhooks.constructEvent(rawBody, sig || '', webhookSecret);
     } catch {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+    }
+
+    // Post-beta only — a signed event during the waitlist beta is acknowledged
+    // but ignored (2xx so Stripe doesn't retry, no DB writes). Flip
+    // SHOW_POST_BETA_PRICING in lib/beta-flags.ts to process events again.
+    if (!SHOW_POST_BETA_PRICING) {
+      // Should never happen while checkout is blocked — surface it for the founder.
+      console.warn('stripe webhook ignored (beta):', event.id, event.type);
+      return NextResponse.json({
+        received: true,
+        ignored: 'beta — payments are disabled, event not processed',
+      });
     }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -102,7 +122,6 @@ export async function POST(request: Request) {
         const subStatus = sub.status;
         const subItems = sub.items?.data || [];
         const subPriceId = subItems[0]?.price?.id;
-        const subProductId = subItems[0]?.price?.product;
 
         // Determine which tier based on the price/product
         const priceId = subPriceId || '';

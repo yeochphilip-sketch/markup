@@ -1,9 +1,20 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { SHOW_POST_BETA_PRICING } from '@/lib/beta-flags';
 
 export async function proxy(req: NextRequest) {
   const url = req.nextUrl.clone();
+
+  // Post-beta only: while the waitlist beta is running, no one can pay —
+  // redirect the /pricing page back to the landing page (and the checkout
+  // API is guarded in app/api/stripe/checkout/route.ts). Flip
+  // SHOW_POST_BETA_PRICING in lib/beta-flags.ts to re-enable.
+  if (!SHOW_POST_BETA_PRICING && url.pathname === '/pricing') {
+    url.pathname = '/';
+    url.search = '';
+    return NextResponse.redirect(url);
+  }
 
   // Only intercept /admin/* routes – everything else passes through.
   if (url.pathname.startsWith('/admin')) {
@@ -39,9 +50,9 @@ export async function proxy(req: NextRequest) {
     }
 
     // Look up admin flag in profile (avoid hard-coded emails entirely).
-    const isAdminFlag =
-      user.app_metadata?.is_admin === true ||
-      user.user_metadata?.is_admin === true;
+    // NOTE: app_metadata only — user_metadata is end-user-editable and must
+    // never be trusted for security checks.
+    const isAdminFlag = user.app_metadata?.is_admin === true;
 
     if (!isAdminFlag) {
       url.pathname = '/dashboard';

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { checkSupabaseRateLimit, WAITLIST_LIMIT, rateLimitResponse } from '@/lib/rate-limit-supabase';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
@@ -9,6 +10,12 @@ export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
   try {
+    // Public lead-gen form — rate limit per IP so bots can't spam the list.
+    const rl = await checkSupabaseRateLimit(request, WAITLIST_LIMIT);
+    if (rl && !rl.allowed) {
+      return rateLimitResponse(rl.headers);
+    }
+
     const { email, name, subject } = await request.json();
 
     if (!email || typeof email !== 'string') {
@@ -60,9 +67,8 @@ export async function GET(request: Request) {
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
     const { data: { user } } = await supabase.auth.getUser();
 
-    const adminFlag =
-      user?.app_metadata?.is_admin === true ||
-      user?.user_metadata?.is_admin === true;
+    // app_metadata only — user_metadata is end-user-editable.
+    const adminFlag = user?.app_metadata?.is_admin === true;
 
     if (!user || !adminFlag) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });

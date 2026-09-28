@@ -4,11 +4,12 @@ import "./globals.css";
 import GlobalFeedbackWrapper from "@/app/components/GlobalFeedbackWrapper";
 import PageTransition from "@/app/components/PageTransition";
 import { Analytics } from '@vercel/analytics/react';
+import { SITE_URL } from "@/lib/site-config";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.SITE_URL || 'https://markup.app'),
+  metadataBase: new URL(SITE_URL),
   title: {
     template: '%s | MARKUP',
     default: 'MARKUP — O-Level Humanities AI Practice',
@@ -19,7 +20,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'MARKUP — O-Level Humanities AI Practice',
     description: 'The only Source-Based Case Study simulator designed for the Singapore SEAB Social Studies and History syllabus. Scan essays, get LORMS grades, and climb to A1.',
-    url: process.env.SITE_URL || 'https://markup.app',
+    url: SITE_URL,
     siteName: 'MARKUP',
     type: 'website',
     locale: 'en_SG',
@@ -36,11 +37,12 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'MARKUP — O-Level Humanities AI Practice',
     description: 'AI-powered LORMS grading for Singapore O-Level Social Studies & Elective History.',
+    images: ['/og-image.png'],
   },
-  robots: {
-    index: true,
-    follow: true,
-  },
+  // No site-wide `robots` directive: index/follow is the default for public
+  // pages. Declaring it here would conflict with the automatic `noindex`
+  // Next.js adds to 404 responses. Per-page overrides live in each segment
+  // (e.g. `robots: { index: false }` in app/auth, app/dashboard, app/admin).
 };
 
 export const viewport = {
@@ -57,15 +59,15 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        {/* 💬 Wrap the children content inside the feedback layer so it renders perfectly */}
+        {/* Wrap the children content inside the feedback layer so it renders perfectly */}
         <GlobalFeedbackWrapper>
-          {/* 🎬 Route transition animation wrapper */}
+          {/* Route transition animation wrapper */}
           <PageTransition>
             {children}
           </PageTransition>
         </GlobalFeedbackWrapper>
         
-        {/* 📊 Production analytics script tracking tag */}
+        {/* Production analytics script tracking tag */}
         <Analytics />
       </body>
     </html>

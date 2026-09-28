@@ -60,7 +60,7 @@ export async function POST(request: Request) {
           <p style="color: #64748b; font-size: 11px; letter-spacing: 1px;">O-Level Humanities Practice</p>
         </div>
 
-        <h2 style="font-size: 20px; font-weight: 700; margin: 0;">Welcome to MARKUP, ${name || 'future A1 student'}! 🎉</h2>
+        <h2 style="font-size: 20px; font-weight: 700; margin: 0;">Welcome to MARKUP, ${name || 'future A1 student'}! </h2>
         <p style="color: #94a3b8; line-height: 1.6; margin-top: 12px;">
           You have joined the beta for Singapore's first AI-powered O-Level Humanities practice platform.
           Everything is <strong style="color: #10b981;">completely free</strong> during beta.
@@ -101,7 +101,7 @@ export async function POST(request: Request) {
 
         ${referralLink ? `
         <div style="margin-top: 20px; padding: 16px; background: #0f172a; border-radius: 12px; border: 1px solid #1e293b;">
-          <p style="font-size: 11px; color: #94a3b8; margin: 0;">🔗 Share your referral link</p>
+          <p style="font-size: 11px; color: #94a3b8; margin: 0;">Share your referral link</p>
           <p style="font-size: 13px; color: #6366f1; font-weight: 700; margin: 8px 0 0 0; word-break: break-all;">${referralLink}</p>
           <p style="font-size: 10px; color: #475569; margin: 4px 0 0 0;">Invite friends — both of you get bonus XP when they join!</p>
         </div>
@@ -124,7 +124,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         from: process.env.SEND_FROM_EMAIL || 'MARKUP <onboarding@resend.dev>',
         to: email,
-        subject: '🎉 Welcome to MARKUP — Start Practicing',
+        subject: 'Welcome to MARKUP — Start Practicing',
         html,
       }),
     });

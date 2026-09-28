@@ -59,7 +59,6 @@ CREATE POLICY "Allow admins to read all profiles"
     ON public.user_profiles FOR SELECT
     USING (
         auth.jwt() -> 'app_metadata' ->> 'is_admin' = 'true'
-        OR auth.jwt() -> 'user_metadata' ->> 'is_admin' = 'true'
     );
 
 -- ============================================================
@@ -162,6 +161,14 @@ CREATE POLICY "Allow owner insert essay_evaluations"
 CREATE POLICY "Allow owner read essay_evaluations"
     ON public.essay_evaluations FOR SELECT
     USING (auth.uid() = user_id OR user_id IS NULL);
+
+-- Admins can read all evaluations (for the analytics dashboard)
+DROP POLICY IF EXISTS "Allow admin read essay_evaluations" ON public.essay_evaluations;
+CREATE POLICY "Allow admin read essay_evaluations"
+    ON public.essay_evaluations FOR SELECT
+    USING (
+        auth.jwt() -> 'app_metadata' ->> 'is_admin' = 'true'
+    );
 
 -- ============================================================
 -- 4. practice_history
@@ -307,6 +314,17 @@ ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS last_reminder_sen
 ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS email_reminders_enabled   BOOLEAN DEFAULT TRUE;
 ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS practice_receipt_enabled  BOOLEAN DEFAULT TRUE;
 
+-- ════════════════════════════════════════════════════════════
+--  Beta trial gate columns (server-side try counter)
+--  trial_tries_used: how many papers generated (max 3 before gate)
+--  trial_unlocked_until: when the 7-day unlock expires (NULL = not unlocked)
+--  referral_bonus_days: banked free days earned via referrals, consumed at the
+--  next unlock (or applied immediately if already unlocked)
+-- ════════════════════════════════════════════════════════════
+ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS trial_tries_used    INTEGER DEFAULT 0;
+ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS trial_unlocked_until TIMESTAMP WITH TIME ZONE;
+ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS referral_bonus_days INTEGER DEFAULT 0;
+
 -- Ensure UNIQUE on user_id (for ON CONFLICT in seed query)
 DO $$ BEGIN
     IF NOT EXISTS (
@@ -338,6 +356,16 @@ CREATE POLICY "Allow owner upsert user_skill_metrics"
 CREATE POLICY "Allow owner update user_skill_metrics"
     ON public.user_skill_metrics FOR UPDATE
     USING (auth.uid() = user_id);
+
+-- Admins can read all metrics (for the analytics dashboard — mirrors the
+-- admin policy on user_profiles; without this the anon-key admin client
+-- would only ever see the admin's own row).
+DROP POLICY IF EXISTS "Allow admin read user_skill_metrics" ON public.user_skill_metrics;
+CREATE POLICY "Allow admin read user_skill_metrics"
+    ON public.user_skill_metrics FOR SELECT
+    USING (
+        auth.jwt() -> 'app_metadata' ->> 'is_admin' = 'true'
+    );
 
 -- Seed one row per existing user (so queries don't 406)
 INSERT INTO public.user_skill_metrics (user_id)
@@ -378,7 +406,6 @@ CREATE POLICY "Allow admin read user_feedback"
     ON public.user_feedback FOR SELECT
     USING (
         auth.jwt() -> 'app_metadata' ->> 'is_admin' = 'true'
-        OR auth.jwt() -> 'user_metadata' ->> 'is_admin' = 'true'
     );
 
 -- ============================================================
@@ -457,7 +484,6 @@ CREATE POLICY "Allow admin read waitlist"
     ON public.waitlist_signups FOR SELECT
     USING (
         auth.jwt() -> 'app_metadata' ->> 'is_admin' = 'true'
-        OR auth.jwt() -> 'user_metadata' ->> 'is_admin' = 'true'
     );
 
 -- ============================================================
@@ -625,7 +651,17 @@ ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS exam_goal_level T
 ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS exam_date DATE;
 ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS ss_goal_level TEXT;
 ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS history_goal_level TEXT;
+
+-- Which History paper the student takes: 'Elective History' (2261/02) or
+-- 'Pure History' (2174). Mutually exclusive; NULL means they take neither.
+ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS history_track TEXT;
 ALTER TABLE public.user_skill_metrics ADD COLUMN IF NOT EXISTS takes_history BOOLEAN DEFAULT FALSE;
+
+-- Existing History students predate the Elective/Pure split, so default them
+-- to Elective History (the only option offered before this change).
+UPDATE public.user_skill_metrics
+   SET history_track = 'Elective History'
+ WHERE takes_history = TRUE AND history_track IS NULL;
 
 -- ============================================================
 -- Update handle_new_user to generate referral code
@@ -728,6 +764,157 @@ CREATE POLICY "Allow all delete rate_limits"
 
 -- Periodically clean up stale entries (via pg_cron or manual)
 -- A cron job can run: DELETE FROM public.rate_limits WHERE window_expires_at < now() - interval '1 hour'
+
+-- ============================================================
+-- 15b. Trial gate RPC functions (atomic + waitlist-verified)
+-- ============================================================
+
+-- Atomic increment of trial_tries_used (race-safe via single UPDATE statement
+-- with row lock). Only increments when the user is NOT currently unlocked.
+CREATE OR REPLACE FUNCTION public.increment_trial_try(p_user_id UUID)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_row public.user_skill_metrics%ROWTYPE;
+BEGIN
+    UPDATE public.user_skill_metrics
+    SET trial_tries_used = trial_tries_used + 1
+    WHERE user_id = p_user_id
+      AND (trial_unlocked_until IS NULL OR trial_unlocked_until < now())
+    RETURNING * INTO v_row;
+
+    IF NOT FOUND THEN
+        -- Either no row, or the user is currently unlocked
+        SELECT * INTO v_row FROM public.user_skill_metrics WHERE user_id = p_user_id;
+        IF NOT FOUND THEN
+            RETURN '{}'::jsonb;
+        END IF;
+        RETURN jsonb_build_object(
+            'triesUsed', COALESCE(v_row.trial_tries_used, 0),
+            'unlocked', true
+        );
+    END IF;
+
+    RETURN jsonb_build_object(
+        'triesUsed', COALESCE(v_row.trial_tries_used, 0),
+        'unlocked', false
+    );
+END;
+$$;
+
+-- Unlock for 7 days (+ any banked referral bonus days), but ONLY if the
+-- user's email is already on the waitlist. This makes the server-side unlock
+-- non-self-serviceable: the funnel gate (waitlist join) must happen first.
+-- Bonus days stack onto an existing active unlock if one is present.
+CREATE OR REPLACE FUNCTION public.unlock_trial(p_user_id UUID)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_email TEXT;
+    v_expiry TIMESTAMPTZ;
+    v_bonus INT;
+    v_row public.user_skill_metrics%ROWTYPE;
+BEGIN
+    SELECT email_address INTO v_email
+    FROM public.user_profiles
+    WHERE id = p_user_id;
+
+    IF v_email IS NULL THEN
+        RETURN '{"unlocked":false,"reason":"no_profile"}'::jsonb;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM public.waitlist_signups
+        WHERE email = lower(trim(v_email))
+    ) THEN
+        RETURN '{"unlocked":false,"reason":"not_on_waitlist"}'::jsonb;
+    END IF;
+
+    SELECT * INTO v_row FROM public.user_skill_metrics WHERE user_id = p_user_id;
+    v_bonus := COALESCE(v_row.referral_bonus_days, 0);
+
+    -- 7 days + banked referral bonus days, stacking onto an active unlock
+    v_expiry := GREATEST(now(), COALESCE(v_row.trial_unlocked_until, now()))
+              + interval '7 days'
+              + (v_bonus * interval '1 day');
+
+    UPDATE public.user_skill_metrics
+    SET trial_unlocked_until = v_expiry,
+        referral_bonus_days   = 0
+    WHERE user_id = p_user_id;
+
+    RETURN jsonb_build_object(
+        'unlocked', true,
+        'unlockExpiry', (extract(epoch from v_expiry) * 1000)::bigint,
+        'bonusDaysApplied', v_bonus
+    );
+END;
+$$;
+
+-- Apply referral bonus days. If the user is currently unlocked, extend their
+-- unlock immediately (tangible reward right away); otherwise bank the days so
+-- they are consumed at the next unlock_trial call.
+CREATE OR REPLACE FUNCTION public.apply_referral_bonus(p_user_id UUID, p_days INTEGER)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_row public.user_skill_metrics%ROWTYPE;
+    v_new_expiry TIMESTAMPTZ;
+    v_new_bonus INT;
+BEGIN
+    IF p_days IS NULL OR p_days <= 0 THEN
+        RETURN '{"applied":false,"reason":"invalid_days"}'::jsonb;
+    END IF;
+
+    SELECT * INTO v_row FROM public.user_skill_metrics WHERE user_id = p_user_id;
+    IF NOT FOUND THEN
+        RETURN '{"applied":false,"reason":"no_row"}'::jsonb;
+    END IF;
+
+    IF v_row.trial_unlocked_until IS NOT NULL AND v_row.trial_unlocked_until > now() THEN
+        -- Active unlock → extend immediately
+        v_new_expiry := v_row.trial_unlocked_until + (p_days * interval '1 day');
+        UPDATE public.user_skill_metrics
+        SET trial_unlocked_until = v_new_expiry
+        WHERE user_id = p_user_id;
+
+        RETURN jsonb_build_object(
+            'applied', true,
+            'mode', 'extended',
+            'unlockExpiry', (extract(epoch from v_new_expiry) * 1000)::bigint
+        );
+    END IF;
+
+    -- Not unlocked (yet) → bank the days for the next unlock
+    v_new_bonus := COALESCE(v_row.referral_bonus_days, 0) + p_days;
+    UPDATE public.user_skill_metrics
+    SET referral_bonus_days = v_new_bonus
+    WHERE user_id = p_user_id;
+
+    RETURN jsonb_build_object(
+        'applied', true,
+        'mode', 'banked',
+        'bankedDays', v_new_bonus
+    );
+END;
+$$;
+
+-- Restrict execution of the trial RPCs to the service role only.
+-- Without this, PostgREST exposes SECURITY DEFINER functions to
+-- authenticated/anon clients, letting a signed-in user inflate another
+-- user's try counter (or unlock others) directly from the browser.
+REVOKE EXECUTE ON FUNCTION public.increment_trial_try(UUID) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.unlock_trial(UUID) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.apply_referral_bonus(UUID, INTEGER) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.increment_trial_try(UUID) TO service_role;
+GRANT EXECUTE ON FUNCTION public.unlock_trial(UUID) TO service_role;
+GRANT EXECUTE ON FUNCTION public.apply_referral_bonus(UUID, INTEGER) TO service_role;
 
 -- ============================================================
 -- 16. atomic_gamification_update — handles gamification state atomically

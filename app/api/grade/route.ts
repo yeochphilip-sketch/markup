@@ -6,6 +6,8 @@ import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
 import { getServerSupabase } from '@/lib/supabase-server';
 import { getGradeSystemPrompt, getGradeUserPrompt } from '@/lib/prompts';
+import { parseJsonWithRepair } from '@/lib/json-repair';
+import { AiCapacityError, isAiCapacityError, aiCapacityResponse, estimateRetryAfterSeconds, AI_CAPACITY_MESSAGE } from '@/lib/ai-capacity';
 import { checkSupabaseRateLimit, GRADE_LIMIT, rateLimitResponse } from '@/lib/rate-limit-supabase';
 import { getAuthUserId } from '@/lib/supabase-server';
 import { getXpForLevel, DAILY_GOAL_BONUS_XP, getStreakBonus, calculateXpDecay, checkNewAchievements } from '@/lib/gamification';
@@ -44,13 +46,18 @@ async function tryGradeWithFallbacks(
         prompt,
         temperature: attempt.temp,
       });
-      const cleaned = result.text.replace(/```(?:json)?\s*|\s*```/g, '').trim();
-      return evaluationSchema.parse(JSON.parse(cleaned));
+      return evaluationSchema.parse(parseJsonWithRepair(result.text));
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.warn(`[grade] ${attempt.label} failed:`, msg);
       errors.push(`${attempt.label}: ${msg}`);
     }
+  }
+
+  // If ANY failure was quota/rate-limit exhaustion, surface a friendly
+  // "AI is at capacity" message instead of leaking raw provider errors.
+  if (errors.some(msg => isAiCapacityError(msg))) {
+    throw new AiCapacityError(AI_CAPACITY_MESSAGE, estimateRetryAfterSeconds(errors));
   }
 
   throw new Error(
@@ -562,6 +569,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json(response);
   } catch (error: unknown) {
+ // AI quota / rate-limit exhaustion → friendly 503 with a real retry ETA
+    if (error instanceof AiCapacityError) {
+      return aiCapacityResponse(error.retryAfterSeconds);
+    }
     const message = error instanceof Error ? error.message : 'Unknown grading error';
     console.error('grade failed:', message);
     const userMessage = error instanceof Error

@@ -1,28 +1,28 @@
 /**
  * ═══════════════════════════════════════════════════════════════
- *  SCHOOL PAPER QUESTION BANK
- *  Real MOE school paper examples extracted from:
- *  - papers_ss/  (Victoria School, Montfort, Marsiling)
- *  - papers_hist/ (Deyi, CCHM, Edgefield, St. Margaret's, Beatty)
+ * SCHOOL PAPER QUESTION BANK
+ * Real MOE school paper examples extracted from:
+ * - papers_ss/ (Victoria School, Montfort, Marsiling)
+ * - papers_hist/ (Deyi, CCHM, Edgefield, St. Margaret's, Beatty)
  *
- *  These are used as FEW-SHOT EXAMPLES in AI prompts so the
- *  AI generates questions and model answers that match actual
- *  Singapore MOE teacher / school standards.
+ * These are used as FEW-SHOT EXAMPLES in AI prompts so the
+ * AI generates questions and model answers that match actual
+ * Singapore MOE teacher / school standards.
  * ═══════════════════════════════════════════════════════════════
  */
 
 // ═══════════════════════════════════════════════════════════════
-//  TYPES
+// TYPES
 // ═══════════════════════════════════════════════════════════════
 
 export interface SchoolSource {
-  label: string;        // e.g. "Source A", "Source B"
-  provenance: string;   // source attribution/context
-  content: string;      // the source text
+label: string; // e.g. "Source A", "Source B"
+provenance: string; // source attribution/context
+content: string; // the source text
 }
 
 export interface SBCSQuestion {
-  part: string;         // "a", "b", "c", "d", "e"
+part: string; // "a", "b", "c", "d", "e"
   question: string;
   marks: number;
   lormsSummary: string; // brief LORMS level breakdown
@@ -54,8 +54,8 @@ export interface SchoolModelAnswer {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  VICTORIA SCHOOL SS 2020 — "Zero-Waste Nation"
-//  Complete paper + model answer (GOLD STANDARD)
+// VICTORIA SCHOOL SS 2020 — "Zero-Waste Nation"
+// Complete paper + model answer (GOLD STANDARD)
 // ═══════════════════════════════════════════════════════════════
 
 export const VICTORIA_SS_2020: SchoolPaper = {
@@ -112,8 +112,8 @@ L5 Will not work based on Perspective (7m): The resident would not think that th
 };
 
 // ═══════════════════════════════════════════════════════════════
-//  DEYI SECONDARY HISTORY 2024 — "Korean War: US Intervention"
-//  Complete paper + marking scheme (GOLD STANDARD)
+// DEYI SECONDARY HISTORY 2024 — "Korean War: US Intervention"
+// Complete paper + marking scheme (GOLD STANDARD)
 // ═══════════════════════════════════════════════════════════════
 
 export const DEYI_HISTORY_2024: SchoolPaper = {
@@ -141,8 +141,8 @@ export const DEYI_HISTORY_2024: SchoolPaper = {
 };
 
 // ═══════════════════════════════════════════════════════════════
-//  EDGEFIELD HISTORY 2024 — "Korean War: Regional vs Cold War"
-//  Complete paper + LORMS marking scheme
+// EDGEFIELD HISTORY 2024 — "Korean War: Regional vs Cold War"
+// Complete paper + LORMS marking scheme
 // ═══════════════════════════════════════════════════════════════
 
 export const EDGEFIELD_HISTORY_2024: SchoolPaper = {
@@ -170,8 +170,8 @@ export const EDGEFIELD_HISTORY_2024: SchoolPaper = {
 };
 
 // ═══════════════════════════════════════════════════════════════
-//  MONTFORT (MFSS) SS 2024 — "Declining Birth Rates"
-//  Full question paper (no model answers)
+// MONTFORT (MFSS) SS 2024 — "Declining Birth Rates"
+// Full question paper (no model answers)
 // ═══════════════════════════════════════════════════════════════
 
 export const MFSS_SS_2024: SchoolPaper = {
@@ -199,7 +199,7 @@ export const MFSS_SS_2024: SchoolPaper = {
 };
 
 // ═══════════════════════════════════════════════════════════════
-//  CCHM HISTORY 2025 — "Korean War: Who Was to Blame?"
+// CCHM HISTORY 2025 — "Korean War: Who Was to Blame?"
 // ═══════════════════════════════════════════════════════════════
 
 export const CCHM_HISTORY_2025: SchoolPaper = {
@@ -227,8 +227,8 @@ export const CCHM_HISTORY_2025: SchoolPaper = {
 };
 
 // ═══════════════════════════════════════════════════════════════
-//  ST. MARGARET'S HISTORY 2023 — "Stalin's Great Terror"
-//  Complete paper + marking scheme
+// ST. MARGARET'S HISTORY 2023 — "Stalin's Great Terror"
+// Complete paper + marking scheme
 // ═══════════════════════════════════════════════════════════════
 
 export const STMARGRETS_HISTORY_2023: SchoolPaper = {
@@ -256,7 +256,7 @@ export const STMARGRETS_HISTORY_2023: SchoolPaper = {
 };
 
 // ═══════════════════════════════════════════════════════════════
-//  EXPORT ALL PAPERS AS A COLLECTION
+// EXPORT ALL PAPERS AS A COLLECTION
 // ═══════════════════════════════════════════════════════════════
 
 export const ALL_SCHOOL_PAPERS: SchoolPaper[] = [

@@ -18,12 +18,12 @@ interface WeakestSkillCardProps {
 export default function WeakestSkillCard({ skillRatings, activeSubject, onSelectSkill }: WeakestSkillCardProps) {
   // Map skillRatings keys to human-readable names
   const skillLabels: { key: keyof typeof skillRatings; label: string; skillOption: string }[] = [
-    { key: 'inference', label: 'SBQ Inference', skillOption: activeSubject === 'Social Studies' ? 'SBQ: Inference / Message (AO2)' : 'SBQ: Inference / Message (AO3)' },
-    { key: 'comparison', label: 'SBQ Comparison', skillOption: activeSubject === 'Social Studies' ? 'SBQ: Comparison & Contrast (AO2)' : 'SBQ: Comparison & Contrast (AO3)' },
-    { key: 'reliability', label: 'SBQ Reliability', skillOption: activeSubject === 'Social Studies' ? 'SBQ: Utility & Reliability Limits (AO2)' : 'SBQ: Reliability & Cross-Referencing (AO3)' },
-    { key: 'purpose', label: 'SBQ Purpose', skillOption: activeSubject === 'Social Studies' ? 'SBQ: Purpose / Motive Evolution (AO2)' : 'SBQ: Target Purpose Analysis (AO3)' },
-    { key: 'synthesis', label: 'SBQ Synthesis', skillOption: activeSubject === 'Social Studies' ? 'SBQ: Synthesis Matrix Assertion (AO2)' : 'SBQ: Evaluation of Utility (AO3)' },
-    { key: 'essay', label: 'SEQ Essay', skillOption: 'SEQ: Structured Essay Questions (AO1)' },
+    { key: 'inference', label: 'SBQ Inference', skillOption: activeSubject === 'Social Studies' ? 'SBQ: Inference / Message (AO1/AO2)' : 'SBQ: Inference / Message (AO1/AO3)' },
+    { key: 'comparison', label: 'SBQ Comparison', skillOption: activeSubject === 'Social Studies' ? 'SBQ: Comparison & Contrast (AO1/AO2)' : 'SBQ: Comparison & Contrast (AO1/AO3)' },
+    { key: 'reliability', label: 'SBQ Reliability', skillOption: activeSubject === 'Social Studies' ? 'SBQ: Utility & Reliability Limits (AO1/AO2)' : 'SBQ: Reliability & Cross-Referencing (AO1/AO3)' },
+    { key: 'purpose', label: 'SBQ Purpose', skillOption: activeSubject === 'Social Studies' ? 'SBQ: Purpose / Motive Evolution (AO1/AO2)' : 'SBQ: Target Purpose Analysis (AO1/AO3)' },
+    { key: 'synthesis', label: 'SBQ Synthesis', skillOption: activeSubject === 'Social Studies' ? 'SBQ: Synthesis Matrix Assertion (AO1/AO2)' : 'SBQ: Evaluation of Utility (AO1/AO3)' },
+    { key: 'essay', label: activeSubject === 'Social Studies' ? 'SRQ Response' : 'SEQ Essay', skillOption: activeSubject === 'Social Studies' ? 'SRQ: Structured Response Questions (AO1/AO3)' : 'SEQ: High-Scoring Essay Factor Prioritization (AO1/AO2)' },
   ];
 
   // Find the lowest skill score (only consider active subjects)
@@ -41,11 +41,11 @@ export default function WeakestSkillCard({ skillRatings, activeSubject, onSelect
   const levelLabel = lowestScore <= 1 ? 'L1 - Beginner' : lowestScore === 2 ? 'L2 - Developing' : 'L3 - Proficient';
 
   return (
-    <div className="bg-gradient-to-r from-amber-950/20 via-amber-950/10 to-transparent border border-amber-500/20 rounded-xl p-3 hover-lift">
+    <div className="bg-amber-950/20 border border-amber-500/20 rounded-xl p-3 hover-lift">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 mb-1">
-            <span className="text-[10px]">🎯</span>
+            <span className="text-[10px]">Goal</span>
             <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider">
               Weakest Skill
             </span>

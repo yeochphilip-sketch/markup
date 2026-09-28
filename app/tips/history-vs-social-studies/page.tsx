@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { breadcrumbJsonLd, jsonLdScript } from '@/lib/structured-data';
 
 export const metadata: Metadata = {
   title: 'How to Study for History vs Social Studies — Complete O-Level Guide',
+  alternates: { canonical: '/tips/history-vs-social-studies' },
+  robots: { index: true, follow: true },
   description:
     'History or Social Studies? Learn the key differences in content, exam format, skills tested, and study strategies for each subject. Make an informed decision and ace both Humanities papers.',
   openGraph: {
@@ -35,6 +38,19 @@ export default function HistoryVsSocialStudiesPage() {
           <span>/</span>
           <span className="text-slate-400">History vs Social Studies</span>
         </nav>
+        {/* BreadcrumbList structured data (matches the visible nav above) */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: jsonLdScript(
+              breadcrumbJsonLd([
+                { name: 'Home', href: '/' },
+                { name: 'Tips & Guides', href: '/tips' },
+                { name: 'History vs Social Studies', href: '/tips/history-vs-social-studies' },
+              ])
+            ),
+          }}
+        />
 
         {/* Hero */}
         <div className="space-y-4 border-b border-slate-900 pb-8">
@@ -103,7 +119,7 @@ export default function HistoryVsSocialStudiesPage() {
                 <tr className="hover:bg-slate-950/50 transition">
                   <td className="p-3 font-bold text-slate-200">Paper Duration</td>
                   <td className="p-3">1 hr 45 min</td>
-                  <td className="p-3">1 hr 40 min</td>
+                  <td className="p-3">1 hr 50 min</td>
                 </tr>
                 <tr className="hover:bg-slate-950/50 transition">
                   <td className="p-3 font-bold text-slate-200">Exam Sections</td>
@@ -121,7 +137,7 @@ export default function HistoryVsSocialStudiesPage() {
 
           <div className="bg-indigo-950/30 border border-indigo-900/30 rounded-xl p-4">
             <p className="text-xs text-indigo-300 font-bold">
-              💡 If you&apos;re taking <strong className="text-slate-200">Combined Humanities</strong>,
+              If you&apos;re taking <strong className="text-slate-200">Combined Humanities</strong>,
               you&apos;ll do <strong className="text-emerald-400">Social Studies (Compulsory)</strong> + one
               elective (History, Geography, or Literature). This guide focuses on Social Studies + History.
             </p>
@@ -134,7 +150,7 @@ export default function HistoryVsSocialStudiesPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <h3 className="text-sm font-bold text-indigo-400 mb-2">📘 Social Studies — Contemporary Issues</h3>
+              <h3 className="text-sm font-bold text-indigo-400 mb-2">Social Studies — Contemporary Issues</h3>
               <p className="text-xs text-slate-400 mb-3">
                 Social Studies is about <strong className="text-slate-200">understanding society</strong> —
                 how Singapore works, the challenges it faces, and the values that shape its policies.
@@ -148,7 +164,7 @@ export default function HistoryVsSocialStudiesPage() {
               </ul>
             </div>
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <h3 className="text-sm font-bold text-emerald-400 mb-2">📕 Elective History — The Past</h3>
+              <h3 className="text-sm font-bold text-emerald-400 mb-2">Elective History — The Past</h3>
               <p className="text-xs text-slate-400 mb-3">
                 History is about <strong className="text-slate-200">understanding the past</strong> —
                 key events that shaped Southeast Asia and the world, with a focus on cause, consequence,
@@ -186,28 +202,28 @@ export default function HistoryVsSocialStudiesPage() {
               <tbody className="text-slate-400 divide-y divide-slate-900">
                 <tr className="hover:bg-slate-950/50 transition">
                   <td className="p-3 font-bold text-slate-200">SBQ Weight</td>
-                  <td className="p-3">50% (30 marks)</td>
-                  <td className="p-3">50% (30 marks)</td>
+                  <td className="p-3">70% (35 marks)</td>
+                  <td className="p-3">60% (30 marks)</td>
                 </tr>
                 <tr className="hover:bg-slate-950/50 transition">
                   <td className="p-3 font-bold text-slate-200">SBQ Questions</td>
-                  <td className="p-3">(a) 6m + (b) 7m + (c) 7m + (d) 10m</td>
-                  <td className="p-3">Similar structure, similar marks</td>
+                  <td className="p-3">Q1–Q4 (25 marks) + Q5 (10 marks)</td>
+                  <td className="p-3">Q1(a)–(e) (30 marks)</td>
                 </tr>
                 <tr className="hover:bg-slate-950/50 transition">
                   <td className="p-3 font-bold text-slate-200">Essay Weight</td>
-                  <td className="p-3">50% — SRQ (8 marks)</td>
-                  <td className="p-3">50% — SEQ (20 marks)</td>
+                  <td className="p-3">30% — SRQ (15 marks)</td>
+                  <td className="p-3">40% — SEQ (20 marks)</td>
                 </tr>
                 <tr className="hover:bg-slate-950/50 transition">
                   <td className="p-3 font-bold text-slate-200">Essay Format</td>
-                  <td className="p-3">1 SRQ (choose 1 of 2)</td>
-                  <td className="p-3">1 SEQ (choose 1 of 2)</td>
+                  <td className="p-3">Q6 (7 marks) + Q7 (8 marks) — both compulsory</td>
+                  <td className="p-3">Answer 2 of 3 essays (10 marks each)</td>
                 </tr>
                 <tr className="hover:bg-slate-950/50 transition">
                   <td className="p-3 font-bold text-slate-200">Sources in Essay?</td>
                   <td className="p-3">No — pure argumentation</td>
-                  <td className="p-3">Yes — sources provided</td>
+                  <td className="p-3">No — sources only in Section A</td>
                 </tr>
                 <tr className="hover:bg-slate-950/50 transition">
                   <td className="p-3 font-bold text-slate-200">CK Requirement</td>
@@ -220,9 +236,10 @@ export default function HistoryVsSocialStudiesPage() {
 
           <div className="bg-amber-950/20 border border-amber-900/30 rounded-xl p-4">
             <p className="text-xs text-amber-300 font-bold">
-              ⚡ Key difference: In Social Studies, the essay (SRQ) is source-free — you build arguments
-              from your own knowledge. In History, the essay (SEQ) provides sources that you must
-              use and evaluate.
+ Key difference: Both essay sections are source-free — you build arguments from your
+              own knowledge. Social Studies SRQs draw on general knowledge and contemporary
+              Singapore issues, while History SEQs demand specific historical knowledge of the
+              prescribed units.
             </p>
           </div>
         </section>
@@ -233,7 +250,7 @@ export default function HistoryVsSocialStudiesPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <h3 className="text-sm font-bold text-indigo-400 mb-2">🎯 Social Studies Skills</h3>
+              <h3 className="text-sm font-bold text-indigo-400 mb-2">Social Studies Skills</h3>
               <ul className="space-y-2 text-xs text-slate-400">
                 <li>
                   <p className="font-bold text-slate-200">SBQ Skills (same as History)</p>
@@ -254,15 +271,15 @@ export default function HistoryVsSocialStudiesPage() {
               </ul>
             </div>
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <h3 className="text-sm font-bold text-emerald-400 mb-2">🎯 History Skills</h3>
+              <h3 className="text-sm font-bold text-emerald-400 mb-2">History Skills</h3>
               <ul className="space-y-2 text-xs text-slate-400">
                 <li>
                   <p className="font-bold text-slate-200">SBQ Skills (same as SS)</p>
                   <p className="text-[10px]">Comparison, Reliability, Purpose, Utility, Cross-Referencing</p>
                 </li>
                 <li>
-                  <p className="font-bold text-slate-200">SEQ — Source Evaluation</p>
-                  <p className="text-[10px]">Using and assessing sources in essay answers</p>
+                  <p className="font-bold text-slate-200">SEQ — Historical Argument</p>
+                  <p className="text-[10px]">Explaining, evaluating and prioritising factors in a source-free essay</p>
                 </li>
                 <li>
                   <p className="font-bold text-slate-200">Historical Knowledge</p>
@@ -278,9 +295,10 @@ export default function HistoryVsSocialStudiesPage() {
 
           <div className="bg-indigo-950/30 border border-indigo-900/30 rounded-xl p-4">
             <p className="text-xs text-indigo-300 font-bold">
-              💡 <strong className="text-slate-200">SBQ is the big overlap:</strong> The SBQ section is
-              nearly identical in both papers. Master SBQ once and you&apos;ve mastered it for both subjects —
-              that&apos;s 50% of each paper covered by the same skillset.
+              Tip <strong className="text-slate-200">SBQ is the big overlap:</strong> The SBQ section is
+              near-identical in both papers. Master SBQ once and you&apos;ve mastered it for both subjects —
+              that&apos;s 70% of the Social Studies paper and 60% of the History paper covered by the
+              same skillset.
             </p>
           </div>
         </section>
@@ -291,7 +309,7 @@ export default function HistoryVsSocialStudiesPage() {
 
           <div className="space-y-4">
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-5">
-              <h3 className="text-sm font-bold text-indigo-400 mb-2">📘 For Social Studies</h3>
+              <h3 className="text-sm font-bold text-indigo-400 mb-2">For Social Studies</h3>
               <div className="space-y-3 text-xs text-slate-400">
                 <div>
                   <p className="font-bold text-slate-200">1. Stay current with news</p>
@@ -306,14 +324,14 @@ export default function HistoryVsSocialStudiesPage() {
                   <p className="text-[10px]">SRQs don&apos;t test rote learning. Practise constructing arguments on the spot. Use MARKUP&apos;s SRQ generator to get instant feedback on your reasoning.</p>
                 </div>
                 <div>
-                  <p className="font-bold text-slate-200">4. Drill SBQ — it&apos;s 50% of your mark</p>
-                  <p className="text-[10px]">Focus on the highest-value SBQ questions (10-mark comparison/utility) to maximise your score.</p>
+                  <p className="font-bold text-slate-200">4. Drill SBQ — it&apos;s 70% of your mark</p>
+                  <p className="text-[10px]">Focus on the source-handling questions (Q1–Q4) and the 10-mark multi-source Q5 to maximise your score.</p>
                 </div>
               </div>
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-5">
-              <h3 className="text-sm font-bold text-emerald-400 mb-2">📕 For History</h3>
+              <h3 className="text-sm font-bold text-emerald-400 mb-2">For History</h3>
               <div className="space-y-3 text-xs text-slate-400">
                 <div>
                   <p className="font-bold text-slate-200">1. Master the timeline</p>
@@ -324,8 +342,8 @@ export default function HistoryVsSocialStudiesPage() {
                   <p className="text-[10px]">For SEQ and SBQ, you need specific facts: names, dates, treaties, statistics. A question about the Cold War needs details like the 1955 Bandung Conference or the 1954 Geneva Accords.</p>
                 </div>
                 <div>
-                  <p className="font-bold text-slate-200">3. Practise source evaluation</p>
-                  <p className="text-[10px]">History SEQ provides sources — you must use them. Practise weaving source evidence into your essay argument while adding your own contextual knowledge.</p>
+                  <p className="font-bold text-slate-200">3. Master source evaluation</p>
+                  <p className="text-[10px]">History source skills live in Section A (SBCS). Practise dissecting provenance, cross-referencing and evaluating utility there — your essays are source-free.</p>
                 </div>
                 <div>
                   <p className="font-bold text-slate-200">4. Understand different interpretations</p>
@@ -346,7 +364,7 @@ export default function HistoryVsSocialStudiesPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <h3 className="text-sm font-bold text-indigo-400 mb-1">🔗 SBQ First</h3>
+              <h3 className="text-sm font-bold text-indigo-400 mb-1">SBQ First</h3>
               <p className="text-[10px] text-slate-400">
                 Study SBQ skills once, apply to both. The Comparison, Reliability, and Purpose
                 frameworks are identical. Master them on one subject&apos;s sources, then practise
@@ -354,7 +372,7 @@ export default function HistoryVsSocialStudiesPage() {
               </p>
             </div>
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <h3 className="text-sm font-bold text-emerald-400 mb-1">🔄 Alternate Subjects</h3>
+              <h3 className="text-sm font-bold text-emerald-400 mb-1">Alternate Subjects</h3>
               <p className="text-[10px] text-slate-400">
                 Switch between Social Studies and History every 2–3 days. The change in content
                 (contemporary vs historical) keeps your brain engaged and prevents fatigue from
@@ -362,7 +380,7 @@ export default function HistoryVsSocialStudiesPage() {
               </p>
             </div>
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <h3 className="text-sm font-bold text-amber-400 mb-1">🎯 Shared Resources</h3>
+              <h3 className="text-sm font-bold text-amber-400 mb-1">Shared Resources</h3>
               <p className="text-[10px] text-slate-400">
                 Use MARKUP&apos;s skill-based practice to work on the same SBQ skill (e.g.
                 Reliability) across both subjects. The framework is the same — only the
@@ -373,7 +391,7 @@ export default function HistoryVsSocialStudiesPage() {
 
           <div className="bg-emerald-950/20 border border-emerald-900/30 rounded-xl p-4">
             <p className="text-xs text-emerald-300 font-bold">
-              🎯 <strong className="text-slate-200">The 80/20 rule for Combined Humanities:</strong>{' '}
+              Goal <strong className="text-slate-200">The 80/20 rule for Combined Humanities:</strong>{' '}
               80% of your score improvement comes from mastering SBQ (shared skill) + your essay
               technique. Only 20% comes from content memorisation.
             </p>
@@ -390,7 +408,7 @@ export default function HistoryVsSocialStudiesPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <h3 className="text-sm font-bold text-indigo-400 mb-1">📘 Social Studies is harder if…</h3>
+              <h3 className="text-sm font-bold text-indigo-400 mb-1">Social Studies is harder if…</h3>
               <ul className="space-y-1.5 text-[10px] text-slate-400 list-disc pl-4">
                 <li>You struggle to construct arguments from scratch (no sources in SRQ)</li>
                 <li>You prefer memorising facts over thinking critically about current issues</li>
@@ -399,7 +417,7 @@ export default function HistoryVsSocialStudiesPage() {
               </ul>
             </div>
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <h3 className="text-sm font-bold text-emerald-400 mb-1">📕 History is harder if…</h3>
+              <h3 className="text-sm font-bold text-emerald-400 mb-1">History is harder if…</h3>
               <ul className="space-y-1.5 text-[10px] text-slate-400 list-disc pl-4">
                 <li>You struggle to remember dates, names, and specific events</li>
                 <li>You find it hard to connect causes to consequences</li>
@@ -411,7 +429,7 @@ export default function HistoryVsSocialStudiesPage() {
 
           <div className="bg-amber-950/20 border border-amber-900/30 rounded-xl p-4">
             <p className="text-xs text-amber-300 font-bold">
-              ⚡ The most common answer from students: Social Studies is harder to{' '}
+              The most common answer from students: Social Studies is harder to{' '}
               <em>prepare</em> for (open-ended content), but History is harder to <em>master</em>{' '}
               (specific knowledge demands). Both reward consistent practice over cramming.
             </p>
@@ -423,7 +441,7 @@ export default function HistoryVsSocialStudiesPage() {
           <h2 className="text-xl font-black text-white">8. How MARKUP Helps with Both</h2>
 
           <div className="bg-indigo-950/30 border border-indigo-900/30 rounded-xl p-5 space-y-3">
-            <h3 className="text-sm font-black text-indigo-300">🎯 MARKUP covers both subjects</h3>
+            <h3 className="text-sm font-black text-indigo-300">MARKUP covers both subjects</h3>
             <p className="text-xs text-slate-400">
               MARKUP generates fresh practice papers for both Social Studies and Elective History.
               Select your subject, choose the skill you want to practise, and get instant
@@ -447,7 +465,7 @@ export default function HistoryVsSocialStudiesPage() {
         </section>
 
         {/* CTA Banner */}
-        <div className="bg-gradient-to-br from-amber-950/50 to-slate-950/80 border border-amber-800/50 rounded-2xl p-6 text-center space-y-3">
+        <div className="bg-amber-950/70 border border-amber-800/50 rounded-2xl p-6 text-center space-y-3">
           <p className="text-lg font-black text-white">Master both subjects with one tool</p>
           <p className="text-xs text-slate-400 max-w-md mx-auto">
             MARKUP covers Social Studies AND Elective History with the same powerful practice

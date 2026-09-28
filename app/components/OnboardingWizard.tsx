@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import type { HistoryTrack } from '@/lib/syllabus';
 
 interface OnboardingWizardProps {
   userId: string | null;
@@ -9,8 +10,18 @@ interface OnboardingWizardProps {
 
 const ONBOARDING_KEY = 'markup_onboarding_done';
 const HISTORY_KEY = 'markup_takes_history';
+const HISTORY_TRACK_KEY = 'markup_history_track';
 const SS_GOAL_KEY = 'markup_ss_goal';
 const HISTORY_GOAL_KEY = 'markup_history_goal';
+
+/** 'none' = takes no History; a HistoryTrack = takes that paper. */
+type HistoryChoice = HistoryTrack | 'none';
+
+const HISTORY_CHOICES: { id: HistoryChoice; label: string; hint: string }[] = [
+  { id: 'none', label: 'No History', hint: 'Social Studies only' },
+  { id: 'Elective History', label: 'Elective History', hint: '2261 Paper 2 — The Making of the 20th Century Modern World' },
+  { id: 'Pure History', label: 'Pure History', hint: '2174 Papers 1 & 2 — Southeast Asia and the post-WWII world' },
+];
 
 const LEVEL_OPTIONS = [
   { value: 'Master', label: 'Master (A1 equivalent)' },
@@ -23,10 +34,15 @@ const LEVEL_OPTIONS = [
 export default function OnboardingWizard({ userId, onComplete }: OnboardingWizardProps) {
   const [step, setStep] = useState(0);
   const [show, setShow] = useState(false);
-  const [takesHistory, setTakesHistory] = useState<boolean | null>(null);
+  // null = not answered yet. Elective and Pure are mutually exclusive.
+  const [historyChoice, setHistoryChoice] = useState<HistoryChoice | null>(null);
   const [ssGoal, setSsGoal] = useState('Scholar');
   const [historyGoal, setHistoryGoal] = useState('Scholar');
   const [saving, setSaving] = useState(false);
+
+  // 'none' and null both mean "no History" — only a real track gets a goal step.
+  const historyTrackChoice: HistoryTrack | null =
+    historyChoice && historyChoice !== 'none' ? historyChoice : null;
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -38,6 +54,19 @@ export default function OnboardingWizard({ userId, onComplete }: OnboardingWizar
 
   const handleComplete = async () => {
     setSaving(true);
+
+    // Persist locally regardless of sign-in, so the tour does not reappear for
+    // signed-out visitors (the backend save below needs a user).
+    localStorage.setItem(HISTORY_KEY, historyTrackChoice ? 'true' : 'false');
+    localStorage.setItem(SS_GOAL_KEY, ssGoal);
+    if (historyTrackChoice) {
+      localStorage.setItem(HISTORY_TRACK_KEY, historyTrackChoice);
+      localStorage.setItem(HISTORY_GOAL_KEY, historyGoal);
+    } else {
+      localStorage.removeItem(HISTORY_TRACK_KEY);
+      localStorage.removeItem(HISTORY_GOAL_KEY);
+    }
+
     // Save subject preferences and goals to backend
     if (userId) {
       try {
@@ -48,27 +77,19 @@ export default function OnboardingWizard({ userId, onComplete }: OnboardingWizar
           body: JSON.stringify({ userId, subject: 'ss', goalLevel: ssGoal }),
         });
 
-        // Save History preference and goal
+        // Save which History paper they take (if any) and its goal.
+        // The API derives takes_history from history_track, so a student who
+        // takes History but sets no target still records as taking History.
         await fetch('/api/exam-goal', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             userId,
             subject: 'history',
-            goalLevel: takesHistory ? historyGoal : null,
+            goalLevel: historyTrackChoice ? historyGoal : null,
+            historyTrack: historyTrackChoice,
           }),
         });
-
-        // Update takes_history via a dedicated call
-        // (the exam-goal API updates history_goal_level; we need to also set takes_history)
-        // We use a separate update via the same API — the null goalLevel signals "not taking it"
-        // Actually, we need to set takes_history = true/false. Let's use the Supabase client directly
-        // or send a special action. For simplicity, we'll just save and rely on the goal being set.
-        // The dashboard checks historyGoalLevel to determine if goal is set.
-        // The takesHistory state is separate — we'll store it in localStorage for now.
-        localStorage.setItem(HISTORY_KEY, takesHistory ? 'true' : 'false');
-        localStorage.setItem(SS_GOAL_KEY, ssGoal);
-        if (takesHistory) localStorage.setItem(HISTORY_GOAL_KEY, historyGoal);
       } catch {
         // silent
       }
@@ -80,8 +101,8 @@ export default function OnboardingWizard({ userId, onComplete }: OnboardingWizar
   };
 
   const handleSkip = () => {
-    // If they skip mid-way, default: takesHistory = false, ss goal = Scholar
-    if (takesHistory === null) setTakesHistory(false);
+    // If they skip mid-way, default: no History, ss goal = Scholar
+    if (historyChoice === null) setHistoryChoice('none');
     if (ssGoal === '') setSsGoal('Scholar');
     localStorage.setItem(ONBOARDING_KEY, 'true');
     if (userId) {
@@ -101,62 +122,57 @@ export default function OnboardingWizard({ userId, onComplete }: OnboardingWizar
   // Tutorial steps (always shown)
   const tutorialSteps = [
     {
-      icon: '🎯',
+      icon: 'Goal',
       title: 'Generate a Practice Paper',
-      description: 'Configure your subject, topic, and skill in the left panel. Then hit "⚡ Generate Practice" to get a Singapore-standard O-Level paper with sources and questions.',
+      description: 'Configure your subject, topic, and skill in the left panel. Then hit "Generate Practice" to get a Singapore-standard O-Level paper with sources and questions.',
       highlight: 'Configurator',
       tip: 'Try selecting "Social Studies" → "Any Topic" → "All Formats" for your first paper.',
     },
     {
-      icon: '✍️',
+      icon: 'Writing',
       title: 'Write Your Answers',
       description: 'Type your SBCS, SEQ, and SRQ answers in the Writing Canvas. Use the timer to simulate exam conditions. Then click "Scan All Answers" to get instant LORMS-aligned feedback.',
       highlight: 'Writing Canvas',
       tip: "Don't worry about writing a perfect answer — just get your ideas down and see how the AI evaluates them.",
     },
     {
-      icon: '📈',
+      icon: 'Up',
       title: 'Track Your Progress',
       description: 'Every grade earns XP and levels up your skills. Keep a streak going for bonus XP. Check the leaderboard, unlock achievements, and monitor your skill radar.',
       highlight: 'Level Up',
-      tip: 'Your first goal: Complete 3 papers this week to unlock your first achievement! 🏅',
+      tip: 'Your first goal: Complete 3 papers this week to unlock your first achievement! ',
     },
   ];
 
   // Config steps (subject + goals)
   const configSteps = [
     {
-      icon: '📖',
-      title: 'Do you take History?',
-      description: 'MARKUP supports both Social Studies (SS) and Elective History. Let us know which subjects you are taking so we can track your progress.',
+ icon: 'Guide',
+      title: 'Which History do you take?',
+      description: 'Social Studies is taken by everyone. Elective History and Pure History are alternatives — you take at most one, or neither. Let us know so we can track the right goal.',
       highlight: 'Subject Selection',
       content: (
-        <div className="flex gap-3 mt-4">
-          <button
-            onClick={() => setTakesHistory(false)}
-            className={`flex-1 py-3 rounded-xl text-xs font-bold transition border ${
-              takesHistory === false
-                ? 'bg-slate-800 border-indigo-500 text-white'
-                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            ❌ No, only SS
-          </button>
-          <button
-            onClick={() => setTakesHistory(true)}
-            className={`flex-1 py-3 rounded-xl text-xs font-bold transition border ${
-              takesHistory === true
-                ? 'bg-slate-800 border-indigo-500 text-white'
-                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            ✅ Yes, I take History
-          </button>
+        <div className="flex flex-col gap-2 mt-4">
+          {HISTORY_CHOICES.map((choice) => (
+            <button
+              key={choice.id}
+              onClick={() => setHistoryChoice(choice.id)}
+              aria-pressed={historyChoice === choice.id}
+              className={`w-full text-left px-4 py-3 rounded-xl transition border ${
+                historyChoice === choice.id
+                  ? 'bg-slate-800 border-indigo-500 text-white'
+                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <span className="block text-xs font-bold">{choice.label}</span>
+              <span className="block text-[10px] text-slate-500 mt-0.5">{choice.hint}</span>
+            </button>
+          ))}
         </div>
       ),
     },
     {
-      icon: '🎯',
+      icon: 'Goal',
       title: 'Set Your SS Goal',
       description: 'Social Studies is mandatory for all students. What grade are you aiming for? This helps us personalise your practice recommendations.',
       highlight: 'Social Studies',
@@ -174,14 +190,14 @@ export default function OnboardingWizard({ userId, onComplete }: OnboardingWizar
     },
   ];
 
-  // History goal step (only if they take History)
-  const historyGoalStep = takesHistory
+  // History goal step — only for the History paper they actually take
+  const historyGoalStep = historyTrackChoice
     ? [
         {
-          icon: '📖',
-          title: 'Set Your History Goal',
-          description: 'Great! Since you take Elective History, set a target grade. This will appear on your dashboard alongside your SS goal.',
-          highlight: 'Elective History',
+ icon: 'Guide',
+          title: `Set Your ${historyTrackChoice} Goal`,
+          description: `Since you take ${historyTrackChoice}, set a target grade. This will appear on your dashboard alongside your SS goal.`,
+          highlight: historyTrackChoice,
           content: (
             <select
               value={historyGoal}
@@ -213,7 +229,7 @@ export default function OnboardingWizard({ userId, onComplete }: OnboardingWizar
 
   const canProceed = () => {
     // Config steps require selection
-    if (step === tutorialSteps.length && takesHistory === null) return false;
+    if (step === tutorialSteps.length && historyChoice === null) return false;
     return true;
   };
 
@@ -267,12 +283,12 @@ export default function OnboardingWizard({ userId, onComplete }: OnboardingWizar
             <button
               onClick={handleNext}
               disabled={!canProceed() || saving}
-              className="flex-[2] bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs py-2.5 rounded-xl transition shadow-lg disabled:opacity-40"
+              className="flex-[2] bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-2.5 rounded-xl transition shadow-lg disabled:opacity-40"
             >
               {saving
                 ? 'Saving...'
                 : isLastStep
-                ? '🚀 Start Practicing!'
+                ? 'Start Practicing!'
                 : 'Next →'}
             </button>
           </div>

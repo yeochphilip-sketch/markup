@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/utils/supabase';
+import { SHOW_POST_BETA_PRICING } from '@/lib/beta-flags';
+import { localBusinessJsonLd, webAppJsonLd, jsonLdScript } from '@/lib/structured-data';
 
 
 function HeroCTA() {
@@ -11,16 +13,16 @@ function HeroCTA() {
         href={typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('ref') ? `/dashboard?ref=${new URLSearchParams(window.location.search).get('ref')}` : '/dashboard'}
         className="bg-indigo-600 hover:bg-indigo-500 text-white font-black px-10 py-4 rounded-xl text-lg transition-all shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/40 hover:scale-[1.02] active:scale-[0.98] inline-flex items-center gap-2"
       >
-        Start Practicing Now
+        Try It Out Free
         <span className="text-xl">→</span>
       </Link>
       <p className="text-[11px] text-slate-500">
-        Free to use. Sign up takes 30 seconds. No credit card needed.
+        No sign-up needed. 3 free practice papers, then join the waitlist to unlock 7 more days.
       </p>
       <div className="flex items-center gap-6 text-xs text-slate-600">
-        <span>🧠 AI-generated O-Level papers</span>
-        <span>📊 Instant LORMS grading</span>
-        <span>⚡ Takes 30 seconds</span>
+        <span>AI-generated O-Level papers</span>
+        <span>Instant LORMS grading</span>
+ <span>3 free tries — no account needed</span>
       </div>
     </div>
   );
@@ -33,7 +35,7 @@ const SAMPLE_CARDS = [
     confidence: 0.88,
     subject: 'Social Studies',
     topic: 'Issue 1: Exploring Citizenship and Governance',
-    skill: 'SBQ: Comparison & Contrast (AO2)',
+    skill: 'SBQ: Comparison & Contrast (AO1/AO2)',
     xpEarned: 120,
     levelTitle: 'Scholar',
     masteryPoints: 3400,
@@ -44,8 +46,8 @@ const SAMPLE_CARDS = [
     scoreEstimate: 'L2/6 → L4/6',
     confidence: 0.82,
     subject: 'Elective History',
-    topic: 'Case Study: Nazi Germany',
-    skill: 'SBQ: Reliability & Cross-Referencing (AO3)',
+    topic: 'Case Study: Nazi Germany (*SBCS)',
+    skill: 'SBQ: Reliability & Cross-Referencing (AO1/AO3)',
     xpEarned: 95,
     levelTitle: 'Apprentice',
     masteryPoints: 1200,
@@ -57,14 +59,33 @@ const SAMPLE_CARDS = [
     confidence: 0.93,
     subject: 'Social Studies',
     topic: 'Issue 2: Living in a Diverse Society',
-    skill: 'SRQ/SEQ: Structured Essay Explanations (AO1)',
+    skill: 'SRQ: Structured Response Questions (AO1/AO3)',
     xpEarned: 200,
     levelTitle: 'Expert',
     masteryPoints: 6200,
     streakDays: 21,
     critiqueCount: 56,
   },
+  {
+    scoreEstimate: 'L3/6 → L5/6',
+    confidence: 0.86,
+    subject: 'Pure History',
+    topic: 'Decolonisation: British Malaya, 1945–1957 (Compulsory *SBCS)',
+    skill: 'SEQ: High-Scoring Essay Factor Prioritization (AO1/AO2)',
+    xpEarned: 145,
+    levelTitle: 'Scholar',
+    masteryPoints: 4100,
+    streakDays: 14,
+    critiqueCount: 41,
+  },
 ];
+
+/** Subjects shown as tabs above the sample-result carousel, in display order. */
+const DEMO_SUBJECTS = ['Social Studies', 'Elective History', 'Pure History'];
+
+// ── Post-beta UI (pricing + Stripe checkout) — hidden during waitlist beta ──
+// Flipping SHOW_POST_BETA_PRICING in lib/beta-flags.ts re-enables the pricing
+// section here, the /pricing page, and the Stripe checkout API in one go.
 
 export default function LandingPage() {
   const [waitlistCount, setWaitlistCount] = useState<number | null>(null);
@@ -159,6 +180,11 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-[#07090e] text-slate-100 font-sans selection:bg-indigo-500/30">
+      {/* Structured data: the organization behind MARKUP + the app itself */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdScript([localBusinessJsonLd(), webAppJsonLd()]) }}
+      />
       {/* Navigation */}
       <nav className="px-4 sm:px-8 py-4 sm:py-6 flex justify-between items-center border-b border-slate-900 bg-slate-950/50 backdrop-blur-md sticky top-0 z-50">
         <h1 className="text-xl sm:text-2xl font-black text-indigo-500 tracking-tighter">MARKUP</h1>
@@ -168,7 +194,6 @@ export default function LandingPage() {
             <Link href="#how-it-works" className="hover:text-white transition">How It Works</Link>
             <Link href="#testimonials" className="hover:text-white transition">Testimonials</Link>
             <Link href="/tips" className="hover:text-white transition">Tips</Link>
-            <Link href="#pricing" className="hover:text-white transition">Pricing</Link>
           </div>
           <Link href={referralCode ? `/auth?ref=${referralCode}` : '/auth'} className="bg-indigo-600 text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl hover:bg-indigo-500 transition shadow-lg shadow-indigo-500/20 whitespace-nowrap text-xs sm:text-sm">Sign In</Link>
         </div>
@@ -177,7 +202,7 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="px-4 sm:px-6 py-16 sm:py-24 text-center max-w-4xl mx-auto">
         <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-black px-3 py-1 rounded-full mb-6 uppercase tracking-wider">
-          🎓 Beta — Free for All Students
+ Beta — 3 Free Tries, No Sign-Up Needed
         </div>
         <h2 className="text-5xl md:text-7xl font-black tracking-tight leading-[1.1] mb-6">
           Master the <span className="text-indigo-500">O-Level</span> Humanities with AI.
@@ -242,11 +267,11 @@ export default function LandingPage() {
             {/* Step 1 */}
             <div className="text-center">
               <div className="w-16 h-16 bg-indigo-600/20 border border-indigo-500/30 rounded-2xl flex items-center justify-center mx-auto mb-5 text-2xl">
-                🧠
+                Think
               </div>
               <h4 className="text-lg font-black text-white mb-2">1. Generate a Practice Paper</h4>
               <p className="text-sm text-slate-400 leading-relaxed">
-                Pick your subject (Social Studies or Elective History), choose a topic and skill,
+                Pick your subject (Social Studies, Elective History or Pure History), choose a topic and skill,
                 and MARKUP instantly generates a complete O-Level paper with sources, provenance,
                 and section-based prompts.
               </p>
@@ -255,7 +280,7 @@ export default function LandingPage() {
             {/* Step 2 */}
             <div className="text-center">
               <div className="w-16 h-16 bg-emerald-600/20 border border-emerald-500/30 rounded-2xl flex items-center justify-center mx-auto mb-5 text-2xl">
-                ✍️
+                Writing
               </div>
               <h4 className="text-lg font-black text-white mb-2">2. Write Your Answers</h4>
               <p className="text-sm text-slate-400 leading-relaxed">
@@ -267,7 +292,7 @@ export default function LandingPage() {
             {/* Step 3 */}
             <div className="text-center">
               <div className="w-16 h-16 bg-amber-600/20 border border-amber-500/30 rounded-2xl flex items-center justify-center mx-auto mb-5 text-2xl">
-                📊
+                Stats
               </div>
               <h4 className="text-lg font-black text-white mb-2">3. Get LORMS Grading</h4>
               <p className="text-sm text-slate-400 leading-relaxed">
@@ -291,7 +316,7 @@ export default function LandingPage() {
                   <span className="text-[9px] font-black tracking-widest text-indigo-500 uppercase">MARKUP</span>
                   <span className="text-[8px] font-mono text-slate-600">Real student result</span>
                 </div>
-                <div className="w-full h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent mb-3" />
+                <div className="w-full h-px bg-slate-700 mb-3" />
                 <div className="text-center">
                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{card.subject}</p>
                   <p className="text-[8px] text-slate-600 mt-0.5">{card.skill}</p>
@@ -324,32 +349,41 @@ export default function LandingPage() {
                     </div>
                   </div>
                   <div className="flex justify-center gap-3 text-[9px] text-slate-600 font-mono mt-3">
-                    <span>🔥 {card.streakDays}d streak</span>
-                    <span>📝 {card.critiqueCount} papers</span>
+                    <span>{card.streakDays}d streak</span>
+                    <span>{card.critiqueCount} papers</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Dot indicators */}
-            <div className="flex justify-center gap-1.5 mt-4">
-              {SAMPLE_CARDS.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => {
-                    setCurrentCardIndex(i);
-                    if (intervalRef.current) clearInterval(intervalRef.current);
-                    intervalRef.current = setInterval(() => {
-                      setCurrentCardIndex(prev => (prev + 1) % SAMPLE_CARDS.length);
-                    }, 4000);
-                  }}
-                  className={`w-1.5 h-1.5 rounded-full transition-all ${
-                    i === currentCardIndex
-                      ? 'bg-indigo-500 w-4'
-                      : 'bg-slate-700 hover:bg-slate-600'
-                  }`}
-                />
-              ))}
+            {/* Subject tabs — jump straight to a subject's sample result */}
+            <div className="flex flex-wrap justify-center gap-2 mt-4" role="tablist" aria-label="Sample results by subject">
+              {DEMO_SUBJECTS.map((subject) => {
+                const isActive = card.subject === subject;
+                return (
+                  <button
+                    key={subject}
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => {
+                      const target = SAMPLE_CARDS.findIndex((sample) => sample.subject === subject);
+                      if (target < 0) return;
+                      setCurrentCardIndex(target);
+                      if (intervalRef.current) clearInterval(intervalRef.current);
+                      intervalRef.current = setInterval(() => {
+                        setCurrentCardIndex(prev => (prev + 1) % SAMPLE_CARDS.length);
+                      }, 4000);
+                    }}
+                    className={`text-[9px] font-bold px-3 py-1.5 rounded-full border transition ${
+                      isActive
+                        ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500/40'
+                        : 'bg-slate-900/60 text-slate-500 border-slate-800 hover:text-slate-300 hover:border-slate-600'
+                    }`}
+                  >
+                    {subject}
+                  </button>
+                );
+              })}
             </div>
             <p className="text-[9px] text-slate-600 text-center mt-2">
               Real student examples — grades auto-rotate every 4 seconds.
@@ -440,7 +474,7 @@ export default function LandingPage() {
           <div className="text-center mb-12">
             <Link href="/tips">
               <span className="text-[10px] font-black text-emerald-400 tracking-widest uppercase bg-emerald-950/50 border border-emerald-900/50 px-3 py-1 rounded-full hover:bg-emerald-950/70 transition">
-                📝 Tips & Guides
+                Tips & Guides
               </span>
             </Link>
             <h3 className="text-3xl md:text-5xl font-black tracking-tight mt-4">
@@ -453,13 +487,13 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">                {/* Blog Post 1 */}
             <Link href="/tips/sbq-comparison" className="group block bg-slate-950/80 border border-slate-900 rounded-2xl overflow-hidden hover:border-indigo-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-indigo-950/20 hover:scale-[1.02]">
-              <div className="h-36 bg-gradient-to-br from-indigo-900/40 to-slate-900/40 flex items-center justify-center text-5xl transition-transform duration-300 group-hover:scale-105">
-                📖
+              <div className="h-36 bg-indigo-900/40 flex items-center justify-center text-5xl transition-transform duration-300 group-hover:scale-105">
+                Guide
               </div>
               <div className="p-5 space-y-2">
                 <div className="flex items-center gap-2 text-[8px] text-slate-600 font-mono">
                   <span className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-full">SBQ Guide</span>
-                  <span className="text-emerald-500/70">● Live</span>
+                  <span className="text-emerald-500/70">Live</span>
                 </div>
                 <h4 className="text-sm font-black text-slate-400 group-hover:text-white transition-colors leading-snug">
                   How to Ace SBQ Comparison Questions
@@ -475,13 +509,13 @@ export default function LandingPage() {
 
             {/* Blog Post 2 */}
             <Link href="/tips/peel-framework" className="group block bg-slate-950/80 border border-slate-900 rounded-2xl overflow-hidden hover:border-emerald-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-emerald-950/20 hover:scale-[1.02]">
-              <div className="h-36 bg-gradient-to-br from-emerald-900/40 to-slate-900/40 flex items-center justify-center text-5xl transition-transform duration-300 group-hover:scale-105">
-                ✍️
+              <div className="h-36 bg-emerald-900/40 flex items-center justify-center text-5xl transition-transform duration-300 group-hover:scale-105">
+                Writing
               </div>
               <div className="p-5 space-y-2">
                 <div className="flex items-center gap-2 text-[8px] text-slate-600 font-mono">
                   <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">Essay Tips</span>
-                  <span className="text-emerald-500/70">● Live</span>
+                  <span className="text-emerald-500/70">Live</span>
                 </div>
                 <h4 className="text-sm font-black text-slate-400 group-hover:text-white transition-colors leading-snug">
                   The PEEL Framework: Structuring A1 Essays
@@ -497,13 +531,13 @@ export default function LandingPage() {
 
             {/* Blog Post 3 */}
             <Link href="/tips/study-strategy" className="group block bg-slate-950/80 border border-slate-900 rounded-2xl overflow-hidden hover:border-amber-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-amber-950/20 hover:scale-[1.02]">
-              <div className="h-36 bg-gradient-to-br from-amber-900/40 to-slate-900/40 flex items-center justify-center text-5xl transition-transform duration-300 group-hover:scale-105">
-                🧠
+              <div className="h-36 bg-amber-900/40 flex items-center justify-center text-5xl transition-transform duration-300 group-hover:scale-105">
+                Think
               </div>
               <div className="p-5 space-y-2">
                 <div className="flex items-center gap-2 text-[8px] text-slate-600 font-mono">
                   <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full">Study Strategy</span>
-                  <span className="text-emerald-500/70">● Live</span>
+                  <span className="text-emerald-500/70">Live</span>
                 </div>
                 <h4 className="text-sm font-black text-slate-400 group-hover:text-white transition-colors leading-snug">
                   How to Use AI Practice Tools Effectively
@@ -529,12 +563,13 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Pricing Section — free for students during beta */}
-      <section id="pricing" className="px-6 py-20 bg-slate-950/30">
+      {/* Pricing Section — hidden during waitlist beta (post-beta only).
+          Re-enable by flipping SHOW_POST_BETA_PRICING to true at the top of this file. */}
+      {SHOW_POST_BETA_PRICING && <section id="pricing" className="px-6 py-20 bg-slate-950/30">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <span className="inline-flex items-center gap-2 text-[10px] font-black text-emerald-400 tracking-widest uppercase bg-emerald-950/50 border border-emerald-900/50 px-3 py-1 rounded-full">
-              🎓 Free for Students During Beta
+              Free for Students During Beta
             </span>
             <h3 className="text-3xl md:text-5xl font-black tracking-tight mt-4">
               Everything is <span className="text-emerald-400">free</span> right now.
@@ -558,17 +593,17 @@ export default function LandingPage() {
           {/* What students get */}
           <div className="max-w-3xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-center">
-              <div className="text-2xl mb-2">🧠</div>
+              <div className="text-2xl mb-2">Think</div>
               <h4 className="text-sm font-black text-white">Unlimited Practice</h4>
               <p className="text-[10px] text-slate-500 mt-1">Generate as many O-Level papers as you want, on any topic</p>
             </div>
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-center">
-              <div className="text-2xl mb-2">📊</div>
+              <div className="text-2xl mb-2">Stats</div>
               <h4 className="text-sm font-black text-white">Full LORMS Grading</h4>
               <p className="text-[10px] text-slate-500 mt-1">AI scans SBCS + SEQ + SRQ with SEAB rubric feedback</p>
             </div>
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-center">
-              <div className="text-2xl mb-2">🏆</div>
+              <div className="text-2xl mb-2">Ranking</div>
               <h4 className="text-sm font-black text-white">Gamified Progress</h4>
               <p className="text-[10px] text-slate-500 mt-1">XP, streaks, achievements and leaderboards keep you going</p>
             </div>
@@ -609,7 +644,7 @@ export default function LandingPage() {
                   ) : !sessionLoaded ? 'Loading...' : !currentUserId ? 'Sign In to Subscribe' : 'Subscribe Now'}
                 </button>
                 {waitlistDiscount > 0 && (
-                  <p className="text-[9px] text-emerald-400 font-bold mt-2 text-center">🎉 {waitlistDiscount}% off applied</p>
+                  <p className="text-[9px] text-emerald-400 font-bold mt-2 text-center">{waitlistDiscount}% off applied</p>
                 )}
               </div>
             </div>
@@ -642,7 +677,7 @@ export default function LandingPage() {
                   ) : !sessionLoaded ? 'Loading...' : !currentUserId ? 'Sign In to Subscribe' : 'Subscribe Now'}
                 </button>
                 {waitlistDiscount > 0 && (
-                  <p className="text-[9px] text-emerald-400 font-bold mt-2 text-center">🎉 {waitlistDiscount}% off applied</p>
+                  <p className="text-[9px] text-emerald-400 font-bold mt-2 text-center">{waitlistDiscount}% off applied</p>
                 )}
               </div>
             </div>
@@ -680,13 +715,58 @@ export default function LandingPage() {
             </p>
           </div>
         </div>
-      </section>
+      </section>}
+
+      {/* Beta waitlist CTA band — replaces the pricing section during beta */}
+      {!SHOW_POST_BETA_PRICING && (
+        <section className="px-6 py-16 bg-slate-950/30">
+          <div className="max-w-2xl mx-auto text-center">
+            <span className="inline-flex items-center gap-2 text-[10px] font-black text-amber-400 tracking-widest uppercase bg-amber-950/50 border border-amber-900/50 px-3 py-1 rounded-full">
+ Limited Beta Access
+            </span>
+            <h3 className="text-3xl md:text-5xl font-black tracking-tight mt-4">
+              Try 3 papers free. <span className="text-emerald-400">Then unlock 7 more days.</span>
+            </h3>
+            <p className="text-sm text-slate-400 max-w-xl mx-auto mt-3 leading-relaxed">
+              Join the waitlist and share quick feedback — you&apos;ll unlock unlimited practice for a week.
+              No credit card, no catch. Just a better product for Singapore&apos;s O-Level students.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-7">
+              <Link
+                href={referralCode ? `/dashboard?ref=${referralCode}` : '/dashboard'}
+                className="bg-indigo-600 hover:bg-indigo-500 text-white font-black px-8 py-3.5 rounded-xl text-sm transition shadow-lg shadow-indigo-500/20 hover:scale-[1.02] active:scale-[0.98]"
+              >
+                Try It Out — Free
+              </Link>
+              <a
+                href="#how-it-works"
+                className="text-slate-400 hover:text-white text-xs font-bold underline underline-offset-4 transition"
+              >
+                See how it works
+              </a>
+            </div>
+            {waitlistCount !== null && (
+              <p className="text-[10px] text-slate-500 font-mono mt-5">
+                {waitlistCount.toLocaleString()} students already on the waitlist
+              </p>
+            )}
+          </div>
+        </section>
+      )}
 
       <footer className="py-12 border-t border-slate-900 text-center space-y-4">
         <p className="text-[10px] font-bold text-slate-600 tracking-widest uppercase">
           © 2026 Markup Analytics • Singapore GCE O-Level Prep
         </p>
         <div className="flex items-center justify-center gap-4 text-[10px] font-bold text-slate-500">
+          <Link href="/tips" className="hover:text-indigo-400 transition underline underline-offset-4">
+                Tips & Guides
+          </Link>
+          <span className="text-slate-800">·</span>
+          <Link href="/resources/sbq-template" className="hover:text-emerald-400 transition underline underline-offset-4">
+            Free SBQ Template
+          </Link>
+          <span className="text-slate-800">·</span>
           <Link href="/privacy" className="hover:text-indigo-400 transition underline underline-offset-4">
             Privacy Policy
           </Link>

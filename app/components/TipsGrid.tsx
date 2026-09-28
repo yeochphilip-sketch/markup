@@ -8,7 +8,7 @@ export interface TipEntry {
   title: string;
   description: string;
   icon: string;
-  gradient: string;
+  bg: string;
   tag: string;
   tagColor: string;
   readTime: string;
@@ -138,7 +138,7 @@ export default function TipsGrid({ tips }: { tips: TipEntry[] }) {
       {/* Grid */}
       {filtered.length === 0 ? (
         <div className="text-center py-12 text-slate-500">
-          <p className="text-3xl mb-2">🔍</p>
+          <p className="text-3xl mb-2">Investigate</p>
           <p className="text-sm font-bold">No guides match your filters</p>
           <p className="text-xs mt-1">Try selecting a different combination</p>
         </div>
@@ -153,7 +153,7 @@ export default function TipsGrid({ tips }: { tips: TipEntry[] }) {
                 className="group block bg-slate-950/80 border border-slate-900 rounded-2xl overflow-hidden hover:border-indigo-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-indigo-950/20 hover:scale-[1.02]"
               >
                 <div
-                  className={`h-40 bg-gradient-to-br ${tip.gradient} flex items-center justify-center text-5xl transition-transform duration-300 group-hover:scale-105`}
+                  className={`h-40 ${tip.bg} flex items-center justify-center text-5xl transition-transform duration-300 group-hover:scale-105`}
                 >
                   {tip.icon}
                 </div>

@@ -43,11 +43,16 @@ export const FEEDBACK_LIMIT: SupabaseRateLimitConfig = {
   windowSeconds: 30,
 };
 
+/** Waitlist signup: 5 per 60s (public lead-gen form — blocks spam bots) */
+export const WAITLIST_LIMIT: SupabaseRateLimitConfig = {
+maxRequests: 5,
+windowSeconds: 60,
+};
+
 // ── Helpers ──
 
 function getClientIp(request: Request): string {
-  return (
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+return (request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
     request.headers.get('x-real-ip') ??
     request.headers.get('cf-connecting-ip') ??
     '127.0.0.1'
@@ -90,10 +95,9 @@ function getRateLimitClient() {
  * Check if a request is rate-limited using Supabase PostgreSQL.
  *
  * @returns Object with `allowed` and `headers` (for 429 response) or null
- *          if the rate limiter couldn't connect (degraded mode).
+ * if the rate limiter couldn't connect (degraded mode).
  */
-export async function checkSupabaseRateLimit(
-  request: Request,
+ export async function checkSupabaseRateLimit(request: Request,
   config: SupabaseRateLimitConfig,
 ): Promise<{ allowed: boolean; headers: Record<string, string> } | null> {
   const supabase = getRateLimitClient();
@@ -192,8 +196,7 @@ export async function checkSupabaseRateLimit(
  * Returns a 429 Response for rate-limited requests.
  */
 export function rateLimitResponse(headers: Record<string, string>): Response {
-  return new Response(
-    JSON.stringify({
+return new Response(JSON.stringify({
       error: 'Too many requests. Please slow down and try again.',
       retryAfter: headers['Retry-After'] ?? '60',
     }),

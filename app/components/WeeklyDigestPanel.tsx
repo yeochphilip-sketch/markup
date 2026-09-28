@@ -69,20 +69,20 @@ export default function WeeklyDigestPanel({
   }, [userId, fetchDigest]);
 
   // Get the icon for the current level
-  const levelIcon = getLevelConfig(levelTitle).icon || '🌱';
+  const levelIcon = getLevelConfig(levelTitle).icon || 'New';
 
   if (!userId) return null;
 
   return (
-    <div className="bg-gradient-to-br from-slate-950/90 via-indigo-950/30 to-slate-950/90 border border-slate-800/60 rounded-2xl overflow-hidden transition-all duration-300">
+    <div className="bg-slate-950/90 border border-slate-800/60 rounded-2xl overflow-hidden transition-all duration-300">
       {/* Header — always visible */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full flex items-center justify-between p-4 hover:bg-slate-900/40 transition group"
       >
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-xl flex items-center justify-center text-base group-hover:scale-110 transition-transform">
-            📊
+          <div className="w-9 h-9 bg-indigo-500/20 rounded-xl flex items-center justify-center text-base group-hover:scale-110 transition-transform">
+            Stats
           </div>
           <div className="text-left">
             <h3 className="text-[10px] font-black tracking-widest text-indigo-400 uppercase">
@@ -163,7 +163,7 @@ export default function WeeklyDigestPanel({
                 {/* XP earned this week */}
                 <div className="bg-slate-900/40 border border-slate-800/50 rounded-xl p-3 text-center relative overflow-hidden">
                   {digest.xpEarnedThisWeek > 0 && (
-                    <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/5 to-transparent" />
+                    <div className="absolute inset-0 bg-emerald-500/5" />
                   )}
                   <p className="text-[8px] text-slate-500 font-bold uppercase tracking-widest relative">XP Earned</p>
                   <p className={`text-lg font-black font-mono mt-0.5 relative ${
@@ -211,7 +211,7 @@ export default function WeeklyDigestPanel({
                               : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
                           }`}
                         >
-                          {isSS ? '📖 Social Studies' : '🏛️ Elective History'}
+                          {subject}
                         </span>
                       );
                     })}
@@ -233,7 +233,7 @@ export default function WeeklyDigestPanel({
                 {/* XP bar showing total progress */}
                 <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-700"
+                    className="h-full rounded-full bg-indigo-500 transition-all duration-700"
                     style={{ width: `${Math.min((digest.currentXp / 5000) * 100, 100)}%` }}
                   />
                 </div>
@@ -242,7 +242,7 @@ export default function WeeklyDigestPanel({
                   <div className="flex items-center gap-2">
                     {digest.xpEarnedThisWeek > 0 && (
                       <span className="text-[7px] text-emerald-400 font-mono font-bold">
-                        ▲ +{digest.xpEarnedThisWeek} this week
+                        +{digest.xpEarnedThisWeek} this week
                       </span>
                     )}
                     <span className="text-[7px] text-slate-600 font-mono">{totalEvaluations} total essays</span>
@@ -254,12 +254,12 @@ export default function WeeklyDigestPanel({
               {/* ── Quick Stats Row ── */}
               <div className="grid grid-cols-2 gap-2">
                 <div className="bg-slate-900/30 border border-slate-800/50 rounded-xl p-3 text-center">
-                  <span className="text-base block mb-1">🏅</span>
+                  <span className="text-base block mb-1">Badge</span>
                   <p className="text-[10px] font-black font-mono text-white">{digest.achievementCount}</p>
                   <p className="text-[8px] text-slate-500 font-mono">achievements</p>
                 </div>
                 <div className="bg-slate-900/30 border border-slate-800/50 rounded-xl p-3 text-center">
-                  <span className="text-base block mb-1">📝</span>
+                  <span className="text-base block mb-1">Essay</span>
                   <p className="text-[10px] font-black font-mono text-white">{digest.totalEvaluations}</p>
                   <p className="text-[8px] text-slate-500 font-mono">all-time essays</p>
                 </div>
@@ -285,8 +285,8 @@ export default function WeeklyDigestPanel({
                           <div
                             className={`w-full rounded-t transition-all duration-700 ${
                               isHigh
-                                ? 'bg-gradient-to-t from-indigo-500 to-purple-500'
-                                : 'bg-gradient-to-t from-rose-500 to-orange-500'
+                                ? 'bg-indigo-500'
+                                : 'bg-rose-500'
                             }`}
                             style={{ height: `${Math.min((val / s.max) * 100, 100)}%` }}
                           />
@@ -302,7 +302,7 @@ export default function WeeklyDigestPanel({
             </div>
           ) : (
             <div className="bg-slate-900/30 border border-slate-800/50 rounded-xl p-5 text-center">
-              <span className="text-2xl block mb-2">📋</span>
+              <span className="text-2xl block mb-2">Copy</span>
               <p className="text-[10px] text-slate-500 font-mono">
                 No data yet this week. Start practicing to see your weekly digest!
               </p>
@@ -316,7 +316,7 @@ export default function WeeklyDigestPanel({
               className="text-[8px] text-slate-600 hover:text-indigo-400 transition font-mono"
               title="Refresh weekly data"
             >
-              ↻ Refresh
+              Refresh
             </button>
           </div>
         </div>

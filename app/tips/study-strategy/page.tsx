@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { breadcrumbJsonLd, jsonLdScript } from '@/lib/structured-data';
 
 export const metadata: Metadata = {
   title: 'How to Use AI Practice Tools to Maximise Your O-Level Humanities Score',
+  alternates: { canonical: '/tips/study-strategy' },
+  robots: { index: true, follow: true },
   description:
     'Smart strategies for using AI practice tools like MARKUP effectively. Learn how top students target weak skills, build streaks, and track improvements for O-Level Social Studies and History.',
   openGraph: {
@@ -35,6 +38,19 @@ export default function StudyStrategyPage() {
           <span>/</span>
           <span className="text-slate-400">Study Strategy</span>
         </nav>
+        {/* BreadcrumbList structured data (matches the visible nav above) */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: jsonLdScript(
+              breadcrumbJsonLd([
+                { name: 'Home', href: '/' },
+                { name: 'Tips & Guides', href: '/tips' },
+                { name: 'Study Strategy', href: '/tips/study-strategy' },
+              ])
+            ),
+          }}
+        />
 
         {/* Hero */}
         <div className="space-y-4 border-b border-slate-900 pb-8">
@@ -87,7 +103,7 @@ export default function StudyStrategyPage() {
           </p>
 
           <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-            <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest">📊 The 80/20 Rule for AI Practice</p>
+            <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest">The 80/20 Rule for AI Practice</p>
             <p className="text-xs text-slate-300 mt-1">
               20% of your time should be spent <strong className="text-slate-200">generating and writing</strong>.
               80% should be spent <strong className="text-slate-200">reviewing feedback, understanding mistakes,
@@ -106,24 +122,24 @@ export default function StudyStrategyPage() {
           <h2 className="text-xl font-black text-white">2. Diagnose First: Know Your Weakest Skill</h2>
           <p>
             Before you do anything else, you need to know <strong className="text-slate-200">where you
-            stand</strong>. The SBQ section tests multiple distinct skills — Comparison, Reliability,
-            Purpose, Utility, and Cross-Referencing — and most students are strong in some but
-            weak in others.
+            stand</strong>. The source-based section tests multiple distinct skills — Inference,
+            Comparison, Purpose, Utility, and Source Synthesis — and most students are strong in
+            some but weak in others.
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">SBQ Skills (SS)</p>
+              <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">SBCS Skills (Social Studies)</p>
               <ul className="text-xs text-slate-400 space-y-1 mt-2">
-                <li>• Comparison &amp; Contrast (AO2)</li>
-                <li>• Reliability &amp; Cross-Referencing (AO3)</li>
-                <li>• Purpose &amp; Message (AO2)</li>
-                <li>• Utility &amp; Limitation (AO3)</li>
-                <li>• Sequence &amp; Chronology (AO2)</li>
+                <li>• Inference &amp; Message (AO1/AO2)</li>
+                <li>• Comparison &amp; Contrast (AO1/AO2)</li>
+                <li>• Purpose &amp; Motive (AO1/AO2)</li>
+                <li>• Utility &amp; Reliability (AO1/AO2)</li>
+                <li>• Source Synthesis &amp; Different Perspectives (AO1/AO2)</li>
               </ul>
             </div>
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">SEQ/SRQ Skills (SS &amp; Hist)</p>
+              <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Essay Skills (SRQ &amp; SEQ)</p>
               <ul className="text-xs text-slate-400 space-y-1 mt-2">
                 <li>• Argument Construction (AO1)</li>
                 <li>• Evidence &amp; Examples (AO1)</li>
@@ -142,7 +158,7 @@ export default function StudyStrategyPage() {
           </p>
 
           <div className="bg-indigo-950/30 border border-indigo-900/30 rounded-xl p-4">
-            <p className="text-xs text-indigo-300 font-bold">💡 MARKUP&apos;s Weakest Skill Card automatically surfaces your lowest-performing skill and suggests targeted practice — look for it on your dashboard.</p>
+            <p className="text-xs text-indigo-300 font-bold">MARKUP&apos;s Weakest Skill Card automatically surfaces your lowest-performing skill and suggests targeted practice — look for it on your dashboard.</p>
           </div>
         </section>
 
@@ -212,7 +228,7 @@ export default function StudyStrategyPage() {
           </p>
 
           <div className="bg-emerald-950/30 border border-emerald-900/30 rounded-xl p-4">
-            <p className="text-xs text-emerald-300 font-bold">🧠 The Science</p>
+            <p className="text-xs text-emerald-300 font-bold">The Science</p>
             <p className="text-[10px] text-slate-400 mt-1">
               Studies on &ldquo;spaced repetition&rdquo; show that 15 minutes of daily practice is more effective
               than 3 hours of cramming once a week. Streaks work because they leverage the
@@ -278,7 +294,7 @@ export default function StudyStrategyPage() {
           </div>
 
           <div className="bg-amber-950/30 border border-amber-900/30 rounded-xl p-4">
-            <p className="text-xs text-amber-300 font-bold">📝 The 4-Step Review Loop takes about 10 minutes. Doing it after every session doubles your rate of improvement.</p>
+            <p className="text-xs text-amber-300 font-bold">The 4-Step Review Loop takes about 10 minutes. Doing it after every session doubles your rate of improvement.</p>
           </div>
         </section>
 
@@ -292,7 +308,7 @@ export default function StudyStrategyPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <h3 className="text-sm font-bold text-indigo-400">📚 Before a test</h3>
+              <h3 className="text-sm font-bold text-indigo-400">Before a test</h3>
               <ul className="text-xs text-slate-400 space-y-1 mt-2 list-disc pl-4">
                 <li>Generate papers on the specific topic</li>
                 <li>Do 2–3 timed sessions to simulate test conditions</li>
@@ -301,7 +317,7 @@ export default function StudyStrategyPage() {
               </ul>
             </div>
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <h3 className="text-sm font-bold text-emerald-400">📝 After school</h3>
+              <h3 className="text-sm font-bold text-emerald-400">After school</h3>
               <ul className="text-xs text-slate-400 space-y-1 mt-2 list-disc pl-4">
                 <li>Use the topic you just learned in class</li>
                 <li>Generate a paper on that topic to reinforce</li>
@@ -310,7 +326,7 @@ export default function StudyStrategyPage() {
               </ul>
             </div>
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <h3 className="text-sm font-bold text-amber-400">📊 During holidays</h3>
+              <h3 className="text-sm font-bold text-amber-400">During holidays</h3>
               <ul className="text-xs text-slate-400 space-y-1 mt-2 list-disc pl-4">
                 <li>Do focused skill-building blocks (3–5 sessions per skill)</li>
                 <li>Build a long streak (20+ days is achievable over a break)</li>
@@ -319,7 +335,7 @@ export default function StudyStrategyPage() {
               </ul>
             </div>
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <h3 className="text-sm font-bold text-rose-400">👥 With study groups</h3>
+              <h3 className="text-sm font-bold text-rose-400">With study groups</h3>
               <ul className="text-xs text-slate-400 space-y-1 mt-2 list-disc pl-4">
                 <li>Generate the same paper as a friend</li>
                 <li>Compare your answers and AI feedback</li>
@@ -396,26 +412,26 @@ export default function StudyStrategyPage() {
         </section>
 
         {/* Quick Reference */}
-        <div className="bg-gradient-to-br from-indigo-950/40 to-slate-950/80 border border-indigo-900/40 rounded-2xl p-6 space-y-3">
+        <div className="bg-indigo-950/50 border border-indigo-900/40 rounded-2xl p-6 space-y-3">
           <h2 className="text-lg font-black text-white">Quick Reference: The Study System</h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
             <div>
-              <p className="text-2xl">🎯</p>
+              <p className="text-2xl">Goal</p>
               <p className="text-[9px] font-black text-indigo-400 uppercase tracking-wider mt-1">Diagnose</p>
               <p className="text-[8px] text-slate-500">Find your weakest skill first</p>
             </div>
             <div>
-              <p className="text-2xl">🔁</p>
+              <p className="text-2xl">Repeat</p>
               <p className="text-[9px] font-black text-emerald-400 uppercase tracking-wider mt-1">Block</p>
               <p className="text-[8px] text-slate-500">3–5 sessions on one skill</p>
             </div>
             <div>
-              <p className="text-2xl">🔥</p>
+              <p className="text-2xl">Streak</p>
               <p className="text-[9px] font-black text-amber-400 uppercase tracking-wider mt-1">Maintain</p>
               <p className="text-[8px] text-slate-500">Daily streaks, even if short</p>
             </div>
             <div>
-              <p className="text-2xl">📝</p>
+              <p className="text-2xl">Essay</p>
               <p className="text-[9px] font-black text-rose-400 uppercase tracking-wider mt-1">Review</p>
               <p className="text-[8px] text-slate-500">10 min review per session</p>
             </div>
@@ -423,7 +439,7 @@ export default function StudyStrategyPage() {
         </div>
 
         {/* CTA Banner */}
-        <div className="bg-gradient-to-br from-amber-950/50 to-slate-950/80 border border-amber-800/50 rounded-2xl p-6 text-center space-y-3">
+        <div className="bg-amber-950/70 border border-amber-800/50 rounded-2xl p-6 text-center space-y-3">
           <p className="text-lg font-black text-white">Start your study system today</p>
           <p className="text-xs text-slate-400 max-w-md mx-auto">
             MARKUP tracks your skills, streaks, and improvement over time. Generate your first

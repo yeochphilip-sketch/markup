@@ -90,7 +90,6 @@ const ACCENT_MAP = {
     badgeBorder: 'border-slate-600/30',
     ring: 'ring-slate-500/30',
     text: 'text-slate-300',
-    gradient: 'from-slate-500/40 to-slate-600/40',
   },
   indigo: {
     border: 'border-indigo-500/40',
@@ -101,7 +100,6 @@ const ACCENT_MAP = {
     badgeBorder: 'border-indigo-500/30',
     ring: 'ring-indigo-500/30',
     text: 'text-indigo-300',
-    gradient: 'from-indigo-500/40 to-purple-500/40',
   },
   amber: {
     border: 'border-amber-500/40',
@@ -112,7 +110,6 @@ const ACCENT_MAP = {
     badgeBorder: 'border-amber-500/30',
     ring: 'ring-amber-500/30',
     text: 'text-amber-300',
-    gradient: 'from-amber-500/40 to-orange-500/40',
   },
 } as const;
 
@@ -240,7 +237,9 @@ export default function PricingPage() {
       });
       const data = await res.json();
       if (data.url) {
-        window.location.href = data.url;
+        // Use window.location.assign (a method call) instead of a direct
+        // property assignment so the React Compiler doesn't treat this as a mutation.
+        window.location.assign(data.url);
       } else {
         console.error('Checkout failed:', data.error);
         setCheckoutLoading(null);
@@ -275,11 +274,11 @@ export default function PricingPage() {
         {/* ════════════════════════════════════════════════════
             HERO BANNER — Free During Beta
         ════════════════════════════════════════════════════ */}
-        <div className="bg-gradient-to-r from-indigo-950/80 via-slate-950/80 to-purple-950/80 border border-indigo-500/30 rounded-3xl p-8 md:p-12 text-center relative overflow-hidden">
+        <div className="bg-indigo-950/80 border border-indigo-500/30 rounded-3xl p-8 md:p-12 text-center relative overflow-hidden">
           <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-80 h-80 bg-indigo-500/5 rounded-full blur-3xl" />
           <div className="relative z-10 space-y-4">
             <span className="inline-flex items-center gap-2 text-[10px] font-black text-emerald-400 tracking-widest uppercase bg-emerald-950/50 border border-emerald-900/50 px-3 py-1 rounded-full">
-              🎓 Free for Students During Beta
+              Free for Students During Beta
             </span>
             <h2 className="text-3xl md:text-5xl font-black tracking-tight text-white">
               Everything is{' '}
@@ -413,7 +412,7 @@ export default function PricingPage() {
                   )}
                   {waitlistDiscount > 0 && tier.id !== 'free' && (
                     <p className="text-[9px] text-emerald-400 font-bold mt-2">
-                      🎉 {waitlistDiscount}% off — waitlist discount applied
+                      {waitlistDiscount}% off — waitlist discount applied
                     </p>
                   )}
                 </div>
@@ -508,11 +507,11 @@ export default function PricingPage() {
         {/* ════════════════════════════════════════════════════
             PAYMENT LAUNCH WAITLIST
         ════════════════════════════════════════════════════ */}
-        <div className="bg-gradient-to-r from-amber-950/80 via-slate-950/80 to-indigo-950/80 border border-amber-500/20 rounded-3xl p-8 md:p-12 text-center relative overflow-hidden">
+        <div className="bg-amber-950/80 border border-amber-500/20 rounded-3xl p-8 md:p-12 text-center relative overflow-hidden">
           <div className="absolute -bottom-20 right-1/4 w-60 h-60 bg-amber-500/5 rounded-full blur-3xl" />
           <div className="relative z-10 space-y-4 max-w-lg mx-auto">
             <span className="inline-flex items-center gap-2 text-[10px] font-black text-amber-400 tracking-widest uppercase bg-amber-950/50 border border-amber-900/50 px-3 py-1 rounded-full">
-              🔔 Stay in the Loop
+              Stay in the Loop
             </span>
             <h3 className="text-2xl md:text-3xl font-black tracking-tight text-white">
               Get notified when payments launch.

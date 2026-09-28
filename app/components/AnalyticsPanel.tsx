@@ -1,6 +1,7 @@
 'use client';
 
 import { getLevelConfig, getNextLevelXp, getPrevLevelXp, ACHIEVEMENT_DEFS } from '@/lib/gamification';
+import type { HistoryTrack } from '@/lib/syllabus';
 import ExamCountdown from './ExamCountdown';
 
 interface SkillRatings {
@@ -30,10 +31,10 @@ interface AnalyticsPanelProps {
   achievements: string[];
   ssGoalLevel: string | null;
   historyGoalLevel: string | null;
-  takesHistory: boolean;
+  historyTrack: HistoryTrack | null;
   onFetchLeaderboard: () => void;
   onSetExamGoal: (subject: 'ss' | 'history', goalLevel: string) => void;
-  onSetTakesHistory: (takes: boolean) => void;
+  onSetHistoryTrack: (track: HistoryTrack | null) => void;
 }
 
 function getSkillColorClass(val: number) {
@@ -52,16 +53,16 @@ export default function AnalyticsPanel({
   userId,
   onFetchLeaderboard,
   onSetExamGoal,
-  onSetTakesHistory,
+  onSetHistoryTrack,
   ssGoalLevel,
   historyGoalLevel,
-  takesHistory,
+  historyTrack,
 }: AnalyticsPanelProps) {
   return (
     <div className="px-6 pt-4 grid grid-cols-1 md:grid-cols-8 gap-4">
       {/* Focus Target */}
       <div className="md:col-span-1 bg-indigo-600/10 border border-indigo-500/20 p-4 rounded-2xl flex items-center gap-4 relative overflow-hidden group">
-        <div className="w-10 h-10 bg-indigo-500/20 text-indigo-400 rounded-xl flex items-center justify-center text-xl">🎯</div>
+        <div className="w-10 h-10 bg-indigo-500/20 text-indigo-400 rounded-xl flex items-center justify-center text-xl">Goal</div>
         <div>
           <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Focus Target</h4>
           <p className="text-[11px] font-bold text-slate-300 leading-tight">Cross-reference carefully to build band ranks.</p>
@@ -82,7 +83,7 @@ export default function AnalyticsPanel({
             onClick={onFetchLeaderboard}
             className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[9px] font-bold px-2.5 py-2 rounded-lg transition text-slate-400 hover:text-slate-200"
           >
-            🏆 Rank
+            Rank
           </button>
         </div>
         {levelTitle !== 'Master' && (
@@ -93,7 +94,7 @@ export default function AnalyticsPanel({
             </div>
             <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-700 ease-out"
+                className="h-full rounded-full bg-indigo-500 transition-all duration-700 ease-out"
                 style={{ width: `${Math.min((xpProgress.current / Math.max(xpProgress.nextLevel, 1)) * 100, 100)}%` }}
               />
             </div>
@@ -106,7 +107,7 @@ export default function AnalyticsPanel({
         dailyGoalMet ? 'border-emerald-500/30' : 'border-slate-900'
       }`}>
         <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">
-          {dailyGoalMet ? '✅ Done' : '📋 Goal'}
+          {dailyGoalMet ? '✓ Done' : 'Goal'}
         </span>
         <div className="flex items-baseline gap-1 mt-1">
           <span className={`text-lg font-black font-mono ${dailyGoalMet ? 'text-emerald-400' : 'text-slate-500'}`}>
@@ -126,7 +127,7 @@ export default function AnalyticsPanel({
           </div>
         )}
         <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">
-          {streakData.current > 0 ? '🔥 Streak' : 'Streak'}
+          {streakData.current > 0 ? 'Streak' : 'Streak'}
         </span>
         <div className="flex items-baseline gap-1">
           <span className={`text-lg font-black font-mono ${streakData.current >= 3 ? 'text-amber-400' : 'text-slate-400'}`}>
@@ -144,7 +145,7 @@ export default function AnalyticsPanel({
         <div className={`md:col-span-2 flex items-center gap-3 p-3 rounded-2xl border ${
           decayWarning.severity === 'danger' ? 'bg-rose-500/10 border-rose-500/20' : 'bg-amber-500/10 border-amber-500/20'
         }`}>
-          <span className={`text-lg ${decayWarning.severity === 'danger' ? 'animate-pulse' : ''}`}>⚠️</span>
+          <span className={`text-lg ${decayWarning.severity === 'danger' ? 'animate-pulse' : ''}`}>Warning</span>
           <p className={`text-[10px] font-medium ${decayWarning.severity === 'danger' ? 'text-rose-300' : 'text-amber-300'}`}>
             {decayWarning.message}
           </p>
@@ -157,10 +158,10 @@ export default function AnalyticsPanel({
           userId={userId}
           ssGoalLevel={ssGoalLevel}
           historyGoalLevel={historyGoalLevel}
-          takesHistory={takesHistory}
+          historyTrack={historyTrack}
           currentLevel={levelTitle}
           onSetGoal={onSetExamGoal}
-          onSetTakesHistory={onSetTakesHistory}
+          onSetHistoryTrack={onSetHistoryTrack}
         />
       )}
 

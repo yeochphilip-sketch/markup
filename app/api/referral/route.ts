@@ -11,6 +11,15 @@ async function getClient() {
   return getServerSupabase();
 }
 
+// ── Tangible referral rewards (free practice days) ──
+// The referred friend gets REFEREE_BONUS_DAYS days; the referrer gets
+// REFERRER_BONUS_DAYS per successful referral, capped at REFERRER_BONUS_CAP
+// total. Days are applied immediately if the user is unlocked, or banked on
+// user_skill_metrics.referral_bonus_days for the next unlock.
+const REFEREE_BONUS_DAYS = 2;
+const REFERRER_BONUS_DAYS = 1;
+const REFERRER_BONUS_CAP = 7;
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -57,6 +66,27 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Already referred by someone' }, { status: 400 });
       }
 
+      const newReferralCount = (referrerProfile.referral_count ?? 0) + 1;
+
+      // ── Tangible reward: referrer gets +1 free day per friend (capped) ──
+      let referrerDayAwarded = false;
+      if (newReferralCount <= REFERRER_BONUS_CAP) {
+        try {
+          // supabase-js surfaces RPC failures as { error }, not exceptions
+          const { error: bonusErr } = await supabaseAdmin.rpc('apply_referral_bonus', {
+            p_user_id: referrerProfile.id,
+            p_days: REFERRER_BONUS_DAYS,
+          });
+          if (bonusErr) {
+            console.warn('Non-fatal: referrer bonus days failed', bonusErr);
+          } else {
+            referrerDayAwarded = true;
+          }
+        } catch (bonusErr) {
+          console.warn('Non-fatal: referrer bonus days failed', bonusErr);
+        }
+      }
+
       // Credit XP to referrer (200 XP)
       const REFERRAL_XP = 200;
       const { data: referrerMetrics } = await supabaseAdmin
@@ -85,8 +115,20 @@ export async function POST(request: Request) {
 
       await supabaseAdmin
         .from('user_profiles')
-        .update({ referral_count: (referrerProfile.referral_count ?? 0) + 1 } as never)
+        .update({ referral_count: newReferralCount } as never)
         .eq('id', referrerProfile.id);
+
+      // ── Tangible reward: referred friend gets +2 free days ──
+      try {
+        // supabase-js surfaces RPC failures as { error }, not exceptions
+        const { error: bonusErr } = await supabaseAdmin.rpc('apply_referral_bonus', {
+          p_user_id: userId,
+          p_days: REFEREE_BONUS_DAYS,
+        });
+        if (bonusErr) console.warn('Non-fatal: referee bonus days failed', bonusErr);
+      } catch (bonusErr) {
+        console.warn('Non-fatal: referee bonus days failed', bonusErr);
+      }
 
       // Credit XP to new user (100 XP for joining)
       const NEW_USER_XP = 100;
@@ -125,14 +167,16 @@ export async function POST(request: Request) {
           {
             user_id: userId,
             type: 'info',
-            title: '🎉 Welcome Bonus!',
-            body: `You earned ${NEW_USER_XP} XP for joining via a referral!`,
+            title: 'Welcome Bonus!',
+            body: `You got +${REFEREE_BONUS_DAYS} free days of practice for joining via a referral (plus ${NEW_USER_XP} XP)!`,
           },
           {
             user_id: referrerProfile.id,
             type: 'info',
-            title: '🎉 Referral Reward!',
-            body: `Someone used your referral code! You earned ${REFERRAL_XP} XP.`,
+            title: 'Referral Reward!',
+            body: referrerDayAwarded
+              ? `Someone used your referral code! You earned +${REFERRER_BONUS_DAYS} free day${REFERRER_BONUS_DAYS === 1 ? '' : 's'} (plus ${REFERRAL_XP} XP).`
+              : `Someone used your referral code! You've reached the free-day cap — you still earned ${REFERRAL_XP} XP.`,
           },
         ] as never);
       } catch (notifErr) {
@@ -142,7 +186,8 @@ export async function POST(request: Request) {
       return NextResponse.json({
         success: true,
         xpEarned: NEW_USER_XP,
-        message: `You earned ${NEW_USER_XP} XP from the referral!`,
+        bonusDaysEarned: REFEREE_BONUS_DAYS,
+        message: `You earned ${NEW_USER_XP} XP and +${REFEREE_BONUS_DAYS} free days from the referral!`,
       });
     }
 
@@ -175,6 +220,19 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // Banked referral bonus days (shown in the dashboard referral card)
+    let bankedBonusDays = 0;
+    try {
+      const { data: metrics } = await supabaseAdmin
+        .from('user_skill_metrics')
+        .select('referral_bonus_days')
+        .eq('user_id', userId)
+        .maybeSingle();
+      bankedBonusDays = (metrics as { referral_bonus_days?: number } | null)?.referral_bonus_days ?? 0;
+    } catch {
+      // Column may not exist yet — default to 0
+    }
+
     // Ensure a referral code exists (generate if missing)
     if (!profile.referral_code) {
       const code = Math.random().toString(36).substring(2, 10).toUpperCase();
@@ -195,6 +253,7 @@ export async function GET(request: Request) {
       referralCode: profile.referral_code,
       referredBy: profile.referred_by,
       referralCount: count ?? profile.referral_count ?? 0,
+      bankedBonusDays,
       referralLink: `https://markup-five.vercel.app?ref=${profile.referral_code}`,
     });
   } catch (error: unknown) {

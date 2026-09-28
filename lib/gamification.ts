@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════
-//  MARKUP — Shared gamification constants & helpers
-//  Imported by: grade route, leaderboard route, dashboard
+// MARKUP — Shared gamification constants & helpers
+// Imported by: grade route, leaderboard route, dashboard
 // ═══════════════════════════════════════════════════════════════
 
 // ── XP scaling by LORMS level ──
@@ -24,11 +24,11 @@ export interface LevelThreshold {
 }
 
 export const LEVEL_THRESHOLDS: LevelThreshold[] = [
-  { title: 'Novice',     minXp: 0,     icon: '🌱', color: 'text-slate-400' },
-  { title: 'Apprentice', minXp: 500,   icon: '🔥', color: 'text-amber-400' },
-  { title: 'Scholar',    minXp: 1500,  icon: '📚', color: 'text-indigo-400' },
-  { title: 'Expert',     minXp: 3000,  icon: '⚡', color: 'text-purple-400' },
-  { title: 'Master',     minXp: 5000,  icon: '👑', color: 'text-emerald-400' },
+{ title: 'Novice', minXp: 0, icon: 'I', color: 'text-slate-400' },
+{ title: 'Apprentice', minXp: 500, icon: 'II', color: 'text-amber-400' },
+{ title: 'Scholar', minXp: 1500, icon: 'III', color: 'text-indigo-400' },
+{ title: 'Expert', minXp: 3000, icon: 'IV', color: 'text-purple-400' },
+{ title: 'Master', minXp: 5000, icon: 'V', color: 'text-emerald-400' },
 ];
 
 export function getLevelTitle(xp: number): string {
@@ -62,7 +62,7 @@ export function getPrevLevelXp(xp: number): number {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  DAILY PRACTICE GOAL
+// DAILY PRACTICE GOAL
 // ═══════════════════════════════════════════════════════════════
 
 export const DAILY_GOAL_BONUS_XP = 25;
@@ -74,15 +74,15 @@ export function isDailyGoalMet(lastPracticeDate: string | null): boolean {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  STREAK BONUS
+// STREAK BONUS
 // ═══════════════════════════════════════════════════════════════
 
 export const STREAK_BONUS_THRESHOLDS: { days: number; bonus: number; label: string }[] = [
-  { days: 0,   bonus: 0,   label: '' },
-  { days: 3,   bonus: 10,  label: '🔥 Streak +10' },
-  { days: 7,   bonus: 25,  label: '⚡ Streak +25' },
-  { days: 14,  bonus: 50,  label: '💫 Streak +50' },
-  { days: 30,  bonus: 100, label: '👑 Streak +100' },
+{ days: 0, bonus: 0, label: '' },
+  { days: 3, bonus: 10, label: 'Streak +10' },
+  { days: 7, bonus: 25, label: 'Streak +25' },
+  { days: 14, bonus: 50, label: 'Streak +50' },
+  { days: 30, bonus: 100, label: 'Streak +100' },
 ];
 
 export function getStreakBonus(streak: number): { bonus: number; label: string } {
@@ -94,7 +94,7 @@ export function getStreakBonus(streak: number): { bonus: number; label: string }
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  XP DECAY (inactivity penalty)
+// XP DECAY (inactivity penalty)
 // ═══════════════════════════════════════════════════════════════
 
 /** Days of inactivity before XP starts decaying */
@@ -143,7 +143,7 @@ export function getDecayWarning(lastPracticeDate: string | null, currentXp: numb
     const daysLeft = DECAY_GRACE_DAYS - daysSincePractice;
     return {
       show: true,
-      message: `⚠️ Practice soon! XP decays after ${daysLeft} day${daysLeft > 1 ? 's' : ''} of inactivity.`,
+      message: `Practice soon! XP decays after ${daysLeft} day${daysLeft > 1 ? 's' : ''} of inactivity.`,
       severity: 'warning',
     };
   }
@@ -151,14 +151,14 @@ export function getDecayWarning(lastPracticeDate: string | null, currentXp: numb
   const decay = calculateXpDecay(lastPracticeDate, currentXp);
   return {
     show: true,
-    message: `⚠️ XP decaying! ${decay} XP lost to inactivity. Submit a paper to stop the decay.`,
+    message: `XP decaying! ${decay} XP lost to inactivity. Submit a paper to stop the decay.`,
     severity: 'danger',
   };
 }
 
 
 // ═══════════════════════════════════════════════════════════════
-//  ACHIEVEMENTS
+// ACHIEVEMENTS
 // ═══════════════════════════════════════════════════════════════
 
 export interface AchievementDef {
@@ -188,7 +188,7 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
     id: 'first_submission',
     title: 'First Steps',
     description: 'Submit your first essay for grading',
-    icon: '🌟',
+    icon: 'First',
     xpReward: 25,
     condition: () => true, // granted on first submission always
   },
@@ -196,7 +196,7 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
     id: 'first_a1',
     title: 'First A1',
     description: 'Achieve the highest LORMS level (L4)',
-    icon: '🏅',
+    icon: 'A1',
     xpReward: 75,
     condition: (ctx) => ctx.newLevel >= 4,
   },
@@ -204,7 +204,7 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
     id: 'persistent_5',
     title: 'Persistent',
     description: 'Submit 5 essays for grading',
-    icon: '💪',
+    icon: '5',
     xpReward: 50,
     condition: (ctx) => ctx.totalEvalCount >= 5,
   },
@@ -212,7 +212,7 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
     id: 'persistent_10',
     title: 'Dedicated',
     description: 'Submit 10 essays for grading',
-    icon: '🔥',
+    icon: '10',
     xpReward: 100,
     condition: (ctx) => ctx.totalEvalCount >= 10,
   },
@@ -220,7 +220,7 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
     id: 'streak_3',
     title: 'Momentum',
     description: 'Maintain a 3-day practice streak',
-    icon: '📅',
+    icon: '3d',
     xpReward: 50,
     condition: (ctx) => ctx.currentStreak >= 3,
   },
@@ -228,7 +228,7 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
     id: 'streak_7',
     title: 'Unstoppable',
     description: 'Maintain a 7-day practice streak',
-    icon: '⚡',
+    icon: '7d',
     xpReward: 100,
     condition: (ctx) => ctx.currentStreak >= 7,
   },
@@ -236,7 +236,7 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
     id: 'level_apprentice',
     title: 'Rising Star',
     description: 'Reach Apprentice tier (500 XP)',
-    icon: '🔥',
+    icon: 'Lv2',
     xpReward: 75,
     condition: (ctx) => ctx.newXp >= 500,
   },
@@ -244,7 +244,7 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
     id: 'level_scholar',
     title: 'Scholar',
     description: 'Reach Scholar tier (1500 XP)',
-    icon: '📚',
+    icon: 'Lv3',
     xpReward: 100,
     condition: (ctx) => ctx.newXp >= 1500,
   },
@@ -252,7 +252,7 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
     id: 'level_expert',
     title: 'Expert Analyst',
     description: 'Reach Expert tier (3000 XP)',
-    icon: '⚡',
+    icon: 'Lv4',
     xpReward: 125,
     condition: (ctx) => ctx.newXp >= 3000,
   },
@@ -260,7 +260,7 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
     id: 'level_master',
     title: 'Grand Master',
     description: 'Reach Master tier (5000 XP)',
-    icon: '👑',
+    icon: 'Lv5',
     xpReward: 150,
     condition: (ctx) => ctx.newXp >= 5000,
   },
@@ -268,15 +268,16 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
     id: 'history_buff',
     title: 'History Buff',
     description: 'Complete 5 History papers',
-    icon: '🏛️',
+    icon: 'Hist',
     xpReward: 75,
-    condition: (ctx) => ctx.subject === 'Elective History' && ctx.totalEvalCount >= 5,
+    condition: (ctx) =>
+      (ctx.subject === 'Elective History' || ctx.subject === 'Pure History') && ctx.totalEvalCount >= 5,
   },
   {
     id: 'daily_goal_first',
     title: 'On Track',
     description: 'Complete your first daily practice goal',
-    icon: '✅',
+    icon: '✓',
     xpReward: 25,
     condition: (ctx) => ctx.dailyGoalMet,
   },
@@ -290,15 +291,14 @@ export function checkNewAchievements(ctx: AchievementCtx): {
   achievements: AchievementDef[];
   totalXpReward: number;
 } {
-  const achievements = ACHIEVEMENT_DEFS.filter(
-    (a) => !ctx.previousAchivements.includes(a.id) && a.condition(ctx),
+const achievements = ACHIEVEMENT_DEFS.filter((a) => !ctx.previousAchivements.includes(a.id) && a.condition(ctx),
   );
   const totalXpReward = achievements.reduce((sum, a) => sum + a.xpReward, 0);
   return { achievements, totalXpReward };
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  SOUND EFFECTS (Web Audio API)
+// SOUND EFFECTS (Web Audio API)
 // ═══════════════════════════════════════════════════════════════
 
 let audioCtx: AudioContext | null = null;

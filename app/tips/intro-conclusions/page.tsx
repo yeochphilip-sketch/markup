@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { breadcrumbJsonLd, jsonLdScript } from '@/lib/structured-data';
 
 export const metadata: Metadata = {
   title: 'How to Write Killer Introductions & Conclusions for SEQ and SRQ',
+  alternates: { canonical: '/tips/intro-conclusions' },
+  robots: { index: true, follow: true },
   description:
     'Master the art of writing powerful introductions and conclusions for O-Level History SEQ and Social Studies SRQ essays. Templates, examples, and LORMS-aligned advice for top bands.',
   openGraph: {
@@ -30,6 +33,19 @@ export default function IntroConclusionsPage() {
           <span>/</span>
           <span className="text-slate-400">Intro & Conclusions</span>
         </nav>
+        {/* BreadcrumbList structured data (matches the visible nav above) */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: jsonLdScript(
+              breadcrumbJsonLd([
+                { name: 'Home', href: '/' },
+                { name: 'Tips & Guides', href: '/tips' },
+                { name: 'Intro & Conclusions', href: '/tips/intro-conclusions' },
+              ])
+            ),
+          }}
+        />
 
         {/* Hero */}
         <div className="space-y-4 border-b border-slate-900 pb-8">
@@ -84,7 +100,7 @@ export default function IntroConclusionsPage() {
           </p>
           <div className="bg-indigo-950/30 border border-indigo-900/30 rounded-xl p-4">
             <p className="text-xs text-indigo-300 font-bold">
-              💡 <strong className="text-slate-200">The framing effect:</strong> A weak intro
+              Tip <strong className="text-slate-200">The framing effect:</strong> A weak intro
               raises doubts in the examiner&apos;s mind that are hard to shake, even if your body
               paragraphs are strong. A strong intro creates goodwill that carries through the
               entire essay.
@@ -112,7 +128,7 @@ export default function IntroConclusionsPage() {
                 events. For Social Studies, identify the issue or policy area.
               </p>
               <div className="bg-slate-900/70 rounded-lg p-2 mt-2 text-[10px] font-mono text-slate-400">
-                <p>✅ <em>&ldquo;The Cuban Missile Crisis of October 1962 brought the world closer to nuclear war than any other event during the Cold War.&rdquo;</em></p>
+                <p>✓ <em>&ldquo;The Cuban Missile Crisis of October 1962 brought the world closer to nuclear war than any other event during the Cold War.&rdquo;</em></p>
               </div>
             </div>
 
@@ -127,7 +143,7 @@ export default function IntroConclusionsPage() {
                 — &ldquo;To a large extent…&rdquo; or &ldquo;I disagree that…&rdquo;
               </p>
               <div className="bg-slate-900/70 rounded-lg p-2 mt-2 text-[10px] font-mono text-slate-400">
-                <p>✅ <em>&ldquo;This essay will argue that while Khrushchev&apos;s decision to place missiles in Cuba was driven by Soviet security concerns, it was Kennedy&apos;s firm yet measured response that proved decisive in resolving the crisis.&rdquo;</em></p>
+                <p>✓ <em>&ldquo;This essay will argue that while Khrushchev&apos;s decision to place missiles in Cuba was driven by Soviet security concerns, it was Kennedy&apos;s firm yet measured response that proved decisive in resolving the crisis.&rdquo;</em></p>
               </div>
             </div>
 
@@ -141,14 +157,14 @@ export default function IntroConclusionsPage() {
                 examiner a roadmap and shows you have a structured argument.
               </p>
               <div className="bg-slate-900/70 rounded-lg p-2 mt-2 text-[10px] font-mono text-slate-400">
-                <p>✅ <em>&ldquo;This will be demonstrated by analysing the US naval blockade, the secret diplomatic backchannel, and Khrushchev&apos;s domestic pressures.&rdquo;</em></p>
+                <p>✓ <em>&ldquo;This will be demonstrated by analysing the US naval blockade, the secret diplomatic backchannel, and Khrushchev&apos;s domestic pressures.&rdquo;</em></p>
               </div>
             </div>
           </div>
 
           <div className="bg-emerald-950/30 border border-emerald-900/30 rounded-xl p-4">
             <p className="text-xs text-emerald-300 font-bold">
-              🎯 <strong className="text-white">The complete formula:</strong> Context → Thesis →
+              Goal <strong className="text-white">The complete formula:</strong> Context → Thesis →
               Preview. That&apos;s it. 3-4 sentences max. If your introduction is longer than 5
               sentences, you&apos;re overwriting it.
             </p>
@@ -175,9 +191,9 @@ export default function IntroConclusionsPage() {
                 <span className="text-indigo-400">[Preview]</span>&rdquo;
               </p>
               <div className="text-[10px] text-emerald-400 mt-2 space-y-1">
-                <p>✔ Context establishes time and scope</p>
-                <p>✔ Thesis takes a clear position (not neutral)</p>
-                <p>✔ Preview gives the examiner a roadmap</p>
+                <p>✓ Context establishes time and scope</p>
+                <p>✓ Thesis takes a clear position (not neutral)</p>
+                <p>✓ Preview gives the examiner a roadmap</p>
               </div>
             </div>
 
@@ -188,9 +204,9 @@ export default function IntroConclusionsPage() {
                 America was involved. This essay will talk about the causes of the war.&rdquo;
               </p>
               <div className="text-[10px] text-red-400 mt-2 space-y-1">
-                <p>✘ Vague context with no specifics</p>
-                <p>✘ No thesis or argument — just &ldquo;talk about causes&rdquo;</p>
-                <p>✘ No preview of what will be discussed</p>
+                <p>✗ Vague context with no specifics</p>
+                <p>✗ No thesis or argument — just &ldquo;talk about causes&rdquo;</p>
+                <p>✗ No preview of what will be discussed</p>
               </div>
             </div>
           </div>
@@ -210,9 +226,9 @@ export default function IntroConclusionsPage() {
                 <span className="text-indigo-400">[Preview]</span>&rdquo;
               </p>
               <div className="text-[10px] text-emerald-400 mt-2 space-y-1">
-                <p>✔ Context establishes the issue and time frame</p>
-                <p>✔ Thesis takes a nuanced position — acknowledges both sides</p>
-                <p>✔ Preview lists the specific policies to be evaluated</p>
+                <p>✓ Context establishes the issue and time frame</p>
+                <p>✓ Thesis takes a nuanced position — acknowledges both sides</p>
+                <p>✓ Preview lists the specific policies to be evaluated</p>
               </div>
             </div>
           </div>
@@ -285,9 +301,9 @@ export default function IntroConclusionsPage() {
                 insurgency, rather than any single cause, sealed America&apos;s defeat.&rdquo;
               </p>
               <div className="text-[10px] text-emerald-400 mt-2 space-y-1">
-                <p>✔ Synthesises factors together, not just listing them</p>
-                <p>✔ Makes a clear final judgement</p>
-                <p>✔ Ends with a strong, memorable claim</p>
+                <p>✓ Synthesises factors together, not just listing them</p>
+                <p>✓ Makes a clear final judgement</p>
+                <p>✓ Ends with a strong, memorable claim</p>
               </div>
             </div>
 
@@ -299,9 +315,9 @@ export default function IntroConclusionsPage() {
                 used guerrilla warfare. So I think all these factors caused the war.&rdquo;
               </p>
               <div className="text-[10px] text-red-400 mt-2 space-y-1">
-                <p>✘ Simply repeats arguments without synthesis</p>
-                <p>✘ No evaluative judgement — &ldquo;all these factors&rdquo; is vague</p>
-                <p>✘ Informal language (&ldquo;So I think&rdquo;)</p>
+                <p>✗ Simply repeats arguments without synthesis</p>
+                <p>✗ No evaluative judgement — &ldquo;all these factors&rdquo; is vague</p>
+                <p>✗ Informal language (&ldquo;So I think&rdquo;)</p>
               </div>
             </div>
           </div>
@@ -320,9 +336,9 @@ export default function IntroConclusionsPage() {
                 necessary.&rdquo;
               </p>
               <div className="text-[10px] text-emerald-400 mt-2 space-y-1">
-                <p>✔ Synthesises the overall effectiveness with nuance</p>
-                <p>✔ Makes a clear judgement (&ldquo;largely effective&rdquo;)</p>
-                <p>✔ Acknowledges limitations without undermining the argument</p>
+                <p>✓ Synthesises the overall effectiveness with nuance</p>
+                <p>✓ Makes a clear judgement (&ldquo;largely effective&rdquo;)</p>
+                <p>✓ Acknowledges limitations without undermining the argument</p>
               </div>
             </div>
           </div>
@@ -334,7 +350,7 @@ export default function IntroConclusionsPage() {
 
           <div className="space-y-3">
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg shrink-0">🚫</span>
+              <span className="text-red-400 text-lg shrink-0">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">Writing a &ldquo;shopping list&rdquo; introduction</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -346,7 +362,7 @@ export default function IntroConclusionsPage() {
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg shrink-0">🚫</span>
+              <span className="text-red-400 text-lg shrink-0">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">Introducing new arguments in the conclusion</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -358,7 +374,7 @@ export default function IntroConclusionsPage() {
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg shrink-0">🚫</span>
+              <span className="text-red-400 text-lg shrink-0">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">Overwriting the introduction (5+ sentences)</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -369,7 +385,7 @@ export default function IntroConclusionsPage() {
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg shrink-0">🚫</span>
+              <span className="text-red-400 text-lg shrink-0">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">Using &ldquo;In conclusion&rdquo; as a crutch</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -381,7 +397,7 @@ export default function IntroConclusionsPage() {
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg shrink-0">🚫</span>
+              <span className="text-red-400 text-lg shrink-0">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">No conclusion at all</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -395,7 +411,7 @@ export default function IntroConclusionsPage() {
 
           <div className="bg-indigo-950/30 border border-indigo-900/30 rounded-xl p-4">
             <p className="text-xs text-indigo-300 font-bold">
-              🎯 <strong className="text-slate-200">Pro tip for exam conditions:</strong> Write your
+              Goal <strong className="text-slate-200">Pro tip for exam conditions:</strong> Write your
               introduction first, then your body paragraphs, then your conclusion. If you&apos;re
               running short on time, write a one-sentence conclusion that makes your final judgement
               clear. A short conclusion beats no conclusion every time.
@@ -404,7 +420,7 @@ export default function IntroConclusionsPage() {
         </section>
 
         {/* CTA */}
-        <div className="bg-gradient-to-br from-emerald-950/50 to-slate-950/80 border border-emerald-800/50 rounded-2xl p-6 text-center space-y-3">
+        <div className="bg-emerald-950/70 border border-emerald-800/50 rounded-2xl p-6 text-center space-y-3">
           <p className="text-lg font-black text-white">Practise writing intros & conclusions</p>
           <p className="text-xs text-slate-400 max-w-md mx-auto">
             Generate an SEQ or SRQ question in MARKUP and write just the introduction and

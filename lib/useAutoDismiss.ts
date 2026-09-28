@@ -10,20 +10,24 @@ import { useRef, useState, useCallback, useEffect } from 'react';
  * doesn't restart when the parent re-renders with a new inline function.
  *
  * Returns:
- *  - isHovered: true when the user is hovering (pauses the timer)
- *  - dismiss: immediately dismiss the modal (call on close/click-outside)
- *  - startTimer: call this when the modal becomes visible to start the countdown
- *  - handleMouseEnter: call onMouseEnter to pause the timer
- *  - handleMouseLeave: call onMouseLeave to resume the timer
+ * - isHovered: true when the user is hovering (pauses the timer)
+ * - dismiss: immediately dismiss the modal (call on close/click-outside)
+ * - startTimer: call this when the modal becomes visible to start the countdown
+ * - handleMouseEnter: call onMouseEnter to pause the timer
+ * - handleMouseLeave: call onMouseLeave to resume the timer
  */
-export function useAutoDismiss(
-  onDismiss: () => void,
+ export function useAutoDismiss(onDismiss: () => void,
   durationMs = 12000,
 ) {
   // Store the latest callback in a ref to avoid restarting timer
   // when the parent passes a new inline function reference.
   const onDismissRef = useRef(onDismiss);
+
+  // Sync the latest callback via an effect (writing refs during render is
+  // disallowed by the React Compiler and can cause missed updates).
+  useEffect(() => {
   onDismissRef.current = onDismiss;
+}, [onDismiss]);
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startRef = useRef<number>(0);

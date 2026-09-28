@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { breadcrumbJsonLd, jsonLdScript } from '@/lib/structured-data';
 
 export const metadata: Metadata = {
   title: 'The PEEL Framework: Structuring A1 Humanities Essays',
+  alternates: { canonical: '/tips/peel-framework' },
+  robots: { index: true, follow: true },
   description:
     'Master the PEEL (Point, Evidence, Explanation, Link) essay structure for O-Level Social Studies SRQ and Elective History SEQ. Step-by-step guide with real examples for LORMS grading.',
   openGraph: {
@@ -35,6 +38,19 @@ export default function PEELFrameworkPage() {
           <span>/</span>
           <span className="text-slate-400">PEEL Framework</span>
         </nav>
+        {/* BreadcrumbList structured data (matches the visible nav above) */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: jsonLdScript(
+              breadcrumbJsonLd([
+                { name: 'Home', href: '/' },
+                { name: 'Tips & Guides', href: '/tips' },
+                { name: 'PEEL Framework', href: '/tips/peel-framework' },
+              ])
+            ),
+          }}
+        />
 
         {/* Hero */}
         <div className="space-y-4 border-b border-slate-900 pb-8">
@@ -90,8 +106,8 @@ export default function PEELFrameworkPage() {
             In the O-Level context, PEEL is the backbone of both:
           </p>
           <ul className="list-disc pl-5 text-xs space-y-1">
-            <li><strong className="text-slate-200">SRQ (Structured Response Questions)</strong> — Social Studies, typically 8–10 marks</li>
-            <li><strong className="text-slate-200">SEQ (Structured Essay Questions)</strong> — Elective History, typically 12–13 marks</li>
+            <li><strong className="text-slate-200">SRQ (Structured Response Questions)</strong> — Social Studies, Q6 = 7 marks and Q7 = 8 marks</li>
+            <li><strong className="text-slate-200">SEQ (Structured Essay Questions)</strong> — Elective History, 10 marks each (answer 2 of 3)</li>
           </ul>
           <p>
             According to the <strong className="text-slate-200">LORMS rubric</strong>, the difference
@@ -101,7 +117,7 @@ export default function PEELFrameworkPage() {
           </p>
 
           <div className="bg-indigo-950/30 border border-indigo-900/30 rounded-xl p-4 text-center">
-            <p className="text-xs text-indigo-300 font-bold">📊 Students who consistently use PEEL score on average 1.5 LORMS bands higher than those who don&apos;t.</p>
+            <p className="text-xs text-indigo-300 font-bold">Students who consistently use PEEL score on average 1.5 LORMS bands higher than those who don&apos;t.</p>
           </div>
         </section>
 
@@ -120,23 +136,23 @@ export default function PEELFrameworkPage() {
           </ul>
 
           <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-2">
-            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">✅ Strong Point</p>
+            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">✓ Strong Point</p>
             <p className="text-xs text-slate-300 italic leading-relaxed">
               &ldquo;One key reason why the 1964 race riots had a significant impact on Singapore&apos;s
               nation-building efforts was that they exposed the fragility of racial harmony in
               a newly independent society.&rdquo;
             </p>
-            <p className="text-[9px] text-emerald-400">✔ Directly answers &ldquo;impact on nation-building&rdquo;</p>
-            <p className="text-[9px] text-emerald-400">✔ Specific arguable claim</p>
+            <p className="text-[9px] text-emerald-400">✓ Directly answers &ldquo;impact on nation-building&rdquo;</p>
+            <p className="text-[9px] text-emerald-400">✓ Specific arguable claim</p>
           </div>
 
           <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-2">
-            <p className="text-[10px] font-black text-red-400 uppercase tracking-widest">❌ Weak Point</p>
+            <p className="text-[10px] font-black text-red-400 uppercase tracking-widest">✗ Weak Point</p>
             <p className="text-xs text-slate-300 italic leading-relaxed">
               &ldquo;The 1964 race riots happened in Singapore.&rdquo;
             </p>
-            <p className="text-[9px] text-red-400">✘ Descriptive, not analytical</p>
-            <p className="text-[9px] text-red-400">✘ Doesn&apos;t answer the question</p>
+            <p className="text-[9px] text-red-400">✗ Descriptive, not analytical</p>
+            <p className="text-[9px] text-red-400">✗ Doesn&apos;t answer the question</p>
           </div>
         </section>
 
@@ -156,19 +172,19 @@ export default function PEELFrameworkPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">✅ Strong Evidence</p>
+              <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">✓ Strong Evidence</p>
               <p className="text-xs text-slate-300 italic mt-1">
                 &ldquo;For instance, 23 people were killed and 454 injured during the 1964 riots,
                 with over 3,600 arrests made. The riots also led to a 14-day curfew.&rdquo;
               </p>
-              <p className="text-[9px] text-emerald-400 mt-1">✔ Specific statistics that support the point</p>
+              <p className="text-[9px] text-emerald-400 mt-1">✓ Specific statistics that support the point</p>
             </div>
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <p className="text-[10px] font-black text-red-400 uppercase tracking-widest">❌ Weak Evidence</p>
+              <p className="text-[10px] font-black text-red-400 uppercase tracking-widest">✗ Weak Evidence</p>
               <p className="text-xs text-slate-300 italic mt-1">
                 &ldquo;Many people died and it was very bad. Everyone was scared.&rdquo;
               </p>
-              <p className="text-[9px] text-red-400 mt-1">✘ Vague, no specific data</p>
+              <p className="text-[9px] text-red-400 mt-1">✗ Vague, no specific data</p>
             </div>
           </div>
 
@@ -222,9 +238,9 @@ export default function PEELFrameworkPage() {
               this shock to the social fabric, such far-reaching policies might not have been
       implemented as urgently.&rdquo;
             </p>
-            <p className="text-[9px] text-amber-400">✔ Connects evidence to point</p>
-            <p className="text-[9px] text-amber-400">✔ Explains significance</p>
-            <p className="text-[9px] text-amber-400">✔ Reveals deeper implications</p>
+            <p className="text-[9px] text-amber-400">✓ Connects evidence to point</p>
+            <p className="text-[9px] text-amber-400">✓ Explains significance</p>
+            <p className="text-[9px] text-amber-400">✓ Reveals deeper implications</p>
           </div>
         </section>
 
@@ -242,23 +258,23 @@ export default function PEELFrameworkPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest">✅ Strong Link</p>
+              <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest">✓ Strong Link</p>
               <p className="text-xs text-slate-300 italic mt-1">
                 &ldquo;Thus, the 1964 race riots were a pivotal catalyst for nation-building,
                 compelling the government to adopt pro-active measures for racial integration.
                 However, while these policies addressed immediate tensions, their long-term
                 effectiveness in creating a shared national identity is more debatable.&rdquo;
               </p>
-              <p className="text-[9px] text-emerald-400 mt-1">✔ Summarises the paragraph</p>
-              <p className="text-[9px] text-emerald-400">✔ Smooth transition to next paragraph</p>
+              <p className="text-[9px] text-emerald-400 mt-1">✓ Summarises the paragraph</p>
+              <p className="text-[9px] text-emerald-400">✓ Smooth transition to next paragraph</p>
             </div>
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <p className="text-[10px] font-black text-red-400 uppercase tracking-widest">❌ Weak Link</p>
+              <p className="text-[10px] font-black text-red-400 uppercase tracking-widest">✗ Weak Link</p>
               <p className="text-xs text-slate-300 italic mt-1">
                 &ldquo;So yeah, the riots were important. Now let me talk about something else.&rdquo;
               </p>
-              <p className="text-[9px] text-red-400 mt-1">✘ Informal, no analysis</p>
-              <p className="text-[9px] text-red-400">✘ Abrupt transition</p>
+              <p className="text-[9px] text-red-400 mt-1">✗ Informal, no analysis</p>
+              <p className="text-[9px] text-red-400">✗ Abrupt transition</p>
             </div>
           </div>
         </section>
@@ -275,7 +291,7 @@ export default function PEELFrameworkPage() {
           {/* SS Section */}
           <div className="bg-sky-950/30 border border-sky-900/30 rounded-xl p-5 space-y-3">
             <div className="flex items-center gap-2">
-              <span className="text-lg">🇸🇬</span>
+              <span className="text-lg">SG</span>
               <h3 className="text-sm font-black text-white uppercase tracking-widest">PEEL for Social Studies SRQ</h3>
             </div>
             <p className="text-xs text-slate-300">
@@ -289,14 +305,14 @@ export default function PEELFrameworkPage() {
               <p><strong className="text-rose-400">L — Link:</strong> Connect back to the question. Explain how your analysis of the source has answered the SRQ&apos;s requirement. If there are multiple sources, link to your overall argument about them as a set.</p>
             </div>
             <div className="bg-slate-900/70 rounded-lg p-3 text-[10px] font-mono text-slate-400">
-              <p>💡 <em>SRQ tip: Your Evidence in every paragraph must trace back to a source. If you find yourself writing a paragraph without source reference in an SRQ, you&apos;re likely writing outside the scope of the question.</em></p>
+              <p>Tip <em>SRQ tip: Your Evidence in every paragraph must trace back to a source. If you find yourself writing a paragraph without source reference in an SRQ, you&apos;re likely writing outside the scope of the question.</em></p>
             </div>
           </div>
 
           {/* History Section */}
           <div className="bg-amber-950/30 border border-amber-900/30 rounded-xl p-5 space-y-3">
             <div className="flex items-center gap-2">
-              <span className="text-lg">📜</span>
+              <span className="text-lg">Source</span>
               <h3 className="text-sm font-black text-white uppercase tracking-widest">PEEL for Elective History SEQ</h3>
             </div>
             <p className="text-xs text-slate-300">
@@ -311,7 +327,7 @@ export default function PEELFrameworkPage() {
               <p><strong className="text-rose-400">L — Link:</strong> Connect back to the question AND transition to your next argument. For Part B, the Link is also where you can <strong className="text-slate-200">weigh</strong> your argument against counter-arguments.</p>
             </div>
             <div className="bg-slate-900/70 rounded-lg p-3 text-[10px] font-mono text-slate-400">
-              <p>💡 <em>SEQ tip: If your Evidence section doesn&apos;t contain a specific date, a name, or a statistic, it&apos;s probably too vague. Push yourself to memorise 3–5 precise facts per topic.</em></p>
+              <p>Tip <em>SEQ tip: If your Evidence section doesn&apos;t contain a specific date, a name, or a statistic, it&apos;s probably too vague. Push yourself to memorise 3–5 precise facts per topic.</em></p>
             </div>
           </div>
 
@@ -352,7 +368,7 @@ export default function PEELFrameworkPage() {
 
           <div className="bg-indigo-950/30 border border-indigo-900/30 rounded-xl p-4">
             <p className="text-xs text-indigo-300 font-bold">
-              🎯 <strong className="text-slate-200">Bottom line:</strong> Both subjects use PEEL, but the
+              Goal <strong className="text-slate-200">Bottom line:</strong> Both subjects use PEEL, but the
               <em> source of evidence</em> is the key difference. In SS, your evidence comes from the
               source. In History, your evidence comes from your knowledge. Adapt accordingly.
             </p>
@@ -370,7 +386,7 @@ export default function PEELFrameworkPage() {
           {/* Social Studies Example */}
           <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-5 space-y-3">
             <div className="flex items-center gap-2">
-              <span className="text-lg">🇸🇬</span>
+              <span className="text-lg">SG</span>
               <p className="text-xs font-black text-white uppercase tracking-widest">Social Studies SRQ</p>
             </div>
             <p className="text-[10px] text-slate-500 italic">Question: &ldquo;Evaluate the effectiveness of Singapore&apos;s strategies in managing ethnic diversity.&rdquo;</p>
@@ -385,7 +401,7 @@ export default function PEELFrameworkPage() {
           {/* History Example */}
           <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-5 space-y-3">
             <div className="flex items-center gap-2">
-              <span className="text-lg">📜</span>
+              <span className="text-lg">Source</span>
               <p className="text-xs font-black text-white uppercase tracking-widest">Elective History SEQ</p>
             </div>
             <p className="text-[10px] text-slate-500 italic">Question: &ldquo;How far do you agree that economic factors were the main cause of the Cold War?&rdquo;</p>
@@ -404,7 +420,7 @@ export default function PEELFrameworkPage() {
 
           <div className="space-y-3">
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg">🚫</span>
+              <span className="text-red-400 text-lg">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">Missing Link (P-E-E without the L)</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -416,7 +432,7 @@ export default function PEELFrameworkPage() {
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg">🚫</span>
+              <span className="text-red-400 text-lg">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">Overwriting the Point</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -427,7 +443,7 @@ export default function PEELFrameworkPage() {
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg">🚫</span>
+              <span className="text-red-400 text-lg">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">Evidence without a source</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -439,7 +455,7 @@ export default function PEELFrameworkPage() {
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg">🚫</span>
+              <span className="text-red-400 text-lg">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">Using PEEL too rigidly</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -454,7 +470,7 @@ export default function PEELFrameworkPage() {
         </section>
 
         {/* CTA Banner */}
-        <div className="bg-gradient-to-br from-emerald-950/50 to-slate-950/80 border border-emerald-800/50 rounded-2xl p-6 text-center space-y-3">
+        <div className="bg-emerald-950/70 border border-emerald-800/50 rounded-2xl p-6 text-center space-y-3">
           <p className="text-lg font-black text-white">Practise PEEL with instant feedback</p>
           <p className="text-xs text-slate-400 max-w-md mx-auto">
             Write an SRQ or SEQ essay in MARKUP and get instant LORMS-aligned grading. The AI

@@ -62,7 +62,7 @@ export default function ResetPasswordPage() {
 
         {isSuccess ? (
           <div className="text-center space-y-4">
-            <div className="text-4xl">✅</div>
+            <div className="text-4xl">✓</div>
             <p className="text-sm text-emerald-400 font-bold">{message}</p>
             <p className="text-[10px] text-slate-500">Redirecting to dashboard...</p>
           </div>

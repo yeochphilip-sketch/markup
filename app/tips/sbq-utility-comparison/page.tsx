@@ -1,14 +1,17 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { breadcrumbJsonLd, jsonLdScript } from '@/lib/structured-data';
 
 export const metadata: Metadata = {
-  title: 'How to Ace the SBQ 10-Mark Comparison/Utility Question (L5/8 Framework)',
+  title: 'How to Ace the SBQ 10-Mark Comparison/Utility Question (L5/10 Framework)',
+  alternates: { canonical: '/tips/sbq-utility-comparison' },
+  robots: { index: true, follow: true },
   description:
-    'Master the SBQ 10-mark comparison/utility question for O-Level Social Studies and Elective History. Learn to assess how far sources agree, analyse utility, and score the top L5/8 band with the proven 4-step framework.',
+    'Master the SBQ 10-mark comparison/utility question for O-Level Social Studies. Learn to assess how far sources agree, analyse utility, and score the top band with the proven 4-step framework.',
   openGraph: {
     title: 'How to Ace the SBQ 10-Mark Comparison/Utility Question — MARKUP Tips',
     description:
-      'Master the SBQ 10-mark comparison/utility question. Learn to assess how far sources agree, analyse utility, and score the top L5/8 band.',
+      'Master the SBQ 10-mark comparison/utility question. Learn to assess how far sources agree, analyse utility, and score the top band.',
   },
 };
 
@@ -35,6 +38,19 @@ export default function SBQUtilityComparisonPage() {
           <span>/</span>
           <span className="text-slate-400">SBQ Utility/Comparison</span>
         </nav>
+        {/* BreadcrumbList structured data (matches the visible nav above) */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: jsonLdScript(
+              breadcrumbJsonLd([
+                { name: 'Home', href: '/' },
+                { name: 'Tips & Guides', href: '/tips' },
+                { name: 'SBQ Utility/Comparison', href: '/tips/sbq-utility-comparison' },
+              ])
+            ),
+          }}
+        />
 
         {/* Hero */}
         <div className="space-y-4 border-b border-slate-900 pb-8">
@@ -44,12 +60,12 @@ export default function SBQUtilityComparisonPage() {
             <span className="text-slate-500">10 min read</span>
           </div>
           <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-[1.1] text-white">
-            How to Ace the SBQ 10-Mark Comparison/Utility Question
+            How to Ace the 10-Mark Multi-Source SBQ Question (Q5)
           </h1>
           <p className="text-lg text-slate-400 leading-relaxed">
-            The 10-mark SBQ is the highest-value question in the SBQ section — and the one where
-            top students build their biggest lead. Here&apos;s the 4-step L5/8 framework to assess
-            how far sources agree or disagree, and evaluate their combined utility.
+            Q5 is the highest-value question in Social Studies Section A — worth 10 marks, and where
+            top students build their biggest lead. Here&apos;s the 4-step framework to weigh multiple
+            sources, consider the issue from a different perspective, and reach a supported judgement.
           </p>
           <div className="flex items-center gap-3 text-xs text-slate-500">
             <div className="w-8 h-8 rounded-full bg-indigo-600/30 border border-indigo-500/30 flex items-center justify-center text-xs font-black text-indigo-400">M</div>
@@ -65,7 +81,7 @@ export default function SBQUtilityComparisonPage() {
           <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">In this guide</h2>
           <ul className="space-y-1.5 text-sm">
             <li><a href="#what-is-10mark" className="text-indigo-400 hover:text-indigo-300 transition">1. What is the 10-Mark SBQ Question?</a></li>
-            <li><a href="#l5-framework" className="text-indigo-400 hover:text-indigo-300 transition">2. The L5/8 Framework — Explained</a></li>
+            <li><a href="#l5-framework" className="text-indigo-400 hover:text-indigo-300 transition">2. The L5/10 Framework — Explained</a></li>
             <li><a href="#four-step" className="text-indigo-400 hover:text-indigo-300 transition">3. The 4-Step Method for Top Marks</a></li>
             <li><a href="#utility-vs-comparison" className="text-indigo-400 hover:text-indigo-300 transition">4. Utility vs Comparison — Knowing the Difference</a></li>
             <li><a href="#examples" className="text-indigo-400 hover:text-indigo-300 transition">5. Real Examples: L3 vs L5 Responses</a></li>
@@ -79,9 +95,10 @@ export default function SBQUtilityComparisonPage() {
           <h2 className="text-xl font-black text-white">1. What is the 10-Mark SBQ Question?</h2>
           <p>
             The 10-mark SBQ question is typically the <strong className="text-slate-200">last part</strong>{' '}
-            of the SBQ section (often part (d)). It combines elements of comparison and utility,
-            asking you to evaluate <strong className="text-slate-200">how far</strong> two or more
-            sources agree on a specific issue — and often to assess their combined value as evidence.
+            of Social Studies Section A — Question 5, worth 10 marks. It asks you to use multiple
+            sources to consider the issue from a <strong className="text-slate-200">different
+            perspective</strong> and evaluate <strong className="text-slate-200">how far</strong>
+            the sources support a given view.
           </p>
           <p>The question usually takes the form:</p>
           <blockquote className="border-l-2 border-indigo-500 pl-4 italic text-slate-300 bg-slate-950/50 py-3 px-4 rounded-r-lg">
@@ -90,9 +107,9 @@ export default function SBQUtilityComparisonPage() {
           </blockquote>
           <div className="bg-indigo-950/30 border border-indigo-900/30 rounded-xl p-4">
             <p className="text-xs text-indigo-300 font-bold">
-              💡 <strong className="text-slate-200">Key difference from the 6-mark comparison:</strong>{' '}
-              The 6-mark question asks &ldquo;How similar?&rdquo; — you compare two sources. The
-              10-mark question asks &ldquo;How far do you agree?&rdquo; — you make a judgement
+ Tip <strong className="text-slate-200">Key difference from the comparison question:</strong>{' '}
+              The comparison question (5–7 marks) asks &ldquo;How similar?&rdquo; — you compare two
+              sources. The 10-mark Q5 asks &ldquo;How far do you agree?&rdquo; — you make a judgement
               using evidence from multiple sources and your own contextual knowledge.
             </p>
           </div>
@@ -100,19 +117,19 @@ export default function SBQUtilityComparisonPage() {
 
         {/* Section 2 */}
         <section id="l5-framework" className="space-y-4 text-sm text-slate-400 leading-relaxed">
-          <h2 className="text-xl font-black text-white">2. The L5/8 Framework — Explained</h2>
+          <h2 className="text-xl font-black text-white">2. The L5/10 Framework — Explained</h2>
           <p>
             The LORMS rubric for the 10-mark SBQ awards marks across{' '}
             <strong className="text-slate-200">five bands</strong>:
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">L5 — 8–10 marks</p>
+              <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">L5 — 9–10 marks</p>
               <p className="text-xs text-slate-300 mt-1 font-bold">Sustained Evaluation</p>
               <p className="text-[10px] text-slate-500 mt-1">Makes a clear, well-supported judgement. Uses multiple sources effectively, synthesises evidence, and demonstrates strong contextual knowledge. Addresses both agreement and disagreement.</p>
             </div>
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">L4 — 6–7 marks</p>
+              <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">L4 — 6–8 marks</p>
               <p className="text-xs text-slate-300 mt-1 font-bold">Developed Evaluation</p>
               <p className="text-[10px] text-slate-500 mt-1">Good use of source evidence to support a judgement. May be one-sided or lack deep contextual knowledge.</p>
             </div>
@@ -153,7 +170,7 @@ export default function SBQUtilityComparisonPage() {
                 mostly agree? Mostly disagree? Agree in some ways but not others?
               </p>
               <div className="bg-slate-900/70 rounded-lg p-3 text-[10px] font-mono text-slate-400 mt-2">
-                <p>💡 Start your introduction with a clear thesis: <span className="text-emerald-400">&ldquo;I largely agree/disagree, but with some reservations because…&rdquo;</span></p>
+                <p>Start your introduction with a clear thesis: <span className="text-emerald-400">&ldquo;I largely agree/disagree, but with some reservations because…&rdquo;</span></p>
               </div>
             </div>
 
@@ -198,7 +215,7 @@ export default function SBQUtilityComparisonPage() {
                 <strong className="text-slate-200">nuanced conclusion</strong>:
               </p>
               <div className="bg-slate-900/70 rounded-lg p-3 text-[10px] font-mono text-slate-400 mt-2">
-                <p>✅ <span className="text-emerald-400">&ldquo;On balance, I largely agree that [claim] because the majority of the sources support it, and my knowledge of [historical context] corroborates this. However, Source C&amp;s perspective is limited by…&rdquo;</span></p>
+                <p>✓ <span className="text-emerald-400">&ldquo;On balance, I largely agree that [claim] because the majority of the sources support it, and my knowledge of [historical context] corroborates this. However, Source C&amp;s perspective is limited by…&rdquo;</span></p>
               </div>
             </div>
           </div>
@@ -216,7 +233,7 @@ export default function SBQUtilityComparisonPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-2">
-              <h3 className="text-xs font-bold text-indigo-400">🔷 Comparison-Focused</h3>
+              <h3 className="text-xs font-bold text-indigo-400">Comparison-Focused</h3>
               <p className="text-[10px] text-slate-400">
                 <em>&ldquo;How far do the sources agree on the effectiveness of X?&rdquo;</em>
               </p>
@@ -228,7 +245,7 @@ export default function SBQUtilityComparisonPage() {
               </ul>
             </div>
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-2">
-              <h3 className="text-xs font-bold text-emerald-400">🟢 Utility-Focused</h3>
+              <h3 className="text-xs font-bold text-emerald-400">Utility-Focused</h3>
               <p className="text-[10px] text-slate-400">
                 <em>&ldquo;Which source is most useful for understanding X?&rdquo;</em>
               </p>
@@ -243,7 +260,7 @@ export default function SBQUtilityComparisonPage() {
 
           <div className="bg-amber-950/20 border border-amber-900/30 rounded-xl p-4">
             <p className="text-xs text-amber-300 font-bold">
-              ⚡ Hybrid questions combine both: &ldquo;How far do you agree that Source C is the most
+              Hybrid questions combine both: &ldquo;How far do you agree that Source C is the most
               useful source?&rdquo; — compare the sources AND evaluate their utility.
             </p>
           </div>
@@ -273,10 +290,10 @@ export default function SBQUtilityComparisonPage() {
                 one doesn&apos;t. I think economic factors were quite important.&rdquo;
               </p>
               <div className="text-[10px] text-red-400 space-y-1">
-                <p>❌ No specific evidence or quotes from sources</p>
-                <p>❌ Describes sources separately — no synthesis</p>
-                <p>❌ No contextual knowledge</p>
-                <p>❌ Weak, vague conclusion</p>
+                <p>✗ No specific evidence or quotes from sources</p>
+                <p>✗ Describes sources separately — no synthesis</p>
+                <p>✗ No contextual knowledge</p>
+                <p>✗ Weak, vague conclusion</p>
               </div>
             </div>
 
@@ -313,11 +330,11 @@ export default function SBQUtilityComparisonPage() {
                 sources that focus exclusively on economics provide only a partial picture.&rdquo;
               </p>
               <div className="text-[10px] text-emerald-400 space-y-1 mt-2">
-                <p>✅ Clear thesis with nuanced position</p>
-                <p>✅ Sources grouped thematically, not listed separately</p>
-                <p>✅ Specific quotes and evidence from each source</p>
-                <p>✅ Contextual knowledge woven into the argument</p>
-                <p>✅ Strong, balanced conclusion</p>
+                <p>✓ Clear thesis with nuanced position</p>
+                <p>✓ Sources grouped thematically, not listed separately</p>
+                <p>✓ Specific quotes and evidence from each source</p>
+                <p>✓ Contextual knowledge woven into the argument</p>
+                <p>✓ Strong, balanced conclusion</p>
               </div>
             </div>
           </div>
@@ -329,7 +346,7 @@ export default function SBQUtilityComparisonPage() {
 
           <div className="space-y-3">
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg">🚫</span>
+              <span className="text-red-400 text-lg">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">Going source-by-source instead of thematically</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -341,7 +358,7 @@ export default function SBQUtilityComparisonPage() {
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg">🚫</span>
+              <span className="text-red-400 text-lg">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">No contextual knowledge</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -353,7 +370,7 @@ export default function SBQUtilityComparisonPage() {
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg">🚫</span>
+              <span className="text-red-400 text-lg">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">Vague or no conclusion</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -365,7 +382,7 @@ export default function SBQUtilityComparisonPage() {
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg">🚫</span>
+              <span className="text-red-400 text-lg">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">Ignoring sources that contradict your position</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -383,7 +400,7 @@ export default function SBQUtilityComparisonPage() {
           <h2 className="text-xl font-black text-white">7. How to Practice Effectively</h2>
 
           <div className="bg-indigo-950/30 border border-indigo-900/30 rounded-xl p-5 space-y-3">
-            <h3 className="text-sm font-black text-indigo-300">🎯 Use MARKUP&apos;s SBQ Generator</h3>
+            <h3 className="text-sm font-black text-indigo-300">Use MARKUP&apos;s SBQ Generator</h3>
             <p className="text-xs text-slate-400">
               Generate unlimited full SBQ papers with the 10-mark comparison/utility question
               included. Write your answer in the canvas, then get instant LORMS-aligned grading
@@ -410,7 +427,7 @@ export default function SBQUtilityComparisonPage() {
         </section>
 
         {/* CTA Banner */}
-        <div className="bg-gradient-to-br from-indigo-950/50 to-slate-950/80 border border-indigo-800/50 rounded-2xl p-6 text-center space-y-3">
+        <div className="bg-indigo-950/70 border border-indigo-800/50 rounded-2xl p-6 text-center space-y-3">
           <p className="text-lg font-black text-white">Master the 10-mark SBQ with AI practice</p>
           <p className="text-xs text-slate-400 max-w-md mx-auto">
             MARKUP generates full SBQ papers with fresh sources on every O-Level topic. Write your

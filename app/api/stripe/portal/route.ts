@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getStripe } from '@/lib/stripe';
+import { SHOW_POST_BETA_PRICING } from '@/lib/beta-flags';
 
 export const runtime = 'nodejs';
 export const maxDuration = 15;
@@ -15,6 +16,15 @@ export const maxDuration = 15;
  */
 export async function POST(request: Request) {
   try {
+    // Post-beta only — block the billing portal during the waitlist beta so
+    // the "no payments before launch" invariant holds across all Stripe APIs.
+    if (!SHOW_POST_BETA_PRICING) {
+      return NextResponse.json(
+        { error: 'Billing is not available during beta.' },
+        { status: 403 },
+      );
+    }
+
     const { userId } = (await request.json()) as { userId: string };
 
     if (!userId) {

@@ -16,9 +16,9 @@ interface PageTransitionProps {
  * shorthand already holds the final state once the animation completes.
  *
  * Variants:
- *   - /auth       → fade-in (opacity only, cleaner for auth flow)
- *   - /admin/*    → scale-in (subtle zoom)
- *   - everything  → fade-in-up (slide + opacity)
+ * - /auth → fade-in (opacity only, cleaner for auth flow)
+ * - /admin/* → scale-in (subtle zoom)
+ * - everything → fade-in-up (slide + opacity)
  */
 export default function PageTransition({ children }: PageTransitionProps) {
   const pathname = usePathname();

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getStripe, getPriceId, WAITLIST_COUPON_ID } from '@/lib/stripe';
+import { SHOW_POST_BETA_PRICING } from '@/lib/beta-flags';
 
 export const runtime = 'nodejs';
 export const maxDuration = 15;
@@ -15,6 +16,15 @@ export const maxDuration = 15;
  */
 export async function POST(request: Request) {
   try {
+    // Post-beta only — block checkout during the waitlist beta so no one can
+    // pay before launch, even by calling the API directly.
+    if (!SHOW_POST_BETA_PRICING) {
+      return NextResponse.json(
+        { error: 'Checkout is not available during beta — join the waitlist!' },
+        { status: 403 },
+      );
+    }
+
     const body = (await request.json()) as {
       tier: 'scholar_pass' | 'expert_pass';
       userId: string;

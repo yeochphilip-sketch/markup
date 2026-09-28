@@ -98,7 +98,7 @@ export default function TestimonialPrompt({
           userId: null, // anonymous is fine
           userEmail: userEmail || '',
           feedbackType: 'Testimonial',
-          description: `⭐ ${rating}/5 — ${STAR_LABELS[rating]}${feedback ? `\n\n${feedback}` : ''}${userName ? `\n\n— ${userName}` : ''}`,
+          description: `${rating}/5 — ${STAR_LABELS[rating]}${feedback ? `\n\n${feedback}` : ''}${userName ? `\n\n— ${userName}` : ''}`,
           testimonialRating: rating,
         }),
       });
@@ -124,7 +124,7 @@ export default function TestimonialPrompt({
       <div className="bg-slate-950 border border-slate-800 w-full max-w-sm p-6 rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         {status === 'success' ? (
           <div className="text-center py-6 space-y-3">
-            <div className="text-4xl">🎉</div>
+            <div className="text-4xl">Reward</div>
             <h3 className="text-lg font-black text-emerald-400">Thank You!</h3>
             <p className="text-xs text-slate-400">Your feedback helps make MARKUP better for everyone.</p>
           </div>
@@ -191,7 +191,7 @@ export default function TestimonialPrompt({
             {isGuest && (
               <div className="bg-indigo-950/30 border border-indigo-900/30 rounded-xl p-3 text-center">
                 <p className="text-[10px] text-indigo-300">
-                  💡 Sign up free to save your progress and unlock streaks &amp; achievements!
+                  Sign up free to save your progress and unlock streaks &amp; achievements!
                 </p>
               </div>
             )}
@@ -224,7 +224,7 @@ export default function TestimonialPrompt({
                   onClick={handleDismiss}
                   className="text-[10px] text-slate-500 hover:text-slate-300 underline underline-offset-4 transition"
                 >
-                  Don't ask again
+                  Don&apos;t ask again
                 </button>
                 <button
                   onClick={onClose}

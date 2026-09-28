@@ -1,10 +1,13 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { breadcrumbJsonLd, jsonLdScript } from '@/lib/structured-data';
 
 export const metadata: Metadata = {
-  title: 'How to Write A1 SEQ Evaluation Essays (L4/13 Framework)',
+  title: 'How to Write A1 SEQ Evaluation Essays (L4/10 Framework)',
+  alternates: { canonical: '/tips/seq-evaluation' },
+  robots: { index: true, follow: true },
   description:
-    'Master the SEQ Evaluation question for O-Level Elective History. Learn how to analyse, evaluate, and construct a balanced judgement with the 3-part framework that consistently scores L4/13.',
+    'Master the SEQ Evaluation question for O-Level Elective History. Learn how to analyse, evaluate, and construct a balanced judgement with the 3-part framework that consistently scores L4/10.',
   openGraph: {
     title: 'How to Write A1 SEQ Evaluation Essays — MARKUP Tips',
     description:
@@ -35,6 +38,19 @@ export default function SEQEvaluationPage() {
           <span>/</span>
           <span className="text-slate-400">SEQ Evaluation</span>
         </nav>
+        {/* BreadcrumbList structured data (matches the visible nav above) */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: jsonLdScript(
+              breadcrumbJsonLd([
+                { name: 'Home', href: '/' },
+                { name: 'Tips & Guides', href: '/tips' },
+                { name: 'SEQ Evaluation', href: '/tips/seq-evaluation' },
+              ])
+            ),
+          }}
+        />
 
         {/* Hero */}
         <div className="space-y-4 border-b border-slate-900 pb-8">
@@ -48,7 +64,7 @@ export default function SEQEvaluationPage() {
           </h1>
           <p className="text-lg text-slate-400 leading-relaxed">
             The SEQ Evaluation question is the most demanding question on the O-Level History paper —
-            worth up to 13 marks. Here&apos;s the 3-part framework that top students use to construct
+            worth up to 10 marks. Here&apos;s the 3-part framework that top students use to construct
             sophisticated, balanced evaluations.
           </p>
           <div className="flex items-center gap-3 text-xs text-slate-500">
@@ -80,7 +96,7 @@ export default function SEQEvaluationPage() {
           <p>
             The SEQ (Structured Essay Question) Evaluation question is the{' '}
             <strong className="text-slate-200">highest-stakes question</strong> on the O-Level Elective
-            History paper, worth up to <strong className="text-slate-200">13 marks</strong>. It asks
+            History paper, worth up to <strong className="text-slate-200">10 marks</strong>. It asks
             you to evaluate a historical statement or proposition and arrive at a balanced judgement.
           </p>
           <p>It typically takes one of these forms:</p>
@@ -111,12 +127,12 @@ export default function SEQEvaluationPage() {
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">L4 — 10–13 marks</p>
+              <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">L4 — 9–10 marks</p>
               <p className="text-xs text-slate-300 mt-1 font-bold">Sophisticated Evaluation</p>
               <p className="text-[10px] text-slate-500 mt-1">Balanced argument with multiple factors evaluated. Clear, substantiated judgement. Uses precise historical evidence throughout.</p>
             </div>
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">L3 — 6–9 marks</p>
+              <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">L3 — 6–8 marks</p>
               <p className="text-xs text-slate-300 mt-1 font-bold">Explanatory</p>
               <p className="text-[10px] text-slate-500 mt-1">Good knowledge but largely descriptive. Identifies factors but evaluates superficially. Weak or absent judgement.</p>
             </div>
@@ -163,7 +179,7 @@ export default function SEQEvaluationPage() {
                 <li><strong className="text-slate-200">Signpost your argument</strong> — briefly outline the factors you will evaluate</li>
               </ul>
               <div className="bg-slate-900/70 rounded-lg p-3 text-[10px] font-mono text-slate-400 mt-2">
-                <p className="text-emerald-400">💡 Example opening:</p>
+                <p className="text-emerald-400">Example opening:</p>
                 <p className="italic">&ldquo;This essay will argue that while economic factors played a significant role in causing the Cold War, they were not the most important cause. Instead, ideological differences between the US and USSR were ultimately more significant because they shaped how each side interpreted the other&apos;s actions.&rdquo;</p>
               </div>
             </div>
@@ -185,7 +201,7 @@ export default function SEQEvaluationPage() {
                 <p><strong className="text-rose-400">L</strong>ink — <strong className="text-slate-200">Evaluate:</strong> How important is this factor compared to others? What are its limitations?</p>
               </div>
               <div className="bg-slate-900/70 rounded-lg p-3 text-[10px] font-mono text-slate-400 mt-2">
-                <p className="text-amber-400">💡 Evaluative Link examples:</p>
+                <p className="text-amber-400">Evaluative Link examples:</p>
                 <p className="italic mt-1">&ldquo;However, this factor alone cannot explain why tensions escalated into outright conflict — ideological rivalry provided the necessary hostility.&rdquo;</p>
                 <p className="italic mt-1">&ldquo;While significant, this factor was time-bound: economic considerations mattered most in the immediate post-war period, whereas ideological divisions persisted for decades.&rdquo;</p>
               </div>
@@ -224,7 +240,7 @@ export default function SEQEvaluationPage() {
 
           <div className="space-y-3">
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-emerald-400 text-lg">✅</span>
+              <span className="text-emerald-400 text-lg">✓</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">Prioritised, not just listed</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -236,7 +252,7 @@ export default function SEQEvaluationPage() {
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-emerald-400 text-lg">✅</span>
+              <span className="text-emerald-400 text-lg">✓</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">Shows interconnection between factors</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -248,7 +264,7 @@ export default function SEQEvaluationPage() {
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-emerald-400 text-lg">✅</span>
+              <span className="text-emerald-400 text-lg">✓</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">Uses qualifying language</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -260,7 +276,7 @@ export default function SEQEvaluationPage() {
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-emerald-400 text-lg">✅</span>
+              <span className="text-emerald-400 text-lg">✓</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">Acknowledges counterarguments</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -286,10 +302,10 @@ export default function SEQEvaluationPage() {
               extent</strong> that economic factors were the main cause — they created the conditions
               for conflict, but ideology made that conflict <strong className="text-emerald-400">inevitable</strong>.&rdquo;
             </p>
-            <p className="text-[9px] text-emerald-400">✔ Prioritises factors (ideology &gt; economics)</p>
-            <p className="text-[9px] text-emerald-400">✔ Shows interconnection (economics + ideology)</p>
-            <p className="text-[9px] text-emerald-400">✔ Uses qualifying language (&ldquo;limited extent&rdquo;)</p>
-            <p className="text-[9px] text-emerald-400">✔ Acknowledges both sides of the argument</p>
+            <p className="text-[9px] text-emerald-400">✓ Prioritises factors (ideology &gt; economics)</p>
+            <p className="text-[9px] text-emerald-400">✓ Shows interconnection (economics + ideology)</p>
+            <p className="text-[9px] text-emerald-400">✓ Uses qualifying language (&ldquo;limited extent&rdquo;)</p>
+            <p className="text-[9px] text-emerald-400">✓ Acknowledges both sides of the argument</p>
           </div>
         </section>
 
@@ -401,7 +417,7 @@ export default function SEQEvaluationPage() {
 
           <div className="space-y-3">
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg">🚫</span>
+              <span className="text-red-400 text-lg">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">Writing a narrative instead of an evaluation</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -413,7 +429,7 @@ export default function SEQEvaluationPage() {
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg">🚫</span>
+              <span className="text-red-400 text-lg">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">No clear judgement</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -425,7 +441,7 @@ export default function SEQEvaluationPage() {
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg">🚫</span>
+              <span className="text-red-400 text-lg">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">Treating factors in isolation</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -437,7 +453,7 @@ export default function SEQEvaluationPage() {
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg">🚫</span>
+              <span className="text-red-400 text-lg">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">Ignoring the counterargument</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -455,7 +471,7 @@ export default function SEQEvaluationPage() {
           <h2 className="text-xl font-black text-white">7. How to Practice Effectively</h2>
 
           <div className="bg-emerald-950/30 border border-emerald-900/30 rounded-xl p-5 space-y-3">
-            <h3 className="text-sm font-black text-emerald-300">🎯 Use MARKUP&apos;s SEQ Generator</h3>
+            <h3 className="text-sm font-black text-emerald-300">Use MARKUP&apos;s SEQ Generator</h3>
             <p className="text-xs text-slate-400">
               MARKUP generates full SEQ Evaluation questions on every O-Level History topic. Write
               your essay in the canvas and get instant LORMS-aligned grading that evaluates your
@@ -475,7 +491,7 @@ export default function SEQEvaluationPage() {
             <ul className="list-disc pl-5 text-xs space-y-1.5">
               <li>Before writing, spend 5 minutes planning your factors and your final judgement</li>
               <li>Aim for 3–4 body paragraphs, each evaluating a different factor</li>
-              <li>Allocate time: 5 min planning → 35 min writing → 5 min reviewing for a 13-mark question</li>
+ <li>Allocate time: 5 min planning → 35 min writing → 5 min reviewing for a 10-mark question</li>
               <li>Always end each paragraph with an evaluative link back to the question</li>
               <li>Use the MARKUP grading feedback to identify whether your conclusion is truly evaluative or just descriptive</li>
             </ul>
@@ -483,7 +499,7 @@ export default function SEQEvaluationPage() {
         </section>
 
         {/* CTA Banner */}
-        <div className="bg-gradient-to-br from-emerald-950/50 to-slate-950/80 border border-emerald-800/50 rounded-2xl p-6 text-center space-y-3">
+        <div className="bg-emerald-950/70 border border-emerald-800/50 rounded-2xl p-6 text-center space-y-3">
           <p className="text-lg font-black text-white">Master evaluation with AI feedback</p>
           <p className="text-xs text-slate-400 max-w-md mx-auto">
             Write a full SEQ essay in MARKUP and get instant LORMS grading with feedback on your

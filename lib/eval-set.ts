@@ -1,5 +1,5 @@
 // ================================================================
-// MARKUP – Eval Set  (regression testing)
+// MARKUP – Eval Set (regression testing)
 //
 // 15 pre-graded essays covering the most common skill-track × subject
 // combinations. Run `evaluateEvalSet()` to compare current grading
@@ -16,8 +16,8 @@ export interface EvalCase {
   sbcsAnswer: string;
   seqAnswer: string;
   srqAnswer: string;
-  expectedLevel: string;   // e.g. "L3"
-  expectedLabel: string;   // substring match on scoreLabel
+  expectedLevel: string; // e.g. "L3"
+  expectedLabel: string; // substring match on scoreLabel
   minConfidence: number;
 }
 
@@ -55,7 +55,7 @@ export const EVAL_SET: EvalCase[] = [
   {
     id: 'ss-comp-l2',
     subject: 'Social Studies',
-    questionType: 'SBQ: Comparison & Contrast (AO2)',
+    questionType: 'SBQ: Comparison & Contrast (AO1/AO2)',
     topic: 'Issue 1: Exploring Citizenship and Governance',
     questionPrompt: `Compare the views of Source A and Source B on the government's support for businesses.\n\n${SS_COMPARISON_SOURCES}`,
     sbcsAnswer: 'Source A talks about grants for digitalisation. Source B talks about inequality. Both sources are about government support for businesses.',
@@ -68,7 +68,7 @@ export const EVAL_SET: EvalCase[] = [
   {
     id: 'ss-comp-l4',
     subject: 'Social Studies',
-    questionType: 'SBQ: Comparison & Contrast (AO2)',
+    questionType: 'SBQ: Comparison & Contrast (AO1/AO2)',
     topic: 'Issue 1: Exploring Citizenship and Governance',
     questionPrompt: `Compare the views of Source A and Source B on the government's support for businesses.\n\n${SS_COMPARISON_SOURCES}`,
     sbcsAnswer: 'Both sources address the government\'s approach to business support, but they differ fundamentally in their assessment. Source A, from the Minister\'s speech, presents the policy as proactive and effective — grants are a "targeted intervention" to ensure competitiveness. Source B, an editorial, argues the policy is flawed — it "risks widening inequality" because it excludes non-tech businesses. Source A\'s core message is that the government is taking decisive, effective action. Source B\'s core message is that the policy is well-intentioned but poorly targeted. This difference matters because it shows the gap between official government optimism and independent critical assessment of policy outcomes.',
@@ -83,7 +83,7 @@ export const EVAL_SET: EvalCase[] = [
   {
     id: 'ss-inf-l2',
     subject: 'Social Studies',
-    questionType: 'SBQ: Inference / Message (AO2)',
+    questionType: 'SBQ: Inference / Message (AO1/AO2)',
     topic: 'Issue 1: Exploring Citizenship and Governance',
     questionPrompt: `${SS_INFERENCE_QUESTION}\n\n${SS_COMPARISON_SOURCES}`,
     sbcsAnswer: 'Source A implies the government wants to appear proactive and in control — by announcing grants publicly, it projects an image of competence. Source B implies that the government\'s approach may be out of touch with actual business needs, favouring visible tech solutions over practical support for traditional businesses. The contrast implies a tension between how the government wants to be seen and how independent observers assess its policies.',
@@ -98,8 +98,8 @@ export const EVAL_SET: EvalCase[] = [
   {
     id: 'ss-seq-l2',
     subject: 'Social Studies',
-    questionType: 'SRQ/SEQ: Structured Essay Explanations (AO1)',
-    topic: 'Issue 3: Responding to a Globalised World',
+    questionType: 'SRQ: Structured Response Questions (AO1/AO3)',
+    topic: 'Issue 3: Being Part of a Globalised World',
     questionPrompt: 'Explain how globalisation has affected Singapore\'s economy.',
     sbcsAnswer: '',
     seqAnswer: 'Globalisation has affected Singapore\'s economy by opening up trade opportunities. Singapore could export more goods to other countries because of free trade agreements. This helped the economy grow because more goods were sold overseas. Many companies also set up operations in Singapore, creating jobs for local workers. So globalisation was positive for Singapore because it created economic growth and jobs.',
@@ -113,8 +113,8 @@ export const EVAL_SET: EvalCase[] = [
   {
     id: 'hist-comp-l4',
     subject: 'Elective History',
-    questionType: 'SBQ: Comparison & Contrast (AO3)',
-    topic: 'Cold War: Origins in Europe (*SBCS)',
+    questionType: 'SBQ: Comparison & Contrast (AO1/AO3)',
+    topic: 'Cold War: Origins and development in Europe (*SBCS)',
     questionPrompt: `${HIST_QUESTION_COLDWAR}\n\n${HIST_SOURCES_COLDWAR}`,
     sbcsAnswer: 'Both sources address the origins of the Cold War, but from opposite perspectives. Source A, a Soviet memoir from 1965, blames the US — calling the Marshall Plan "economic imperialism." Source B, a US government memo from 1947, justifies the same policies as "defensive measures." The difference is explained by their provenance: a Soviet author writing for a domestic audience vs a US official document seeking Congressional approval. Each source reflects its author\'s national interests rather than an objective account.',
     seqAnswer: '',
@@ -128,8 +128,8 @@ export const EVAL_SET: EvalCase[] = [
   {
     id: 'hist-inf-l2',
     subject: 'Elective History',
-    questionType: 'SBQ: Inference / Message (AO3)',
-    topic: 'Cold War: Origins in Europe (*SBCS)',
+    questionType: 'SBQ: Inference / Message (AO1/AO3)',
+    topic: 'Cold War: Origins and development in Europe (*SBCS)',
     questionPrompt: `What can you infer from the sources about the attitudes of the US and USSR during the Cold War?\n\n${HIST_SOURCES_COLDWAR}`,
     sbcsAnswer: 'Source A infers that the USSR viewed US actions as aggressive and expansionist — the language of "economic imperialism" and "encirclement" reveals a deep distrust of American motives. Source B infers that the US saw itself as defensive and reactive — framing its policies as necessary to "contain" Soviet expansion. The contrast in framing reveals that each superpower believed it was responding to the other\'s aggression, creating a spiral of mutual suspicion.',
     seqAnswer: '',
@@ -143,8 +143,8 @@ export const EVAL_SET: EvalCase[] = [
   {
     id: 'hist-rel-l4',
     subject: 'Elective History',
-    questionType: 'SBQ: Reliability & Cross-Referencing (AO3)',
-    topic: 'Cold War: Origins in Europe (*SBCS)',
+    questionType: 'SBQ: Reliability & Cross-Referencing (AO1/AO3)',
+    topic: 'Cold War: Origins and development in Europe (*SBCS)',
     questionPrompt: `How reliable are these sources for understanding the origins of the Cold War?\n\n${HIST_SOURCES_COLDWAR}`,
     sbcsAnswer: 'Source A is a Soviet memoir from 1965 — the author has clear bias and is writing to justify Soviet policy to a domestic audience. It is reliable for understanding Soviet perceptions but not for factual accounts of US intentions. Source B is a US government memo from 1947 — it is primary evidence of how the US framed its policies internally, but it naturally omits any aggressive American motives. Cross-referencing reveals each source blames the other, suggesting neither is wholly reliable for an objective account. However, together they are very useful for understanding the competing narratives that drove the Cold War. A historian would need additional sources from neutral parties.',
     seqAnswer: '',
@@ -158,7 +158,7 @@ export const EVAL_SET: EvalCase[] = [
   {
     id: 'ss-all-l2',
     subject: 'Social Studies',
-    questionType: 'All Formats (SBCS + SEQ + SRQ Bundle)',
+    questionType: 'All Formats (SBCS + SRQ Bundle)',
     topic: 'Issue 2: Living in a Diverse Society',
     questionPrompt: `How far do the sources support the view that Singapore is a harmonious society?\n\n${SS_COMPARISON_SOURCES}`,
     sbcsAnswer: 'Source A says the government is helping businesses. Source B says the help is not reaching everyone.',
@@ -173,7 +173,7 @@ export const EVAL_SET: EvalCase[] = [
   {
     id: 'quality-too-short',
     subject: 'Social Studies',
-    questionType: 'SBQ: Comparison & Contrast (AO2)',
+    questionType: 'SBQ: Comparison & Contrast (AO1/AO2)',
     topic: 'Issue 1: Exploring Citizenship and Governance',
     questionPrompt: `Compare the two sources.\n\n${SS_COMPARISON_SOURCES}`,
     sbcsAnswer: 'Both sources are about the government.',
@@ -188,7 +188,7 @@ export const EVAL_SET: EvalCase[] = [
   {
     id: 'ss-comp-sbcs-only',
     subject: 'Social Studies',
-    questionType: 'SBQ: Comparison & Contrast (AO2)',
+    questionType: 'SBQ: Comparison & Contrast (AO1/AO2)',
     topic: 'Issue 1: Exploring Citizenship and Governance',
     questionPrompt: `Compare the two sources.\n\n${SS_COMPARISON_SOURCES}`,
     sbcsAnswer: 'Both sources discuss government business support. Source A presents it as effective while Source B presents it as flawed. The similarity is both address government intervention. The difference is their assessment of its effectiveness — positive from the government versus critical from an independent editorial.',
@@ -294,7 +294,7 @@ export async function evaluateEvalSet(gradeFn: (params: {
 async function main() {
   console.log('Eval set loaded. EVAL_SET has', EVAL_SET.length, 'test cases.');
   console.log('\nTo run against the API, call evaluateEvalSet() with your grading function.\n');
-  EVAL_SET.forEach(t => console.log(`  ${t.id}: expected ${t.expectedLevel} — "${t.expectedLabel}"`));
+  EVAL_SET.forEach(t => console.log(` ${t.id}: expected ${t.expectedLevel} — "${t.expectedLabel}"`));
 }
 
 if (require.main === module) {

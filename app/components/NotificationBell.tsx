@@ -89,19 +89,19 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
   const typeIcon = (type: string) => {
     switch (type) {
       case 'streak_at_risk':
-        return '🔥';
+        return 'Streak';
       case 'achievement':
-        return '🏅';
+        return 'Badge';
       case 'level_up':
-        return '⬆️';
+        return 'Level up';
       case 'referral_bonus':
-        return '🎉';
+        return 'Reward';
       case 'weekly_digest':
-        return '📊';
+        return 'Stats';
       case 'study_group':
-        return '👥';
+        return 'Group';
       default:
-        return '💬';
+        return 'Message';
     }
   };
 
@@ -112,7 +112,7 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
         className="relative p-2 text-slate-500 hover:text-slate-200 transition rounded-lg hover:bg-slate-900/50"
         title="Notifications"
       >
-        🔔
+        Notification
         {unreadCount > 0 && (
           <span className="absolute -top-0.5 -right-0.5 bg-rose-500 text-white text-[8px] font-bold w-4 h-4 flex items-center justify-center rounded-full shadow-lg">
             {unreadCount > 9 ? '9+' : unreadCount}

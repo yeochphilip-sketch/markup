@@ -2,8 +2,11 @@
 -- MARKUP · Admin promotion cheatsheet
 --
 -- Auth gating in this app reads:
---   1. middleware.ts (server)        -> app_metadata.is_admin || user_metadata.is_admin
---   2. app/admin/analytics (client)  -> same + NEXT_PUBLIC_ADMIN_EMAIL fallback
+--   1. proxy.ts (middleware)         -> app_metadata.is_admin only
+--   2. app/admin/* (client)          -> same + NEXT_PUBLIC_ADMIN_EMAIL fallback
+--
+-- SECURITY: user_metadata is end-user-editable and is NEVER trusted for
+-- admin checks. Only raw_app_meta_data (writable server-side only) counts.
 --
 -- NOTE: Setting is_admin = TRUE on the user_profiles table does NOT
 -- unlock /admin/* — the middleware only inspects JWT claims, not the
@@ -49,8 +52,7 @@ SELECT
     created_at
 FROM auth.users
 WHERE
-    (raw_app_meta_data   ->> 'is_admin') = 'true'
- OR (raw_user_meta_data ->> 'is_admin') = 'true'
+    (raw_app_meta_data ->> 'is_admin') = 'true'
 ORDER BY created_at DESC;
 
 

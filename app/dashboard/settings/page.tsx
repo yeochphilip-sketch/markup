@@ -5,6 +5,7 @@ import { supabase } from '@/utils/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getLevelConfig } from '@/lib/gamification';
+import { HISTORY_TRACKS, type HistoryTrack } from '@/lib/syllabus';
 import LoadingSpinner from '@/app/components/LoadingSpinner';
 
 interface Settings {
@@ -12,6 +13,8 @@ interface Settings {
   practice_receipt_enabled: boolean;
   ss_goal_level: string | null;
   history_goal_level: string | null;
+  /** 'Elective History' | 'Pure History' | null (takes no History). */
+  history_track: HistoryTrack | null;
   takes_history: boolean;
   exam_date: string | null;
   exam_goal_level: string | null;
@@ -43,6 +46,7 @@ export default function SettingsPage() {
     practice_receipt_enabled: true,
     ss_goal_level: null,
     history_goal_level: null,
+    history_track: null,
     takes_history: false,
     exam_date: null,
     exam_goal_level: null,
@@ -141,6 +145,43 @@ export default function SettingsPage() {
     }
   };
 
+  /**
+   * Switch History paper (or drop it). Sent as one PATCH so the track, the
+   * takes_history flag and the cleared goal stay consistent.
+   */
+  const updateHistoryTrack = async (track: HistoryTrack | null) => {
+    if (!userId) return;
+    setSaving('history_track');
+    try {
+      const res = await fetch('/api/user/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          history_track: track,
+          takes_history: !!track,
+          ...(track ? {} : { history_goal_level: null }),
+        }),
+      });
+      if (res.ok) {
+        setSettings(prev => ({
+          ...prev,
+          history_track: track,
+          takes_history: !!track,
+          history_goal_level: track ? prev.history_goal_level : null,
+        }));
+        showToast('Setting updated', 'success');
+      } else {
+        const errData = await res.json().catch(() => ({ error: 'Failed to save' }));
+        showToast(errData.error || 'Failed to save', 'error');
+      }
+    } catch {
+      showToast('Network error. Check your connection.', 'error');
+    } finally {
+      setSaving(null);
+    }
+  };
+
   useEffect(() => {
     async function init() {
       try {
@@ -199,7 +240,7 @@ export default function SettingsPage() {
 
       <div className="max-w-3xl mx-auto p-6 space-y-6 pb-16">
         {/* ── Account Overview ── */}
-        <div className="bg-gradient-to-br from-indigo-600/5 to-purple-600/5 border border-indigo-500/20 rounded-3xl p-6">
+        <div className="bg-indigo-950/40 border border-indigo-500/20 rounded-3xl p-6">
           <div className="flex items-center gap-4">
             <div className="text-4xl">{levelConfig.icon}</div>
             <div className="flex-1">
@@ -220,7 +261,7 @@ export default function SettingsPage() {
           {/* ── Notifications ── */}
           <div className="bg-slate-950/80 border border-slate-900 rounded-2xl p-5 space-y-4">
             <h3 className="text-[10px] font-black tracking-widest text-slate-400 uppercase flex items-center gap-2">
-              🔔 Notifications
+              Notifications
             </h3>
 
             {/* Email Reminders */}
@@ -279,7 +320,7 @@ export default function SettingsPage() {
 
             <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-3">
               <p className="text-[9px] text-slate-500 leading-relaxed">
-                💡 Emails are sent via Resend. You can disable them anytime.
+                Emails are sent via Resend. You can disable them anytime.
                 Daily reminders run on a schedule and respect your timezone (SGT).
               </p>
             </div>
@@ -288,34 +329,33 @@ export default function SettingsPage() {
           {/* ── Exam Goals ── */}
           <div className="bg-slate-950/80 border border-slate-900 rounded-2xl p-5 space-y-4">
             <h3 className="text-[10px] font-black tracking-widest text-slate-400 uppercase flex items-center gap-2">
-              🎯 Exam Goals
+              Exam Goals
             </h3>
 
-            {/* Takes History */}
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-semibold text-slate-200">Taking Elective History?</p>
-                <p className="text-[9px] text-slate-500 mt-0.5">
-                  Show History-specific SEQ & goal tracking
-                </p>
+            {/* History paper — Elective and Pure are mutually exclusive */}
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-bold text-slate-500 uppercase">History Paper</label>
+              <p className="text-[9px] text-slate-500 -mt-0.5">
+                Elective and Pure History are alternatives — you take at most one.
+              </p>
+              <div className="grid grid-cols-3 gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800">
+                {([null, ...HISTORY_TRACKS] as (HistoryTrack | null)[]).map((track) => {
+                  const isActive = settings.history_track === track;
+                  return (
+                    <button
+                      key={track ?? 'none'}
+                      onClick={() => updateHistoryTrack(track)}
+                      disabled={saving === 'history_track'}
+                      aria-pressed={isActive}
+                      className={`text-[10px] font-bold py-2 rounded-lg transition whitespace-nowrap ${
+                        isActive ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      {track === null ? 'None' : track === 'Elective History' ? 'Elective' : 'Pure'}
+                    </button>
+                  );
+                })}
               </div>
-              <button
-                onClick={() => {
-                  const newVal = !settings.takes_history;
-                  setSettings(prev => ({ ...prev, takes_history: newVal, history_goal_level: newVal ? prev.history_goal_level : null }));
-                  updateSetting('takes_history', newVal);
-                }}
-                disabled={saving === 'takes_history'}
-                className={`relative w-11 h-6 rounded-full transition-colors ${
-                  settings.takes_history ? 'bg-indigo-600' : 'bg-slate-700'
-                } ${saving === 'takes_history' ? 'opacity-50' : ''}`}
-              >
-                <span
-                  className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                    settings.takes_history ? 'translate-x-5' : 'translate-x-0'
-                  }`}
-                />
-              </button>
             </div>
 
             {/* SS Goal Level */}
@@ -337,10 +377,12 @@ export default function SettingsPage() {
               </select>
             </div>
 
-            {/* History Goal Level (conditional) */}
-            {settings.takes_history && (
+            {/* History Goal Level (conditional on taking a History paper) */}
+            {settings.history_track && (
               <div className="space-y-1.5">
-                <label className="text-[9px] font-bold text-slate-500 uppercase">History Target</label>
+                <label className="text-[9px] font-bold text-slate-500 uppercase">
+                  {settings.history_track} Target
+                </label>
                 <select
                   value={settings.history_goal_level || ''}
                   onChange={(e) => {
@@ -377,7 +419,7 @@ export default function SettingsPage() {
           {/* ── Account & Referral ── */}
           <div className="bg-slate-950/80 border border-slate-900 rounded-2xl p-5 space-y-4">
             <h3 className="text-[10px] font-black tracking-widest text-slate-400 uppercase flex items-center gap-2">
-              👤 Account
+              Account
             </h3>
 
             <div className="space-y-3">
@@ -397,7 +439,7 @@ export default function SettingsPage() {
               <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-3">
                 <p className="text-[9px] text-slate-500 font-bold uppercase">Streak</p>
                 <p className="text-xs text-amber-400 font-bold font-mono mt-0.5">
-                  🔥 {settings.streak} day{settings.streak !== 1 ? 's' : ''}
+                  {settings.streak} day{settings.streak !== 1 ? 's' : ''}
                 </p>
               </div>
             </div>
@@ -419,7 +461,7 @@ export default function SettingsPage() {
                   }}
                   className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs px-3 rounded-xl transition"
                 >
-                  {copied ? '✅' : '📋'}
+                  {copied ? '✓' : 'Copy'}
                 </button>
               </div>
               <p className="text-[9px] text-slate-600 mt-1.5">{referralCount} friend{referralCount !== 1 ? 's' : ''} referred · +{referralCount * 200} XP earned</p>
@@ -429,7 +471,7 @@ export default function SettingsPage() {
           {/* ── Preferences ── */}
           <div className="bg-slate-950/80 border border-slate-900 rounded-2xl p-5 space-y-4">
             <h3 className="text-[10px] font-black tracking-widest text-slate-400 uppercase flex items-center gap-2">
-              ⚙️ Preferences
+              Preferences
             </h3>
 
             {/* Subject */}
@@ -471,7 +513,7 @@ export default function SettingsPage() {
             {/* Theme toggle */}
             <div className="flex items-center justify-between pt-2 border-t border-slate-800">
               <div>
-                <p className="text-xs font-semibold text-slate-200">{theme === 'dark' ? '🌙' : '☀️'} Theme</p>
+                <p className="text-xs font-semibold text-slate-200">{theme === 'dark' ? 'Dark' : 'Light'} Theme</p>
                 <p className="text-[9px] text-slate-500 mt-0.5">
                   {theme === 'dark' ? 'Dark mode (default)' : 'Light mode'}
                 </p>
@@ -491,7 +533,7 @@ export default function SettingsPage() {
                     theme === 'dark' ? 'translate-x-5' : 'translate-x-0'
                   }`}
                 >
-                  {theme === 'dark' ? '🌙' : '☀️'}
+                  {theme === 'dark' ? 'Dark' : 'Light'}
                 </span>
               </button>
             </div>
@@ -508,7 +550,7 @@ export default function SettingsPage() {
           {/* ── Danger Zone ── */}
           <div className="md:col-span-2 bg-rose-950/10 border border-rose-900/30 rounded-2xl p-5 space-y-4">
             <h3 className="text-[10px] font-black tracking-widest text-rose-400 uppercase flex items-center gap-2">
-              ⚠️ Data Zone
+              Data Zone
             </h3>
             <div className="flex flex-col sm:flex-row gap-3">
               <button
@@ -531,7 +573,7 @@ export default function SettingsPage() {
                 }}
                 className="flex-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-bold py-2.5 rounded-xl transition"
               >
-                📥 Export My Data
+                Export My Data
               </button>
               <button
                 onClick={() => {
@@ -540,7 +582,7 @@ export default function SettingsPage() {
                 }}
                 className="flex-1 bg-rose-600/10 hover:bg-rose-600/20 border border-rose-600/30 text-rose-400 text-xs font-bold py-2.5 rounded-xl transition"
               >
-                🚪 Sign Out
+                Sign Out
               </button>
             </div>
             <p className="text-[9px] text-rose-500/60 text-center">

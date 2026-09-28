@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { breadcrumbJsonLd, jsonLdScript } from '@/lib/structured-data';
 
 export const metadata: Metadata = {
   title: 'How to Use Historical Context in Your Humanities Essays (L3/7 Framework)',
+  alternates: { canonical: '/tips/historical-context-essays' },
+  robots: { index: true, follow: true },
   description:
     'Master the art of weaving contextual knowledge (CK) into your O-Level SEQ and SRQ essays. Learn the L3/7 framework for using historical context to elevate arguments and score top bands.',
   openGraph: {
@@ -35,6 +38,19 @@ export default function HistoricalContextEssaysPage() {
           <span>/</span>
           <span className="text-slate-400">Historical Context</span>
         </nav>
+        {/* BreadcrumbList structured data (matches the visible nav above) */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: jsonLdScript(
+              breadcrumbJsonLd([
+                { name: 'Home', href: '/' },
+                { name: 'Tips & Guides', href: '/tips' },
+                { name: 'Historical Context', href: '/tips/historical-context-essays' },
+              ])
+            ),
+          }}
+        />
 
         {/* Hero */}
         <div className="space-y-4 border-b border-slate-900 pb-8">
@@ -88,17 +104,17 @@ export default function HistoricalContextEssaysPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-center">
-              <p className="text-2xl mb-1">🔍</p>
+              <p className="text-2xl mb-1">Investigate</p>
               <h3 className="text-xs font-bold text-slate-200">Corroborate</h3>
               <p className="text-[10px] text-slate-400 mt-1">Use CK to confirm or support what the sources say</p>
             </div>
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-center">
-              <p className="text-2xl mb-1">⚡</p>
+              <p className="text-2xl mb-1">Fast</p>
               <h3 className="text-xs font-bold text-slate-200">Challenge</h3>
               <p className="text-[10px] text-slate-400 mt-1">Use CK to question or complicate source claims</p>
             </div>
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-center">
-              <p className="text-2xl mb-1">🌐</p>
+              <p className="text-2xl mb-1">Web</p>
               <h3 className="text-xs font-bold text-slate-200">Contextualise</h3>
               <p className="text-[10px] text-slate-400 mt-1">Use CK to situate sources in their historical moment</p>
             </div>
@@ -106,7 +122,7 @@ export default function HistoricalContextEssaysPage() {
 
           <div className="bg-indigo-950/30 border border-indigo-900/30 rounded-xl p-4">
             <p className="text-xs text-indigo-300 font-bold">
-              💡 <strong className="text-slate-200">Why CK matters:</strong> The examiner already
+              Tip <strong className="text-slate-200">Why CK matters:</strong> The examiner already
               knows the sources. What they don&apos;t know is whether <em>you</em> can connect those
               sources to the wider historical picture. CK is what separates a student who understands
               from a student who merely describes.
@@ -177,10 +193,10 @@ export default function HistoricalContextEssaysPage() {
                 After presenting the source, use transition phrases to bring in your knowledge:
               </p>
               <div className="bg-slate-900/70 rounded-lg p-3 text-[10px] font-mono text-slate-400 mt-2 space-y-1">
-                <p>🔹 &ldquo;This is consistent with my knowledge that…&rdquo;</p>
-                <p>🔹 &ldquo;This reflects the broader context of… which I know from my study of…&rdquo;</p>
-                <p>🔹 &ldquo;However, my knowledge suggests a more complex picture — for example…&rdquo;</p>
-                <p>🔹 &ldquo;This can be explained by the fact that…&rdquo;</p>
+                <p>&ldquo;This is consistent with my knowledge that…&rdquo;</p>
+                <p>&ldquo;This reflects the broader context of… which I know from my study of…&rdquo;</p>
+                <p>&ldquo;However, my knowledge suggests a more complex picture — for example…&rdquo;</p>
+                <p>&ldquo;This can be explained by the fact that…&rdquo;</p>
               </div>
             </div>
 
@@ -194,7 +210,7 @@ export default function HistoricalContextEssaysPage() {
                 for your argument. Connect the CK back to the question:
               </p>
               <div className="bg-slate-900/70 rounded-lg p-3 text-[10px] font-mono text-slate-400 mt-2">
-                <p>✅ &ldquo;This CK matters <span className="text-emerald-400">because</span> it shows that the source&apos;s claim is supported / challenged by the historical record.&rdquo;</p>
+                <p>✓ &ldquo;This CK matters <span className="text-emerald-400">because</span> it shows that the source&apos;s claim is supported / challenged by the historical record.&rdquo;</p>
               </div>
             </div>
           </div>
@@ -210,30 +226,30 @@ export default function HistoricalContextEssaysPage() {
 
           <div className="space-y-3">
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <h3 className="text-sm font-bold text-slate-200 mb-1">📅 1. Chronological CK</h3>
+              <h3 className="text-sm font-bold text-slate-200 mb-1">1. Chronological CK</h3>
               <p className="text-xs text-slate-400">
                 What happened before, during, or after the event in question. Knowing the sequence
                 of events helps you explain <strong className="text-slate-200">causes and consequences</strong>.
               </p>
               <div className="bg-slate-900/70 rounded-lg p-2 mt-2 text-[10px] font-mono text-slate-400">
-                <p>💡 <em>&ldquo;This source was written in 1957, just as Malaya was gaining independence — a time when British officials were particularly concerned about their legacy.&rdquo;</em></p>
+                <p>Tip <em>&ldquo;This source was written in 1957, just as Malaya was gaining independence — a time when British officials were particularly concerned about their legacy.&rdquo;</em></p>
               </div>
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <h3 className="text-sm font-bold text-slate-200 mb-1">🏛️ 2. Political/Social CK</h3>
+              <h3 className="text-sm font-bold text-slate-200 mb-1">2. Political/Social CK</h3>
               <p className="text-xs text-slate-400">
                 Knowledge of key figures, institutions, social movements, and political structures.
                 This type of CK adds <strong className="text-slate-200">depth</strong> to your
                 analysis of why things happened.
               </p>
               <div className="bg-slate-900/70 rounded-lg p-2 mt-2 text-[10px] font-mono text-slate-400">
-                <p>💡 <em>&ldquo;The People&apos;s Action Party, led by Lee Kuan Yew, was at this time consolidating its political position by co-opting the trade union movement.&rdquo;</em></p>
+                <p>Tip <em>&ldquo;The People&apos;s Action Party, led by Lee Kuan Yew, was at this time consolidating its political position by co-opting the trade union movement.&rdquo;</em></p>
               </div>
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <h3 className="text-sm font-bold text-slate-200 mb-1">📊 3. Economic CK</h3>
+              <h3 className="text-sm font-bold text-slate-200 mb-1">3. Economic CK</h3>
               <p className="text-xs text-slate-400">
                 Knowledge of economic conditions, trade patterns, financial pressures, and resource
                 constraints. This is particularly important for questions about{' '}
@@ -241,19 +257,19 @@ export default function HistoricalContextEssaysPage() {
                 <strong className="text-slate-200">policy</strong>.
               </p>
               <div className="bg-slate-900/70 rounded-lg p-2 mt-2 text-[10px] font-mono text-slate-400">
-                <p>💡 <em>&ldquo;Post-war Britain was facing severe economic hardship — rationing continued into the 1950s, and the country relied heavily on US Marshall Aid.&rdquo;</em></p>
+                <p>Tip <em>&ldquo;Post-war Britain was facing severe economic hardship — rationing continued into the 1950s, and the country relied heavily on US Marshall Aid.&rdquo;</em></p>
               </div>
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <h3 className="text-sm font-bold text-slate-200 mb-1">🌏 4. Historiographical CK</h3>
+              <h3 className="text-sm font-bold text-slate-200 mb-1">4. Historiographical CK</h3>
               <p className="text-xs text-slate-400">
                 Knowledge of how historians have interpreted events. This is{' '}
                 <strong className="text-slate-200">high-level CK</strong> that impresses examiners
                 — showing you understand that history is debated.
               </p>
               <div className="bg-slate-900/70 rounded-lg p-2 mt-2 text-[10px] font-mono text-slate-400">
-                <p>💡 <em>&ldquo;While traditional historians like David Lowenthal argue that X was driven by Y, revisionist scholars have challenged this view, pointing to evidence of Z.&rdquo;</em></p>
+                <p>Tip <em>&ldquo;While traditional historians like David Lowenthal argue that X was driven by Y, revisionist scholars have challenged this view, pointing to evidence of Z.&rdquo;</em></p>
               </div>
             </div>
           </div>
@@ -284,9 +300,9 @@ export default function HistoricalContextEssaysPage() {
                 the sources suggest the Japanese occupation was an important factor.&rdquo;
               </p>
               <div className="text-[10px] text-red-400 space-y-1">
-                <p>❌ Only describes source content</p>
-                <p>❌ No additional facts, dates, or examples</p>
-                <p>❌ No demonstration of wider historical understanding</p>
+                <p>✗ Only describes source content</p>
+                <p>✗ No additional facts, dates, or examples</p>
+                <p>✗ No demonstration of wider historical understanding</p>
               </div>
             </div>
 
@@ -311,10 +327,10 @@ export default function HistoricalContextEssaysPage() {
                 together created the conditions for nationalism to succeed.&rdquo;
               </p>
               <div className="text-[10px] text-emerald-400 space-y-1 mt-2">
-                <p>✅ Uses specific historical facts (dates, countries, organisations)</p>
-                <p>✅ CK is woven into the argument, not tacked on</p>
-                <p>✅ CK both supports AND challenges the source</p>
-                <p>✅ Demonstrates understanding of complex historical causality</p>
+                <p>✓ Uses specific historical facts (dates, countries, organisations)</p>
+                <p>✓ CK is woven into the argument, not tacked on</p>
+                <p>✓ CK both supports AND challenges the source</p>
+                <p>✓ Demonstrates understanding of complex historical causality</p>
               </div>
             </div>
           </div>
@@ -332,7 +348,7 @@ export default function HistoricalContextEssaysPage() {
 
           <div className="space-y-3">
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <h3 className="text-sm font-bold text-sky-400 mb-1">🇸🇬 Types of SS Contextual Knowledge</h3>
+              <h3 className="text-sm font-bold text-sky-400 mb-1">SG Types of SS Contextual Knowledge</h3>
               <ul className="text-xs text-slate-400 space-y-2 list-disc pl-4">
                 <li><strong className="text-slate-200">Government policies:</strong> EIP, CPF, GST vouchers, SkillsFuture, Housing Grants — knowing specific policy names and how they work</li>
                 <li><strong className="text-slate-200">Current affairs:</strong> Recent events in Singapore and globally that illustrate social issues</li>
@@ -343,7 +359,7 @@ export default function HistoricalContextEssaysPage() {
             </div>
 
             <div className="bg-sky-950/30 border border-sky-900/30 rounded-xl p-4">
-              <h3 className="text-sm font-bold text-sky-300 mb-1">💡 How SS CK Differs from History CK</h3>
+              <h3 className="text-sm font-bold text-sky-300 mb-1">How SS CK Differs from History CK</h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-[10px] border-collapse mt-2">
                   <thead>
@@ -380,7 +396,7 @@ export default function HistoricalContextEssaysPage() {
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <h3 className="text-sm font-bold text-slate-200 mb-1">🎯 SS CK Example in an SRQ Answer</h3>
+              <h3 className="text-sm font-bold text-slate-200 mb-1">SS CK Example in an SRQ Answer</h3>
               <blockquote className="border-l-2 border-sky-500 pl-3 text-xs italic text-slate-300">
                 &ldquo;Source A claims that government policies have been effective in promoting
                 social mobility. This is corroborated by the fact that the proportion of resident
@@ -395,17 +411,17 @@ export default function HistoricalContextEssaysPage() {
                 that concerns social observers.&rdquo;
               </blockquote>
               <div className="text-[10px] text-sky-400 mt-1 space-y-1">
-                <p>✔ Uses specific policy names (EIP, SkillsFuture, Enhanced Housing Grant)</p>
-                <p>✔ Uses statistics from credible sources</p>
-                <p>✔ CK both supports AND complicates the source claims</p>
-                <p>✔ Demonstrates awareness of current Singaporean social context</p>
+                <p>✓ Uses specific policy names (EIP, SkillsFuture, Enhanced Housing Grant)</p>
+                <p>✓ Uses statistics from credible sources</p>
+                <p>✓ CK both supports AND complicates the source claims</p>
+                <p>✓ Demonstrates awareness of current Singaporean social context</p>
               </div>
             </div>
           </div>
 
           <div className="bg-indigo-950/30 border border-indigo-900/30 rounded-xl p-4">
             <p className="text-xs text-indigo-300 font-bold">
-              📰 <strong className="text-slate-200">Building your SS CK bank:</strong> Read the
+              News <strong className="text-slate-200">Building your SS CK bank:</strong> Read the
               Straits Times or CNA weekly. Follow the Ministry of Social and Family Development
               (MSF) and Ministry of Education (MOE) websites. Keep a running list of 3–5 key
               statistics per topic. In the exam, this knowledge separates average answers from
@@ -420,7 +436,7 @@ export default function HistoricalContextEssaysPage() {
 
           <div className="space-y-3">
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg">🚫</span>
+              <span className="text-red-400 text-lg">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">The &ldquo;CK Dump&rdquo;</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -432,7 +448,7 @@ export default function HistoricalContextEssaysPage() {
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg">🚫</span>
+              <span className="text-red-400 text-lg">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">Vague generalisations</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -444,7 +460,7 @@ export default function HistoricalContextEssaysPage() {
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg">🚫</span>
+              <span className="text-red-400 text-lg">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">Forcing irrelevant CK</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -456,7 +472,7 @@ export default function HistoricalContextEssaysPage() {
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg">🚫</span>
+              <span className="text-red-400 text-lg">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">Contradicting the sources without explanation</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -474,7 +490,7 @@ export default function HistoricalContextEssaysPage() {
           <h2 className="text-xl font-black text-white">8. How to Build and Practise CK</h2>
 
           <div className="bg-indigo-950/30 border border-indigo-900/30 rounded-xl p-5 space-y-3">
-            <h3 className="text-sm font-black text-indigo-300">🎯 Use MARKUP&apos;s Essay Generator</h3>
+            <h3 className="text-sm font-black text-indigo-300">Use MARKUP&apos;s Essay Generator</h3>
             <p className="text-xs text-slate-400">
               Generate unlimited SEQ/SRQ questions on every O-Level topic. Write your essay in
               the canvas, then get instant LORMS-aligned grading that specifically evaluates your
@@ -502,7 +518,7 @@ export default function HistoricalContextEssaysPage() {
         </section>
 
         {/* CTA Banner */}
-        <div className="bg-gradient-to-br from-emerald-950/50 to-slate-950/80 border border-emerald-800/50 rounded-2xl p-6 text-center space-y-3">
+        <div className="bg-emerald-950/70 border border-emerald-800/50 rounded-2xl p-6 text-center space-y-3">
           <p className="text-lg font-black text-white">Build your CK with AI-powered practice</p>
           <p className="text-xs text-slate-400 max-w-md mx-auto">
             MARKUP grades your use of contextual knowledge specifically and shows you how to deepen

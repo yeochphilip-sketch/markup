@@ -181,11 +181,11 @@ export async function POST(request: NextRequest) {
       // Build personalized message
       let streakMsg = '';
       if (streak > 0) {
-        streakMsg = `🔥 You have a <strong style="color: #f59e0b;">${streak}-day streak</strong> — do not let it break!`;
+        streakMsg = `You have a <strong style="color: #f59e0b;">${streak}-day streak</strong> — do not let it break!`;
       } else if (user.last_practice_date) {
-        streakMsg = `⚡ Your streak ended. Start a new one today!`;
+        streakMsg = `Your streak ended. Start a new one today!`;
       } else {
-        streakMsg = '🚀 Ready for your first practice session?';
+        streakMsg = 'Ready for your first practice session?';
       }
 
       const html = `
@@ -194,7 +194,7 @@ export async function POST(request: NextRequest) {
             <h1 style="color: #6366f1; font-size: 24px; font-weight: 900; margin: 0;">MARKUP</h1>
           </div>
 
-          <h2 style="font-size: 18px; font-weight: 700; margin: 0;">⏰ Time for practice, ${name || 'champion'}!</h2>
+          <h2 style="font-size: 18px; font-weight: 700; margin: 0;">Time for practice, ${name || 'champion'}!</h2>
           <p style="color: #94a3b8; margin-top: 8px;">
             You were last here around <strong style="color: #6366f1;">${lastActiveTimeStr}</strong> yesterday — time for another session!
           </p>
@@ -218,7 +218,7 @@ export async function POST(request: NextRequest) {
 
           <div style="margin-top: 20px; text-align: center;">
             <a href="${SITE_URL}/dashboard" style="display: inline-block; background: #6366f1; color: white; padding: 14px 32px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 14px;">
-              Practice Now ${streak > 0 ? '🔥' : '🚀'}
+              Practice Now ${streak > 0 ? 'Streak' : 'Launch'}
             </a>
           </div>
 
@@ -243,8 +243,8 @@ export async function POST(request: NextRequest) {
             from: process.env.SEND_FROM_EMAIL || 'MARKUP <onboarding@resend.dev>',
             to: profile.email,
             subject: streak > 0
-              ? `⏰ ${name || 'Champion'} — do not lose your ${streak}-day streak!`
-              : `⏰ Time to practice, ${name || 'future A1 student'}! You were here around ${lastActiveTimeStr} yesterday.`,
+              ? `${name || 'Champion'} — do not lose your ${streak}-day streak!`
+              : `Time to practice, ${name || 'future A1 student'}! You were here around ${lastActiveTimeStr} yesterday.`,
             html,
           }),
         });

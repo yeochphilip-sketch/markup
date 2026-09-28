@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { breadcrumbJsonLd, jsonLdScript } from '@/lib/structured-data';
 
 export const metadata: Metadata = {
   title: 'Model Answer Breakdown: An Annotated L4 SBQ Paper',
+  alternates: { canonical: '/tips/model-sbq-answer' },
+  robots: { index: true, follow: true },
   description:
     'See a complete O-Level SBQ paper with annotated L4/L5 model answers for every question type. Understand exactly why each sentence scores top band — and how you can replicate it.',
   openGraph: {
@@ -30,6 +33,19 @@ export default function ModelSBQAnswerPage() {
           <span>/</span>
           <span className="text-slate-400">Model SBQ Answer</span>
         </nav>
+        {/* BreadcrumbList structured data (matches the visible nav above) */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: jsonLdScript(
+              breadcrumbJsonLd([
+                { name: 'Home', href: '/' },
+                { name: 'Tips & Guides', href: '/tips' },
+                { name: 'Model SBQ Answer', href: '/tips/model-sbq-answer' },
+              ])
+            ),
+          }}
+        />
 
         {/* Hero */}
         <div className="space-y-4 border-b border-slate-900 pb-8">
@@ -63,7 +79,7 @@ export default function ModelSBQAnswerPage() {
             <li><a href="#model-comparison" className="text-indigo-400 hover:text-indigo-300 transition">2. Model Answer (a) — Comparison (6 marks)</a></li>
             <li><a href="#model-reliability" className="text-indigo-400 hover:text-indigo-300 transition">3. Model Answer (b) — Reliability (7 marks)</a></li>
             <li><a href="#model-purpose" className="text-indigo-400 hover:text-indigo-300 transition">4. Model Answer (c) — Purpose (7 marks)</a></li>
-            <li><a href="#model-utility" className="text-indigo-400 hover:text-indigo-300 transition">5. Model Answer (d) — Utility/Comparison (10 marks)</a></li>
+            <li><a href="#model-utility" className="text-indigo-400 hover:text-indigo-300 transition">5. Model Answer (d) — Multi-Source Judgement (10 marks)</a></li>
             <li><a href="#key-takeaways" className="text-indigo-400 hover:text-indigo-300 transition">6. Key Takeaways Across All Questions</a></li>
           </ul>
         </div>
@@ -121,6 +137,11 @@ export default function ModelSBQAnswerPage() {
                 <li><strong className="text-slate-200">(c) 7 marks:</strong> Study Source A. What is the purpose of Source A?</li>
                 <li><strong className="text-slate-200">(d) 10 marks:</strong> Study Sources A, B, C. How far do the sources agree on the impact of the Japanese occupation on Southeast Asian nationalism, and how useful are they for a historian studying this topic?</li>
               </ul>
+              <p className="text-[10px] text-slate-500 mt-3 leading-relaxed">
+                This extract shows four representative Section A questions. In the live paper,
+                Section A has five parts — Q1(a)–(e) in History (30 marks) or Q1–Q5 in Social
+                Studies (35 marks) — with the highest-mark part using multiple sources.
+              </p>
             </div>
           </div>
         </section>
@@ -168,7 +189,7 @@ export default function ModelSBQAnswerPage() {
           </div>
 
           <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">✍️ Why This Scores L4/6</p>
+            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Why This Scores L4/6</p>
             <ul className="text-[10px] text-slate-400 mt-2 space-y-1 list-disc pl-4">
               <li><strong className="text-slate-200">Synthesis:</strong> Every paragraph weaves evidence from both sources together. Never two separate descriptions.</li>
               <li><strong className="text-slate-200">Both sides:</strong> Addresses similarity AND difference, even though the question only says &ldquo;how similar&rdquo;</li>
@@ -235,7 +256,7 @@ export default function ModelSBQAnswerPage() {
           </div>
 
           <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-            <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest">✍️ Why This Scores L5/7</p>
+            <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest">Why This Scores L5/7</p>
             <ul className="text-[10px] text-slate-400 mt-2 space-y-1 list-disc pl-4">
               <li><strong className="text-slate-200">Both provenance AND cross-referencing:</strong> Required for L5 on the 7-mark question</li>
               <li><strong className="text-slate-200">Nuanced judgement:</strong> Not &ldquo;reliable&rdquo; or &ldquo;unreliable&rdquo; but &ldquo;partially reliable&rdquo; with specific strengths and limitations</li>
@@ -299,7 +320,7 @@ export default function ModelSBQAnswerPage() {
           </div>
 
           <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-            <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest">✍️ Why This Scores L5/7</p>
+            <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest">Why This Scores L5/7</p>
             <ul className="text-[10px] text-slate-400 mt-2 space-y-1 list-disc pl-4">
               <li><strong className="text-slate-200">Clear message → purpose link:</strong> Identifies the message first, then explains why the author communicates it</li>
               <li><strong className="text-slate-200">Language analysis:</strong> Quotes specific phrases and explains their persuasive effect</li>
@@ -311,7 +332,7 @@ export default function ModelSBQAnswerPage() {
 
         {/* Section 5 */}
         <section id="model-utility" className="space-y-4 text-sm text-slate-400 leading-relaxed">
-          <h2 className="text-xl font-black text-white">5. Model Answer (d) — Utility/Comparison (10 marks) — L5/8</h2>
+          <h2 className="text-xl font-black text-white">5. Model Answer (d) — Multi-Source Judgement (10 marks) — L5/8</h2>
 
           <div className="bg-emerald-950/20 border border-emerald-900/30 rounded-xl p-5 space-y-3">
             <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">L5 Model Answer</p>
@@ -387,7 +408,7 @@ export default function ModelSBQAnswerPage() {
           </div>
 
           <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-            <p className="text-[10px] font-black text-violet-400 uppercase tracking-widest">✍️ Why This Scores L5/8</p>
+            <p className="text-[10px] font-black text-violet-400 uppercase tracking-widest">Why This Scores L5/8</p>
             <ul className="text-[10px] text-slate-400 mt-2 space-y-1 list-disc pl-4">
               <li><strong className="text-slate-200">Answers both parts:</strong> Covers comparison AND utility equally</li>
               <li><strong className="text-slate-200">Source-by-source utility:</strong> Each source assessed individually for what it&apos;s useful for and where it&apos;s limited</li>
@@ -429,7 +450,7 @@ export default function ModelSBQAnswerPage() {
 
           <div className="bg-indigo-950/30 border border-indigo-900/30 rounded-xl p-4">
             <p className="text-xs text-indigo-300 font-bold">
-              🎯 <strong className="text-slate-200">Your next step:</strong> Generate an SBQ paper
+              Goal <strong className="text-slate-200">Your next step:</strong> Generate an SBQ paper
               in MARKUP and try to replicate this structure. Write your answer, get graded, and
               compare your response to the feedback. Focus on ONE question type at a time —
               master comparison first, then reliability, then purpose, then utility.
@@ -438,7 +459,7 @@ export default function ModelSBQAnswerPage() {
         </section>
 
         {/* CTA */}
-        <div className="bg-gradient-to-br from-indigo-950/50 to-slate-950/80 border border-indigo-800/50 rounded-2xl p-6 text-center space-y-3">
+        <div className="bg-indigo-950/70 border border-indigo-800/50 rounded-2xl p-6 text-center space-y-3">
           <p className="text-lg font-black text-white">Generate your own SBQ paper now</p>
           <p className="text-xs text-slate-400 max-w-md mx-auto">
             MARKUP generates fresh O-Level SBQ papers with LORMS-aligned grading. Write your

@@ -1,5 +1,5 @@
 // ================================================================
-// MARKUP – Specialized Examiner Prompts  (v2)
+// MARKUP – Specialized Examiner Prompts (v2)
 //
 // Each skill track + subject combination gets its own LORMS matrix,
 // chain-of-thought rubric resolution steps, and confidence scoring.
@@ -8,7 +8,7 @@
 import { getModelAnswerExamples } from '@/lib/school-papers';
 
 // ────────────────────────────────────────────────────────────────
-//  Shared chain-of-thought + confidence instructions
+// Shared chain-of-thought + confidence instructions
 // ────────────────────────────────────────────────────────────────
 
 const CHAIN_OF_THOUGHT = `
@@ -105,32 +105,32 @@ You MUST apply these rules BEFORE any LORMS evaluation. The quality gate in Step
 
 ## SEAB-ALIGNED STRUCTURE EXPECTATIONS (research-backed)
 
-### Inference (2 marks): Expect the ISE structure
+### Inference / Message (SBQ parts typically 5–7 marks in Social Studies, 5–8 in History): Expect the ISE structure
 - I: State the inference (what the source implies/ suggests, not what it literally says)
 - S: Support with specific evidence from the source (quote or reference)
 - E: Explain how the evidence leads to the inference
 - L1 = surface facts only (what source says). L2 = inferred meaning (what source implies).
 
-### Comparison (5 marks): Expect explicit comparison, not separate summaries
+### Comparison (SBQ, typically 5–7 marks): Expect explicit comparison, not separate summaries
 - L1–L2 = describes sources separately or identifies similarity OR difference
 - L3 = similarity AND difference identified
 - L4 = similarity AND difference WITH core message matching from both sources
 - Students who write "Source A says... Source B says..." without direct comparison phrases ("whereas", "in contrast", "similarly") should NOT reach L3.
 
-### Purpose (4 marks): Must explain WHY, not just WHAT
+### Purpose (SBQ, typically 5–7 marks): Must explain WHY, not just WHAT
 - L1 = identifies author/audience
 - L2–L3 = identifies purpose with evidence
 - L4 = compares purposes and explains difference based on context
 - Expect students to discuss: author's intent, target audience, historical/political context
 
-### Reliability (5 marks): Provenance + cross-referencing + typical limitations
+### Reliability / Utility (SBQ, typically 5–7 marks): Provenance + cross-referencing + typical limitations
 - L1 = states reliable/unreliable without justification
 - L2 = provenance-only evaluation (author, date, type)
 - L3 = cross-referencing with another source (corroboration/contradiction)
 - L4 = comprehensive: provenance + cross-ref + typical limitations (bias, exaggeration, omission, propaganda)
 - High-scoring students identify SPECIFIC limitations rather than generic "bias"
 
-### Assertion / Synthesis (10 marks): This is the highest-mark question
+### Assertion / Synthesis (Social Studies Q5 — 10 marks): This is the highest-mark question
 - L1 = simple agree/disagree without evidence
 - L2 = supports position with evidence from ONE source
 - L3 = cross-references BOTH/multiple sources
@@ -138,12 +138,12 @@ You MUST apply these rules BEFORE any LORMS evaluation. The quality gate in Step
 - Top band: Students must GROUP sources (supporting vs challenging), evaluate reliability of key sources, and reach a BALANCED final conclusion that directly answers the assertion.
 - Avoid: Listing sources one by one without synthesis. Students must compare and weigh evidence.
 
-### SRQ Essays (SS only — 7-8 marks): Evidence + Judgment structure expected
-- For SRQ (a) 7-mark: Recommendation/Strategy questions
+### SRQ (Social Studies Section B — Q6 = 7 marks, Q7 = 8 marks): Evidence + Judgment structure expected
+- For SRQ Q6 (7 marks): Recommendation/Strategy questions
   - Identify the issue and propose what should be done
   - Explain who should do it and why
   - Support with examples/evidence
-- For SRQ (b) 8-mark: Evaluation questions
+- For SRQ Q7 (8 marks): Evaluation questions
   - State your position clearly
   - Provide evidence/reasons for your position
   - Consider counter-arguments
@@ -153,7 +153,7 @@ You MUST apply these rules BEFORE any LORMS evaluation. The quality gate in Step
 - L3 = Multi-point argument with good evidence
 - L4 = Balanced evaluation with counter-arguments and substantiated judgment
 
-### SEQ Essays (History — 8 marks): PEEL structure expected
+### SEQ Essays (History Section B — 10 marks each, answer 2 of 3): PEEL structure expected
 - P: Point — clear factor/argument stated
 - E: Evidence — specific historical/contextual example
 - E: Explanation — how/why this factor matters (the "because" chain)
@@ -166,7 +166,7 @@ You MUST apply these rules BEFORE any LORMS evaluation. The quality gate in Step
 const EMPTY_SECTION_LABEL = '[This section was not submitted by the student — omit from grading.]';
 
 // ────────────────────────────────────────────────────────────────
-//  Singapore School Benchmark Standards
+// Singapore School Benchmark Standards
 // ────────────────────────────────────────────────────────────────
 
 const SCHOOL_BENCHMARK_DATA = `
@@ -211,11 +211,11 @@ Use the school name as a reference point when describing the expected quality.
 `;
 
 // ────────────────────────────────────────────────────────────────
-//  LORMS Matrices — Social Studies
+// LORMS Matrices — Social Studies
 // ────────────────────────────────────────────────────────────────
 
 const SS_COMPARISON_LORMS = `
-### LORMS MATRIX — SBQ: Comparison & Contrast (AO2) — Max 5 marks
+### LORMS MATRIX — SBQ: Comparison & Contrast (AO2) — typical 5–7 marks
 
 | Level | Descriptor | Marks |
 |-------|------------|-------|
@@ -229,18 +229,20 @@ L4 = two-sided WITH core message matching (not just surface features) AND precis
 `;
 
 const SS_INFERENCE_LORMS = `
-### LORMS MATRIX — SBQ: Inference / Message (AO2) — Max 2 marks
+### LORMS MATRIX — SBQ: Inference / Message (AO2) — typical 5–7 marks
 
 | Level | Descriptor | Marks |
 |-------|------------|-------|
 | L1 | Surface information identified from one source — must reference actual source content, not gibberish. | 1 |
-| L2 | Inferred message/purpose identified from BOTH sources — what the source implies or suggests beyond the surface | 2 |
+| L2 | Inferred meaning identified from ONE source, with supporting evidence — reads between the lines | 2–3 |
+| L3 | Inferred message/purpose identified from BOTH sources, with evidence from each | 4–5 |
+| L4 | Inferred message or attitude explained with precise evidence AND awareness of the author's perspective or context | 6–7 |
 
-**Key distinction:** L1 repeats what the source says. L2 reads between the lines — the author's message, purpose, or attitude.
+**Key distinction:** L1 repeats what the source says. L2–L4 read between the lines — the author's message, purpose, or attitude — with L4 also explaining why the author conveys it.
 `;
 
 const SS_PURPOSE_LORMS = `
-### LORMS MATRIX — SBQ: Purpose / Motive Evolution (AO2) — Max 4 marks
+### LORMS MATRIX — SBQ: Purpose / Motive Evolution (AO2) — typical 5–7 marks
 
 | Level | Descriptor | Marks |
 |-------|------------|-------|
@@ -252,7 +254,7 @@ const SS_PURPOSE_LORMS = `
 `;
 
 const SS_UTILITY_LORMS = `
-### LORMS MATRIX — SBQ: Utility & Reliability Limits (AO2) — Max 5 marks
+### LORMS MATRIX — SBQ: Utility & Reliability Limits (AO2) — typical 5–7 marks
 
 | Level | Descriptor | Marks |
 |-------|------------|-------|
@@ -265,7 +267,7 @@ const SS_UTILITY_LORMS = `
 `;
 
 const SS_SYNTHESIS_LORMS = `
-### LORMS MATRIX — SBQ: Synthesis / Assertion (AO2) — Max 5 marks
+### LORMS MATRIX — SBQ: Synthesis / Assertion (AO2) — Social Studies Q5 = 10 marks
 
 | Level | Descriptor | Marks |
 |-------|------------|-------|
@@ -289,22 +291,22 @@ const SS_SRQ_LORMS = `
 `;
 
 const SS_SEQ_LORMS = `
-### LORMS MATRIX — SEQ: Structured Essay Questions (AO1) — Max 8 marks
+### LORMS MATRIX — SEQ: Structured Essay Questions (AO1) — 10 marks
 
 | Level | Descriptor | Marks |
 |-------|------------|-------|
 | L1 | Descriptive answer — states facts without explanation. No clear structure. Must contain actual subject content to qualify. | 1–2 |
 | L2 | One-sided explanation — identifies ONE factor/reason with some supporting evidence. Basic PEEL attempt. | 3–4 |
-| L3 | Multi-factor explanation — identifies TWO or more factors with good evidence for each. Clear PEEL structure. | 5–6 |
-| L4 | Sophisticated balanced analysis — evaluates multiple factors, weighs their relative importance, reaches a substantiated conclusion. Mature PEEL throughout. | 7–8 |
+| L3 | Multi-factor explanation — identifies TWO or more factors with good evidence for each. Clear PEEL structure. | 5–7 |
+| L4 | Sophisticated balanced analysis — evaluates multiple factors, weighs their relative importance, reaches a substantiated conclusion. Mature PEEL throughout. | 8–10 |
 `;
 
 // ────────────────────────────────────────────────────────────────
-//  LORMS Matrices — Elective History
+// LORMS Matrices — Elective History
 // ────────────────────────────────────────────────────────────────
 
 const HIST_COMPARISON_LORMS = `
-### LORMS MATRIX — SBQ: Comparison & Contrast (AO3) — Max 5 marks
+### LORMS MATRIX — SBQ: Comparison & Contrast (AO3) — typical 5–8 marks
 
 | Level | Descriptor | Marks |
 |-------|------------|-------|
@@ -315,16 +317,18 @@ const HIST_COMPARISON_LORMS = `
 `;
 
 const HIST_INFERENCE_LORMS = `
-### LORMS MATRIX — SBQ: Inference / Message (AO3) — Max 2 marks
+### LORMS MATRIX — SBQ: Inference / Message (AO3) — typical 5–8 marks
 
 | Level | Descriptor | Marks |
 |-------|------------|-------|
 | L1 | Surface information from source — factual recall. Must reference actual source content, not gibberish. | 1 |
-| L2 | Inferred meaning — what the source reveals about the historical context, author's perspective, or underlying message | 2 |
+| L2 | Inferred meaning from ONE source with supporting evidence — what the source reveals about the historical context or author's perspective | 2–4 |
+| L3 | Inferred meaning from BOTH sources, supported by evidence from each | 5–6 |
+| L4 | Underlying message or stance explained with precise evidence AND an understanding of the historical context that shaped it | 7–8 |
 `;
 
 const HIST_RELIABILITY_LORMS = `
-### LORMS MATRIX — SBQ: Reliability & Cross-Referencing (AO3) — Max 5 marks
+### LORMS MATRIX — SBQ: Reliability & Cross-Referencing (AO3) — typical 5–8 marks
 
 | Level | Descriptor | Marks |
 |-------|------------|-------|
@@ -335,7 +339,7 @@ const HIST_RELIABILITY_LORMS = `
 `;
 
 const HIST_UTILITY_LORMS = `
-### LORMS MATRIX — SBQ: Evaluation of Utility (AO3) — Max 5 marks
+### LORMS MATRIX — SBQ: Evaluation of Utility (AO3) — typical 5–8 marks
 
 | Level | Descriptor | Marks |
 |-------|------------|-------|
@@ -346,7 +350,7 @@ const HIST_UTILITY_LORMS = `
 `;
 
 const HIST_PURPOSE_LORMS = `
-### LORMS MATRIX — SBQ: Target Purpose Analysis (AO3) — Max 4 marks
+### LORMS MATRIX — SBQ: Target Purpose Analysis (AO3) — typical 5–8 marks
 
 | Level | Descriptor | Marks |
 |-------|------------|-------|
@@ -357,18 +361,18 @@ const HIST_PURPOSE_LORMS = `
 `;
 
 const HIST_SEQ_LORMS = `
-### LORMS MATRIX — SEQ: Factor Prioritization (AO1/AO2) — Max 8 marks
+### LORMS MATRIX — SEQ: Factor Prioritization (AO1/AO2) — 10 marks
 
 | Level | Descriptor | Marks |
 |-------|------------|-------|
 | L1 | Mentions factors without explanation — narrative/descriptive. Must contain actual historical content. | 1–2 |
 | L2 | Explains ONE factor with some historical evidence | 3–4 |
-| L3 | Explains TWO or MORE factors with specific historical evidence for each | 5–6 |
-| L4 | Evaluates and prioritises factors — weighs relative importance, reaches a substantiated judgment on which factor was MOST significant | 7–8 |
+| L3 | Explains TWO or MORE factors with specific historical evidence for each | 5–7 |
+| L4 | Evaluates and prioritises factors — weighs relative importance, reaches a substantiated judgment on which factor was MOST significant | 8–10 |
 `;
 
 // ────────────────────────────────────────────────────────────────
-//  Few-Shot Examples
+// Few-Shot Examples
 // ────────────────────────────────────────────────────────────────
 
 export interface FewShotExample {
@@ -513,7 +517,7 @@ const SS_SRQ_EXAMPLES: FewShotExample[] = [
 
 
 // ────────────────────────────────────────────────────────────────
-//  Few-Shot Examples — Elective History (AO3)
+// Few-Shot Examples — Elective History (AO3)
 // ────────────────────────────────────────────────────────────────
 
 const HIST_COMPARISON_EXAMPLES: FewShotExample[] = [
@@ -919,7 +923,7 @@ const HIST_RELIABILITY_EXAMPLES: FewShotExample[] = [
 ];
 
 // ────────────────────────────────────────────────────────────────
-//  Generation Prompts (skill-track-aware question authoring)
+// Generation Prompts (skill-track-aware question authoring)
 // ────────────────────────────────────────────────────────────────
 
 const ALL_FORMATS_INSTRUCTIONS = `
@@ -953,10 +957,10 @@ For Social Studies: Choose a scenario related to one of the three issues (Citize
 For History: Choose a scenario related to the selected case study topic.
 
 ============================================
-=== SECTION A: SOURCES (Generate exactly 6 sources) ===
+=== SECTION A: SOURCES (up to 6 sources) ===
 ============================================
 
-Generate between 2-5 sources (labelled Source 1 through Source N, where N is the requested source count), each with:
+Generate the requested number of sources (2–6). Label them sequentially **Source A, Source B, …** in both subjects. Each source needs:
 - A distinct, realistic provenance (date, author, publication/context — be specific)
 - Substantive content (at least 60 characters each)
 - Different source types: e.g., speech extract, newspaper article, interview transcript, government report, cartoon/poster description, diary entry, statistical table, photograph description, propaganda leaflet
@@ -964,24 +968,36 @@ Generate between 2-5 sources (labelled Source 1 through Source N, where N is the
 - Provenance should vary enough that reliability and purpose can be meaningfully assessed
 
 =====================================================
-=== SECTION B: QUESTIONS — Part (a) to Part (e) ===
+=== SECTION A: SOURCE-BASED QUESTIONS ===
 =====================================================
 
-Generate exactly 5 sub-questions labelled Part (a) through Part (e). Each must test a DIFFERENT source-based skill:
+Generate 5 source-based questions, each testing a DIFFERENT source-based skill:
 
-- **Part (a) — INFERENCE / MESSAGE (2 marks):** Ask what can be inferred from one or two specific sources. The answer requires reading BETWEEN the lines, not just lifting surface facts. Use phrasing like "What can you infer from Source X about...?" or "What message does Source X convey about...?"
+- **Part (a) — INFERENCE / MESSAGE:** Ask what can be inferred from one or two specific sources. The answer requires reading BETWEEN the lines, not just lifting surface facts. Use phrasing like "What can you infer from Source X about...?" or "What message does Source X convey about...?"
 
-- **Part (b) — COMPARISON (5 marks):** Ask how two specific sources compare — similarity AND/OR difference. Use phrasing like "How does Source X differ from Source Y in its view of...?" or "To what extent do Sources X and Y agree about...?"
+- **Part (b) — COMPARISON:** Ask how two specific sources compare — similarity AND/OR difference. Use phrasing like "How does Source X differ from Source Y in its view of...?" or "To what extent do Sources X and Y agree about...?"
 
-- **Part (c) — PURPOSE (4 marks):** Ask about the purpose, motive, or intended effect of one or two sources. Use phrasing like "What is the purpose of Source X? Explain your answer." or "Why did the author of Source X produce this source?"
+- **Part (c) — PURPOSE:** Ask about the purpose, motive, or intended effect of one or two sources. Use phrasing like "What is the purpose of Source X? Explain your answer." or "Why did the author of Source X produce this source?"
 
-- **Part (d) — RELIABILITY (5 marks):** Ask about reliability, utility, or trustworthiness of one or two sources, considering provenance, content, cross-referencing. Use phrasing like "How reliable is Source X as evidence of...?" or "Assess the usefulness of Source X for understanding..."
+- **Part (d) — RELIABILITY:** Ask about reliability, utility, or trustworthiness of one or two sources, considering provenance, content, cross-referencing. Use phrasing like "How reliable is Source X as evidence of...?" or "Assess the usefulness of Source X for understanding..."
 
-- **Part (e) — ASSERTION / SYNTHESIS (10 marks):** Ask students to evaluate a given assertion using ALL sources. This is the highest-mark question. Use phrasing like "Study all sources. To what extent do these sources support the assertion that...?" or "Using all sources, evaluate the claim that..." The question should demand a balanced, cross-referenced argument.
+- **Part (e) — ASSERTION / SYNTHESIS (highest-mark question):** Ask students to evaluate a given assertion using ALL sources. This is the highest-mark question. Use phrasing like "Study all sources. To what extent do these sources support the assertion that...?" or "Using all sources, evaluate the claim that..." The question should demand a balanced, cross-referenced argument.
 
-Mark allocation for Part A-E: (a) Inference = 2 marks, (b) Comparison = 5 marks, (c) Purpose = 4 marks, (d) Reliability = 5 marks, (e) Assertion = 10 marks. Match your difficulty level accordingly.
+CRITICAL - numbering and marks differ by subject. Follow the pattern for the subject you are generating for:
 
-Each question should reference specific source numbers (e.g., "Source 1", "Sources 3 and 4", "all sources") so the student knows which sources to use.
+**SOCIAL STUDIES (Section A = 35 marks):**
+Number the questions Q1, Q2, Q3, Q4, Q5 - NOT (a)-(e).
+- Q1-Q4 together carry 25 marks: use four whole-number marks between 5 and 7 (e.g. 6, 7, 6, 6). Never below 5 or above 7.
+- Q5 carries exactly 10 marks and MUST require multiple sources and consideration of the issue from a DIFFERENT PERSPECTIVE.
+- Put the mark in square brackets at the end, e.g. "What is the message of this cartoon? Explain your answer. [6]".
+
+**HISTORY - Elective or Pure (Section A = 30 marks):**
+Number the questions Q1(a), Q1(b), Q1(c), Q1(d), Q1(e) - NOT Q1-Q5.
+- The five parts must sum to exactly 30 marks; use a realistic spread such as (a) 6, (b) 5, (c) 6, (d) 5, (e) 8.
+- Part (e) must use ALL sources for an assertion/judgement.
+- Put the mark in square brackets at the end, e.g. "Why was this cartoon published in June 1950? Explain your answer. [5]".
+
+Each question should reference specific sources by letter (e.g., "Source A", "Sources C and D", "all sources") so the student knows which sources to use.
 
 IMPORTANT: Do NOT write the actual answer text in the question prompt. The question should be a question, not an answer.
 
@@ -992,11 +1008,11 @@ IMPORTANT: Do NOT write the actual answer text in the question prompt. The quest
 ### For Social Studies ONLY (after the 5 SBQ questions):
 Provide a separate SRQ (Structured Response Question) section for Section B of the Social Studies paper. This section MUST include:
 1. A short **background context paragraph** (2-3 sentences introducing a scenario or issue related to the topic)
-2. **SRQ Question (a)** — A 7-mark "recommendation/strategy" question asking what should be done, by whom, and why (e.g., "What can be done to address...?" or "How effective are current strategies in...?")
-3. **SRQ Question (b)** — An 8-mark "evaluation" question asking students to weigh factors, make a judgment, or evaluate a statement (e.g., "To what extent is...?" or "Evaluate the view that...")
+2. **SRQ Question 6 (7 marks)** — a "recommendation/strategy" question asking what should be done, by whom, and why, with multiple strategies and a Singapore context (e.g., "What can be done to address...?" or "How effective are current strategies in...?")
+3. **SRQ Question 7 (8 marks)** — an "evaluation" question asking students to weigh factors, make a judgment, or evaluate a statement (e.g., "To what extent is...?" or "Evaluate the view that...")
 
 ### For Elective History ONLY (after the 5 SBQ questions):
-Provide 3 separate SEQ (Structured Essay Question) essay prompts as Section B of the History paper. Each must:
+Provide 3 separate SEQ (Structured Essay Question) essay prompts as Section B of the History paper, worth 10 marks each (candidates answer 2 of 3). Each must:
 - Be a pure essay question (no stimulus materials — tests content knowledge)
 - Require explanation, analysis, and evaluation of historical events/themes
 - Be answerable in a structured essay (PEEL format, factor-based)
@@ -1015,7 +1031,7 @@ Provide 3 separate SEQ (Structured Essay Question) essay prompts as Section B of
 
 Follow these steps in order when generating the model answer (a1Upgrade):
 
-Step 1 — Identify the question type and target LORMS level: Is this a Comparison, Reliability, Purpose, Utility, Inference, SRQ, or SEQ question? Each question type has a different structure requirement (see LORMS matrices above). The model answer should target L4/L5 (top-tier) standard.
+Step 1 — Identify the question type and target LORMS level: Is this a Comparison, Reliability, Purpose, Utility, Inference question, a Social Studies SRQ (7 or 8 marks), or a History SEQ essay (10 marks)? Each question type has a different structure requirement (see LORMS matrices above). The model answer should target L4/L5 (top-tier) standard.
 
 Step 2 — Identify the provenance elements: For SBQ questions, identify the author, date, type, audience, and purpose of EACH source you must reference. These provenance elements must be woven into the model answer.
 
@@ -1056,7 +1072,7 @@ You MUST provide a comprehensive A1-grade suggested answer that reads EXACTLY li
 2. **Conciseness**: MOE model answers are TIGHT. Aim for 3-5 sentences per paragraph, not 6-8. Every sentence must add analytical value.
 3. **Precision over verbosity**: Use specific phrases like "Source X reveals...", "This implies...", "In contrast...", "This is significant because...". Avoid: "This disparity is significant" (vague). Instead: "This contrast matters because it reveals the fundamental tension between X and Y."
 4. **Exact rubric language — MUST include LORMS level labels**: You MUST include the exact LORMS rubric terminology AND level label in EVERY answer. For example: "L4 Message (4-5m): The message is that..." or "L5 Will not work based on Perspective (7m): The resident would not..." DO NOT just describe the analysis — LABEL the LORMS level explicitly like the real school model answers do. E.g., for comparison, say "core message matching" explicitly and label the level: "L4 — Similarity AND Difference with core message matching."
-5. **Direct quotes — DOUBLE QUOTATION MARKS ONLY ("...")**: You MUST include at least ONE direct quote from the source in EVERY paragraph. ALL direct quotes MUST be enclosed in **double quotation marks** ("..."). ⚠️ NEVER use single quotes ('...') for source quotations — only double quotes are acceptable. E.g., Source 1 states that "the subsidy covers 80% of outpatient costs." Generic paraphrasing without quoted evidence is NOT acceptable for an L4 model answer.
+5. **Direct quotes — DOUBLE QUOTATION MARKS ONLY ("...")**: You MUST include at least ONE direct quote from the source in EVERY paragraph. ALL direct quotes MUST be enclosed in **double quotation marks** ("..."). NEVER use single quotes ('...') for source quotations — only double quotes are acceptable. E.g., Source 1 states that "the subsidy covers 80% of outpatient costs." Generic paraphrasing without quoted evidence is NOT acceptable for an L4 model answer.
 6. **Cross-referencing — MANDATORY for Part (b) and Part (e)**: For comparison and assertion questions, you MUST explicitly compare sources using contrastive language: "whereas", "in contrast", "Source X reveals... while Source Y...", "on the other hand", "similarly". Describing sources separately ("Source A says... Source B says...") is NOT cross-referencing and does NOT meet L3+
 7. **Conclusion/evaluation — MANDATORY for every Part**: Each Part's model answer MUST end with a concluding/evaluative sentence (introduced by "Therefore:", "Thus:", "Hence:", "In conclusion:", "As such:", or similar transition) that provides an evaluative judgment. E.g., "Therefore, this contrast reveals that the government's policy was driven by electoral rather than economic considerations." Answers that end without a conclusion will be marked DOWN.
 8. **No padding**: Do NOT start with "The government's support for businesses, as presented in Source A and Source B, reveals a complex dynamic..." This is filler. Start DIRECTLY with the analysis.
@@ -1197,7 +1213,7 @@ The suggested answer should reflect the depth, sophistication, and evaluative th
  */
 export function getGenerateSystemPrompt70B(subject: string, topic: string, questionType: string): string {
   const base = getGenerateSystemPrompt(subject, topic, questionType);
-  const modelAnswers = getModelAnswerExamples(subject === 'History' ? 'History' : 'Social Studies');
+  const modelAnswers = getModelAnswerExamples(subject === 'Social Studies' ? 'Social Studies' : 'History');
 
   // Note: ALL_FORMATS_INSTRUCTIONS is NOT appended here because
   // getGenerationSourceRules() (called inside getGenerateSystemPrompt)
@@ -1218,18 +1234,21 @@ precision, and formatting shown in these examples. Use the exact LORMS level lab
 }
 
 function getSubjectLabel(subject: string): string {
-  return subject === 'Elective History' ? 'Elective History' : 'Social Studies';
+  return subject === 'Social Studies' ? 'Social Studies' : subject;
 }
 
 function getAssessmentObjectives(subject: string): string {
-  return subject === 'Elective History'
-    ? 'AO1 (Knowledge), AO2 (Explanation/Analysis), AO3 (Source Skills)'
-    : 'AO1 (Knowledge), AO2 (Source-Based Skills)';
+  if (subject === 'Social Studies') {
+    // Section A (SBCS) assesses AO1 + AO2; Section B (SRQ) assesses AO1 + AO3.
+    return 'AO1 (Knowledge and Understanding), AO2 (Source-Based Skills), AO3 (Structured-Response / Explanation Skills)';
+  }
+  // History (Elective and Pure) — Section A (SBCS) assesses AO1 + AO3; essays assess AO1 + AO2.
+  return 'AO1 (Knowledge and Understanding), AO2 (Explanation and Analysis), AO3 (Source-Based Skills)';
 }
 
 function getLormsMatrix(questionType: string, subject: string): string {
   const type = questionType.toLowerCase();
-  const isHistory = subject === 'Elective History';
+  const isHistory = subject !== 'Social Studies';
 
   if (isHistory) {
     if (type.includes('comparison') || type.includes('contrast')) return HIST_COMPARISON_LORMS;
@@ -1262,7 +1281,7 @@ function getFewShotExamples(questionType: string, subject: string): FewShotExamp
 
   let skillExamples: FewShotExample[];
 
-  if (subject === 'Elective History') {
+  if (subject !== 'Social Studies') {
     if (type.includes('comparison') || type.includes('contrast')) skillExamples = HIST_COMPARISON_EXAMPLES;
     else if (type.includes('inference') || type.includes('message')) skillExamples = HIST_INFERENCE_EXAMPLES;
     else if (type.includes('reliability') || type.includes('cross-ref')) skillExamples = HIST_RELIABILITY_EXAMPLES;
@@ -1328,13 +1347,13 @@ ${ex.studentAnswer}
 }
 
 // ────────────────────────────────────────────────────────────────
-//  Public API
+// Public API
 // ────────────────────────────────────────────────────────────────
 
 export interface GradePromptInput {
   questionType: string;
   subject: string;
-  activeSections: string[];  // ['sbcs', 'seq', 'srq'] — only what was submitted
+  activeSections: string[]; // ['sbcs', 'seq', 'srq'] — only what was submitted
 }
 
 export function getGradeSystemPrompt(input: GradePromptInput): string {
@@ -1363,6 +1382,19 @@ The student submitted the following sections:
 Only grade the sections the student actually submitted. Ignore any section labelled "[This section was not submitted...]".
 
 ## APPLICABLE LORMS RUBRIC
+
+## MARK SCALING — READ FIRST
+
+Every question in this paper prints its own maximum in square brackets, e.g. "[6]" or "[10]".
+The LORMS matrices below describe the BANDS (level descriptors) and illustrate mark ranges for a
+typical question of that type. You MUST award marks against the question's OWN printed maximum:
+
+- Map the band the response earns onto the question's printed maximum — the top band takes the full
+marks shown on the question, and lower bands take the proportionate share.
+- NEVER cap a response at the illustrative maximum in a matrix. A 10-mark assertion question can
+score 10; a 6-mark comparison question can score 6.
+- Sanity check before returning: "scoreMarks" must be ≤ "scoreMaxMarks", and "scoreMaxMarks" must
+equal the maximum printed on the question (or the sum of the section maxima for a full paper).
 
 ${lorms}
 

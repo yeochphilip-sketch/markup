@@ -34,6 +34,19 @@ export default function StudyGroupPanel({ userId, isOpen, onClose }: StudyGroupP
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
 
+  const fetchLeaderboard = useCallback(async (groupId: string) => {
+    try {
+      const res = await fetch(`/api/study-groups?groupId=${groupId}&userId=${userId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setLeaderboard(data.leaderboard ?? []);
+        setSelectedGroup(data.group);
+      }
+    } catch {
+      // silent
+    }
+  }, [userId]);
+
   // Fetch user's groups on open
   const fetchMyGroups = useCallback(async () => {
     setLoading(true);
@@ -56,20 +69,7 @@ export default function StudyGroupPanel({ userId, isOpen, onClose }: StudyGroupP
     } finally {
       setLoading(false);
     }
-  }, [userId]);
-
-  const fetchLeaderboard = async (groupId: string) => {
-    try {
-      const res = await fetch(`/api/study-groups?groupId=${groupId}&userId=${userId}`);
-      if (res.ok) {
-        const data = await res.json();
-        setLeaderboard(data.leaderboard ?? []);
-        setSelectedGroup(data.group);
-      }
-    } catch {
-      // silent
-    }
-  };
+  }, [userId, fetchLeaderboard]);
 
   const handleCreate = async () => {
     if (!groupName.trim()) return;
@@ -138,7 +138,7 @@ export default function StudyGroupPanel({ userId, isOpen, onClose }: StudyGroupP
       >
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-sm font-black tracking-widest text-slate-300 uppercase">👥 Study Groups</h2>
+          <h2 className="text-sm font-black tracking-widest text-slate-300 uppercase">Study Groups</h2>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-white hover:bg-slate-900 transition text-sm font-bold">✕</button>
         </div>
 
@@ -152,7 +152,7 @@ export default function StudyGroupPanel({ userId, isOpen, onClose }: StudyGroupP
                 tab === t ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              {t === 'leaderboard' ? '🏆 Leaderboard' : t === 'create' ? '✨ Create' : '🔗 Join'}
+              {t === 'leaderboard' ? 'Leaderboard' : t === 'create' ? 'Create' : 'Join'}
             </button>
           ))}
         </div>
@@ -190,7 +190,7 @@ export default function StudyGroupPanel({ userId, isOpen, onClose }: StudyGroupP
               disabled={loading || !groupName.trim()}
               className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-2.5 rounded-xl transition disabled:opacity-50"
             >
-              {loading ? 'Creating...' : '✨ Create Group'}
+              {loading ? 'Creating...' : 'Create Group'}
             </button>
           </div>
         )}
@@ -213,7 +213,7 @@ export default function StudyGroupPanel({ userId, isOpen, onClose }: StudyGroupP
               disabled={loading || joinCodeInput.trim().length < 4}
               className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-2.5 rounded-xl transition disabled:opacity-50"
             >
-              {loading ? 'Joining...' : '🔗 Join Group'}
+              {loading ? 'Joining...' : 'Join Group'}
             </button>
           </div>
         )}
@@ -245,7 +245,7 @@ export default function StudyGroupPanel({ userId, isOpen, onClose }: StudyGroupP
               </div>
             ) : myGroups.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-[11px] text-slate-600 font-mono mb-2">You're not in any study groups yet.</p>
+                <p className="text-[11px] text-slate-600 font-mono mb-2">You&apos;re not in any study groups yet.</p>
                 <p className="text-[10px] text-slate-500">
                   Create one or join with a code from your classmates!
                 </p>
@@ -268,7 +268,7 @@ export default function StudyGroupPanel({ userId, isOpen, onClose }: StudyGroupP
                       }}
                       className="text-[9px] font-bold text-indigo-400 hover:text-indigo-300 bg-slate-800 px-2 py-1 rounded-lg transition"
                     >
-                      📋 Copy Code
+                      Copy Code
                     </button>
                   )}
                 </div>
@@ -299,13 +299,13 @@ export default function StudyGroupPanel({ userId, isOpen, onClose }: StudyGroupP
                                 : 'text-slate-600'
                             }`}
                           >
-                            {entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : `#${entry.rank}`}
+                            {entry.rank === 1 ? '1st' : entry.rank === 2 ? '2nd' : entry.rank === 3 ? '3rd' : `#${entry.rank}`}
                           </span>
                           <span className={`text-xs font-medium ${entry.isMe ? 'text-indigo-300 font-bold' : 'text-slate-400'}`}>
                             {entry.isMe ? 'You' : entry.level}
                           </span>
                           {entry.streak >= 3 && (
-                            <span className="text-[9px]">🔥</span>
+                            <span className="text-[9px]">Streak</span>
                           )}
                         </div>
                         <div className="flex items-center gap-3">

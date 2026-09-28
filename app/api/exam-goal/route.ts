@@ -10,10 +10,12 @@ import { getServerSupabase } from '@/lib/supabase-server';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { userId, subject, goalLevel } = body as {
+    const { userId, subject, goalLevel, historyTrack } = body as {
       userId: string;
       subject: 'ss' | 'history';
-      goalLevel: string;
+      goalLevel: string | null;
+      /** 'Elective History' | 'Pure History' | null (takes no History). */
+      historyTrack?: string | null;
     };
 
     if (!userId || !subject) {
@@ -38,8 +40,12 @@ export async function POST(request: Request) {
       if (subject === 'ss') {
         updateData.ss_goal_level = goalLevel || null;
       } else if (subject === 'history') {
+        // takes_history follows the track, not the goal: a student who takes
+        // History but has not set a target grade still takes History.
+        const track = historyTrack ?? null;
         updateData.history_goal_level = goalLevel || null;
-        updateData.takes_history = !!goalLevel;
+        updateData.history_track = track;
+        updateData.takes_history = !!track;
       }
 
       const { error } = await client

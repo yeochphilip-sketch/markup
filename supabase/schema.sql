@@ -66,7 +66,6 @@ CREATE POLICY "Allow admins to read all profiles"
     ON public.user_profiles FOR SELECT
     USING (
         auth.jwt() -> 'app_metadata' ->> 'is_admin' = 'true'
-        OR auth.jwt() -> 'user_metadata' ->> 'is_admin' = 'true'
     );
 
 -- ============================================================
@@ -129,6 +128,11 @@ CREATE POLICY "Allow owner insert essay_evaluations"
 CREATE POLICY "Allow owner read essay_evaluations"
     ON public.essay_evaluations FOR SELECT
     USING (auth.uid() = user_id OR user_id IS NULL);
+CREATE POLICY "Allow admin read essay_evaluations"
+    ON public.essay_evaluations FOR SELECT
+    USING (
+        auth.jwt() -> 'app_metadata' ->> 'is_admin' = 'true'
+    );
 
 -- ============================================================
 -- 4. practice_history  (sidebar list of past papers)
@@ -194,8 +198,13 @@ CREATE TABLE public.user_skill_metrics (
     exam_date           DATE,
     ss_goal_level       TEXT,
     history_goal_level  TEXT,
-    takes_history       BOOLEAN DEFAULT FALSE
-);
+    history_track       TEXT,                     -- 'Elective History' | 'Pure History' | NULL
+    takes_history       BOOLEAN DEFAULT FALSE,    -- Beta trial gate (server-side try counter)
+    trial_tries_used    INTEGER DEFAULT 0,
+    trial_unlocked_until TIMESTAMP WITH TIME ZONE,
+    -- Free days banked from referrals, consumed at the next unlock
+    referral_bonus_days  INTEGER DEFAULT 0
+  );
 
 ALTER TABLE public.user_skill_metrics ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow owner read user_skill_metrics"
@@ -207,6 +216,11 @@ CREATE POLICY "Allow owner upsert user_skill_metrics"
 CREATE POLICY "Allow owner update user_skill_metrics"
     ON public.user_skill_metrics FOR UPDATE
     USING (auth.uid() = user_id);
+CREATE POLICY "Allow admin read user_skill_metrics"
+    ON public.user_skill_metrics FOR SELECT
+    USING (
+        auth.jwt() -> 'app_metadata' ->> 'is_admin' = 'true'
+    );
 
 -- ============================================================
 -- 6. user_feedback  (feedback modal submissions)
@@ -231,7 +245,6 @@ CREATE POLICY "Allow admin read user_feedback"
     ON public.user_feedback FOR SELECT
     USING (
         auth.jwt() -> 'app_metadata' ->> 'is_admin' = 'true'
-        OR auth.jwt() -> 'user_metadata' ->> 'is_admin' = 'true'
     );
 
 -- ============================================================

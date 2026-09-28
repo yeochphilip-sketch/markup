@@ -53,7 +53,30 @@ interface SkillMetricsRow {
   total_xp_decayed: number;
   ss_goal_level: string | null;
   history_goal_level: string | null;
+  /** 'Elective History' | 'Pure History' | null. Added by delta_migration.sql. */
+  history_track: string | null;
   takes_history: boolean;
+  trial_tries_used: number;
+  trial_unlocked_until: string | null;
+  /** Computed at fetch time (unlock is a rare event, so a stale flag is fine) */
+  unlocked: boolean;
+}
+
+interface GroqUsage {
+  provider: string;
+  model: string;
+  probedAt: string;
+  probeStatus: number;
+  probeError: string | null;
+  tpm: { limit: number | null; used: number | null; remaining: number | null };
+  rpd: { limit: number | null; used: number | null; remaining: number | null };
+  /** Live daily-token usage — only present once Groq refused a request (429) */
+  dailyTokens: { limit: number; used: number } | null;
+  activity: {
+    gradesToday: number;
+    generationsToday: number;
+    estimatedDailyTokens: number;
+  };
 }
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -150,6 +173,64 @@ function DailyBarChart({
   );
 }
 
+// ── Quota gauge mini component ──────────────────────────────
+
+function QuotaGauge({
+  label,
+  used,
+  limit,
+  unit,
+  accent,
+}: {
+  label: string;
+  used: number | null;
+  limit: number | null;
+  unit: string;
+  accent: string;
+}) {
+  const pct =
+    used !== null && limit !== null && limit > 0
+      ? Math.min(100, Math.max(0, (used / limit) * 100))
+      : null;
+  const barColor =
+    pct === null
+      ? 'bg-slate-700/40'
+      : pct >= 90
+        ? 'bg-rose-500'
+        : pct >= 70
+          ? 'bg-amber-500'
+          : accent;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+          {label}
+        </span>
+        <span className="text-[10px] font-mono text-slate-300">
+          {used !== null && limit !== null
+            ? `${used.toLocaleString()} / ${limit.toLocaleString()} ${unit}`
+            : '—'}
+        </span>
+      </div>
+      <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full ${barColor} transition-all duration-700`}
+          style={{ width: `${pct ?? 0}%` }}
+        />
+      </div>
+      <div className="mt-1 flex justify-between text-[9px] font-mono text-slate-600">
+        <span>{pct !== null ? `${Math.round(pct)}% used` : 'unavailable'}</span>
+        {used !== null && limit !== null && limit - used > 0 && (
+          <span className="text-emerald-500/70">
+            {(limit - used).toLocaleString()} left
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Main dashboard component ─────────────────────────────────
 
 function AnalyticsDashboardContent() {
@@ -174,6 +255,8 @@ function AnalyticsDashboardContent() {
   const [testimonialSearch, setTestimonialSearch] = useState('');
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [groqUsage, setGroqUsage] = useState<GroqUsage | null>(null);
+  const [loadingGroq, setLoadingGroq] = useState(true);
 
   const fetchAllData = useCallback(async () => {
     setLoading(true);
@@ -185,9 +268,9 @@ function AnalyticsDashboardContent() {
       const { data: sessionData } = await supabase.auth.getSession();
       const user = sessionData.session?.user;
 
+      // app_metadata only — user_metadata is end-user-editable.
       const adminFlag =
         user?.app_metadata?.is_admin === true ||
-        user?.user_metadata?.is_admin === true ||
         user?.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL;
 
       if (!user || !adminFlag) {
@@ -225,14 +308,41 @@ function AnalyticsDashboardContent() {
         setLoadingWaitlist(false);
       }
 
-      // Fetch skill metrics for gamification stats
+      // Fetch skill metrics for gamification + trial funnel stats
+      // Both of these arrive together with delta_migration.sql.
+      const MIGRATION_COLUMNS = 'trial_tries_used, trial_unlocked_until, history_track';
+      const BASE_METRIC_COLUMNS = 'user_id, total_xp, level_title, current_streak, longest_streak, achievements, total_evaluations, total_xp_decayed, ss_goal_level, history_goal_level, takes_history';
       try {
-        const { data, error } = await supabase
+        // Try with the migration columns first
+        let { data, error } = await supabase
           .from('user_skill_metrics')
-          .select('user_id, total_xp, level_title, current_streak, longest_streak, achievements, total_evaluations, total_xp_decayed, ss_goal_level, history_goal_level, takes_history');
+          .select(`${BASE_METRIC_COLUMNS}, ${MIGRATION_COLUMNS}`);
+
+        if (error) {
+          // Pre-migration fallback: those columns don't exist yet — fetch without them
+          const fallback = await supabase
+            .from('user_skill_metrics')
+            .select(BASE_METRIC_COLUMNS);
+          data = fallback.data as SkillMetricsRow[] | null;
+          error = fallback.error;
+        }
 
         if (error) throw error;
-        if (data) setSkillMetrics(data as SkillMetricsRow[]);
+        if (data) {
+          // Compute the unlock flag once at fetch time (keeps render pure)
+          const now = Date.now();
+          setSkillMetrics(data.map(m => ({
+            ...m,
+            trial_tries_used: (m as { trial_tries_used?: number }).trial_tries_used ?? 0,
+            trial_unlocked_until: (m as { trial_unlocked_until?: string | null }).trial_unlocked_until ?? null,
+            // Rows written before the Elective/Pure split only carry the boolean;
+            // back then Elective History was the only option offered.
+            history_track:
+              (m as { history_track?: string | null }).history_track ??
+              (m.takes_history ? 'Elective History' : null),
+            unlocked: !!m.trial_unlocked_until && new Date(m.trial_unlocked_until).getTime() > now,
+          })));
+        }
       } catch (err) {
         console.error('Error fetching skill metrics:', err);
       } finally {
@@ -283,6 +393,21 @@ function AnalyticsDashboardContent() {
     } finally {
       setLoadingTestimonials(false);
     }
+
+    // Fetch Groq AI quota (admin-only endpoint — probe reads rate-limit headers)
+    try {
+      const res = await fetch('/api/admin/groq-usage', { cache: 'no-store' });
+      if (res.ok) {
+        setGroqUsage(await res.json());
+      } else {
+        setGroqUsage(null);
+      }
+    } catch (err) {
+      console.error('Error fetching groq usage:', err);
+      setGroqUsage(null);
+    } finally {
+      setLoadingGroq(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -290,9 +415,9 @@ function AnalyticsDashboardContent() {
       const { data: sessionData } = await supabase.auth.getSession();
       const user = sessionData.session?.user;
 
+      // app_metadata only — user_metadata is end-user-editable.
       const adminFlag =
         user?.app_metadata?.is_admin === true ||
-        user?.user_metadata?.is_admin === true ||
         user?.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL;
 
       if (!user || !adminFlag) {
@@ -366,7 +491,7 @@ function AnalyticsDashboardContent() {
   /** Extract the rating label from the first line (e.g. "Amazing!") */
   const extractRatingLabel = (t: FeedbackRow): string => {
     const firstLine = t.description?.split('\n')[0] ?? '';
-    // Match: ⭐ 5/5 — Amazing!  OR  ⭐5/5—Amazing!
+    // Match: 5/5 — Amazing! OR 5/5—Amazing!
     const match = firstLine.match(/—\s*(.+)$/);
     return match ? match[1].trim() : '';
   };
@@ -419,12 +544,13 @@ function AnalyticsDashboardContent() {
     [skillMetrics],
   );
 
-  // Per-subject goal analytics
+  // Per-subject goal analytics — Elective and Pure History are tracked separately
   const subjectSplit = useMemo(() => {
     const total = skillMetrics.length;
-    const takesHistory = skillMetrics.filter(m => m.takes_history).length;
-    const ssOnly = total - takesHistory;
-    return { total, takesHistory, ssOnly };
+    const elective = skillMetrics.filter(m => m.history_track === 'Elective History').length;
+    const pure = skillMetrics.filter(m => m.history_track === 'Pure History').length;
+    const ssOnly = total - elective - pure;
+    return { total, ssOnly, elective, pure, takesHistory: elective + pure };
   }, [skillMetrics]);
 
   const ssGoalDistribution = useMemo(() => {
@@ -547,6 +673,14 @@ function AnalyticsDashboardContent() {
     return `${growth >= 0 ? '+' : ''}${growth.toFixed(1)}`;
   }, [waitlist]);
 
+  // Numeric view of the growth rate (handles '+∞' safely — NaN would silently break
+  // the colour/insight logic below).
+  const waitlistGrowthRateNum = useMemo(() => {
+    if (waitlistGrowthRate === '+∞') return Infinity;
+    const n = parseFloat(waitlistGrowthRate);
+    return Number.isFinite(n) ? n : 0;
+  }, [waitlistGrowthRate]);
+
   // Waitlist total signups last week
   const waitlistThisWeek = useMemo(() => {
     const weekAgo = new Date();
@@ -610,6 +744,56 @@ function AnalyticsDashboardContent() {
     [testimonials, testimonialSearch],
   );
 
+  // ── Beta trial funnel stats ──────────────────────────────
+  // `unlocked` is computed at fetch time, so these memos stay pure.
+  const trialUnlockedCount = useMemo(
+    () => skillMetrics.filter(m => m.unlocked).length,
+    [skillMetrics],
+  );
+
+  const trialAtLimitCount = useMemo(
+    () =>
+      skillMetrics.filter(m => !m.unlocked && (m.trial_tries_used || 0) >= 3).length,
+    [skillMetrics],
+  );
+
+  const trialAvgTries = useMemo(
+    () =>
+      skillMetrics.length > 0
+        ? (skillMetrics.reduce((sum, m) => sum + (m.trial_tries_used || 0), 0) / skillMetrics.length).toFixed(1)
+        : '0.0',
+    [skillMetrics],
+  );
+
+  const trialTriesDistribution = useMemo(() => {
+    const counts: Record<string, number> = { '0': 0, '1': 0, '2': 0, '3+': 0 };
+    skillMetrics.forEach(m => {
+      const t = m.trial_tries_used || 0;
+      if (t >= 3) counts['3+'] += 1;
+      else counts[String(t)] += 1;
+    });
+    return counts;
+  }, [skillMetrics]);
+
+  // Join trial state with user email/name for the funnel table
+  const trialRows = useMemo(() => {
+    const emailByUser = new Map(
+      profiles.map(p => [p.id, { email: p.email_address || '—', name: p.full_name || 'Unnamed' }]),
+    );
+    return skillMetrics
+      .map(m => {
+        const info = emailByUser.get(m.user_id) || { email: '—', name: '—' };
+        return {
+          ...m,
+          email: info.email,
+          name: info.name,
+          unlocked: m.unlocked,
+          unlockExpiry: m.trial_unlocked_until || null,
+        };
+      })
+      .sort((a, b) => (b.trial_tries_used || 0) - (a.trial_tries_used || 0));
+  }, [skillMetrics, profiles]);
+
   // ── Render ─────────────────────────────────────────────────
 
   if (!isAuthorized) {
@@ -638,7 +822,7 @@ function AnalyticsDashboardContent() {
               href="/admin/ambassadors"
               className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 px-3 py-2 rounded-lg transition flex items-center gap-1.5"
             >
-              🤝 Ambassadors
+              Ambassadors
             </a>
             <button
               onClick={handleRefresh}
@@ -659,6 +843,148 @@ function AnalyticsDashboardContent() {
           </button>
           </div>
         </div>
+
+        {/* ── Groq AI Quota ─────────────────────────────────── */}
+        {(() => {
+          const tpmPct =
+            groqUsage?.tpm.limit != null && groqUsage.tpm.used != null
+              ? (groqUsage.tpm.used / groqUsage.tpm.limit) * 100
+              : null;
+          const rpdPct =
+            groqUsage?.rpd.limit != null && groqUsage.rpd.used != null
+              ? (groqUsage.rpd.used / groqUsage.rpd.limit) * 100
+              : null;
+          const worstPct = Math.max(tpmPct ?? 0, rpdPct ?? 0);
+
+          let statusText = 'Healthy';
+          let statusBadge = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
+          if (!groqUsage) {
+            statusText = 'Unavailable';
+            statusBadge = 'bg-rose-500/10 text-rose-400 border-rose-500/30';
+          } else if (groqUsage.probeError) {
+            statusText = 'Unreachable';
+            statusBadge = 'bg-rose-500/10 text-rose-400 border-rose-500/30';
+          } else if (groqUsage.dailyTokens) {
+            statusText = 'Daily cap hit';
+            statusBadge = 'bg-rose-500/10 text-rose-400 border-rose-500/30';
+          } else if (worstPct >= 90) {
+            statusText = 'Critical';
+            statusBadge = 'bg-rose-500/10 text-rose-400 border-rose-500/30';
+          } else if (worstPct >= 70) {
+            statusText = 'Getting tight';
+            statusBadge = 'bg-amber-500/10 text-amber-400 border-amber-500/30';
+          }
+
+          const dailyLimit = groqUsage?.dailyTokens?.limit ?? null;
+          const dailyUsed = groqUsage?.dailyTokens?.used ?? null;
+
+          return (
+            <div className="bg-slate-950 border border-purple-500/20 rounded-2xl p-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+                <div className="flex items-center gap-3">
+ <h2 className="text-sm font-bold text-slate-200">Groq AI Quota</h2>
+                  <span className="text-[10px] text-slate-500 font-mono bg-slate-900 px-2 py-0.5 rounded-full">
+                    probe: {groqUsage?.model ?? '…'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${statusBadge}`}>
+                    {loadingGroq ? 'Checking…' : statusText}
+                  </span>
+                  <span className="text-[9px] font-mono text-slate-600">
+                    {groqUsage?.probedAt
+                      ? `updated ${new Date(groqUsage.probedAt).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit' })}`
+                      : ''}
+                  </span>
+                </div>
+              </div>
+
+              {loadingGroq ? (
+                <div className="flex items-center justify-center py-6">
+                  <LoadingSpinner size="sm" label="Probing Groq…" color="indigo" />
+                </div>
+              ) : !groqUsage ? (
+                <div className="py-6 text-center text-xs text-slate-500 font-mono">
+ Groq quota unavailable — check that the admin endpoint and GROQ_API_KEY are configured.
+                </div>
+              ) : groqUsage.probeError ? (
+                <div className="py-6 text-center text-xs text-slate-500 font-mono">
+ {groqUsage.probeError}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <QuotaGauge
+                    label="Tokens / min"
+                    used={groqUsage?.tpm.used ?? null}
+                    limit={groqUsage?.tpm.limit ?? null}
+                    unit="tok"
+                    accent="bg-purple-500"
+                  />
+                  <QuotaGauge
+                    label="Requests / day"
+                    used={groqUsage?.rpd.used ?? null}
+                    limit={groqUsage?.rpd.limit ?? null}
+                    unit="req"
+                    accent="bg-indigo-500"
+                  />
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                        Daily tokens
+                      </span>
+                      <span className="text-[10px] font-mono text-slate-300">
+                        {dailyUsed !== null && dailyLimit !== null
+                          ? `${dailyUsed.toLocaleString()} / ${dailyLimit.toLocaleString()} tok`
+                          : '—'}
+                      </span>
+                    </div>
+                    <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-700 ${
+                          dailyUsed !== null && dailyLimit !== null
+                            ? dailyUsed / dailyLimit >= 0.9
+                              ? 'bg-rose-500'
+                              : dailyUsed / dailyLimit >= 0.7
+                                ? 'bg-amber-500'
+                                : 'bg-emerald-500'
+                            : 'bg-slate-700/40'
+                        }`}
+                        style={{
+                          width: `${
+                            dailyUsed !== null && dailyLimit !== null
+                              ? Math.min(100, (dailyUsed / dailyLimit) * 100)
+                              : 0
+                          }%`,
+                        }}
+                      />
+                    </div>
+                    <div className="mt-1 flex justify-between text-[9px] font-mono text-slate-600">
+                      <span>
+                        {groqUsage?.dailyTokens
+                          ? 'live (from 429)'
+                          : 'est. from activity'}
+                      </span>
+                      <span>
+                        ~{((groqUsage?.activity.estimatedDailyTokens ?? 0) / 1000).toFixed(0)}k est.
+                      </span>
+                    </div>
+                    <p className="mt-1.5 text-[8px] font-mono text-slate-600">
+                      Exact daily usage appears here once Groq starts refusing requests (429).
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2 text-[9px] font-mono text-slate-500">
+                      <span className="bg-slate-900/50 px-2 py-1 rounded-md">
+ {groqUsage?.activity.gradesToday ?? 0} grades today
+                      </span>
+                      <span className="bg-slate-900/50 px-2 py-1 rounded-md">
+ {groqUsage?.activity.generationsToday ?? 0} generations today
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* ── Row 1: Core KPI tiles ────────────────────────── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -701,7 +1027,7 @@ function AnalyticsDashboardContent() {
                 <span className="flex items-center gap-1">
                   <span>{waitlistThisWeek} this week</span>
                   <span className={`text-[8px] ${
-                    waitlistGrowthRate.startsWith('+') ? 'text-emerald-400' : 'text-rose-400'
+                    waitlistGrowthRateNum > 0 ? 'text-emerald-400' : 'text-rose-400'
                   }`}>
                     ({waitlistGrowthRate}% vs last week)
                   </span>
@@ -767,7 +1093,7 @@ function AnalyticsDashboardContent() {
         <div className="bg-slate-950 border border-slate-900 rounded-2xl p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-              🎯 Subject Goals
+              Subject Goals
             </h3>
             <span className="text-[9px] text-slate-600 font-mono">
               {usersWithGoals} users with goals set
@@ -788,8 +1114,12 @@ function AnalyticsDashboardContent() {
                     <span className="text-xs font-black font-mono text-indigo-400">{subjectSplit.ssOnly}</span>
                   </div>
                   <div className="flex items-center justify-between bg-slate-900/40 rounded-lg px-3 py-2">
-                    <span className="text-[11px] text-slate-400">SS + History</span>
-                    <span className="text-xs font-black font-mono text-amber-400">{subjectSplit.takesHistory}</span>
+                    <span className="text-[11px] text-slate-400">SS + Elective History</span>
+                    <span className="text-xs font-black font-mono text-amber-400">{subjectSplit.elective}</span>
+                  </div>
+                  <div className="flex items-center justify-between bg-slate-900/40 rounded-lg px-3 py-2">
+                    <span className="text-[11px] text-slate-400">SS + Pure History</span>
+                    <span className="text-xs font-black font-mono text-emerald-400">{subjectSplit.pure}</span>
                   </div>
                   {/* Bar */}
                   {subjectSplit.total > 0 && (
@@ -800,7 +1130,11 @@ function AnalyticsDashboardContent() {
                       />
                       <div
                         className="h-full bg-amber-500/70 transition-all"
-                        style={{ width: `${((subjectSplit.takesHistory / subjectSplit.total) * 100)}%` }}
+                        style={{ width: `${((subjectSplit.elective / subjectSplit.total) * 100)}%` }}
+                      />
+                      <div
+                        className="h-full bg-emerald-500/70 transition-all"
+                        style={{ width: `${((subjectSplit.pure / subjectSplit.total) * 100)}%` }}
                       />
                     </div>
                   )}
@@ -925,7 +1259,7 @@ function AnalyticsDashboardContent() {
           <div className="bg-slate-950 border border-amber-500/20 rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                📊 Waitlist Progress
+                Waitlist Progress
               </h3>
               <span className="text-[9px] text-slate-600 font-mono">
                 {waitlistConversionPct}% converted to registered users
@@ -955,9 +1289,9 @@ function AnalyticsDashboardContent() {
                         'Both': 'text-emerald-400',
                       };
                       const iconMap: Record<string, string> = {
-                        'Social Studies': '📖',
-                        'History': '🏛️',
-                        'Both': '📚',
+                        'Social Studies': 'Guide',
+                        'History': 'History',
+                        'Both': 'Study',
                       };
                       return (
                         <div key={subject}>
@@ -1003,7 +1337,7 @@ function AnalyticsDashboardContent() {
                   <div className="bg-slate-900/40 rounded-xl p-3 text-center">
                     <p className="text-[8px] text-slate-500 font-bold uppercase tracking-wider">Weekly Growth</p>
                     <p className={`text-xl font-black font-mono mt-1 ${
-                      waitlistGrowthRate.startsWith('+') ? 'text-emerald-400' : 'text-rose-400'
+                      waitlistGrowthRateNum > 0 ? 'text-emerald-400' : 'text-rose-400'
                     }`}>
                       {waitlistGrowthRate}%
                     </p>
@@ -1039,16 +1373,18 @@ function AnalyticsDashboardContent() {
                   <div className="flex items-center justify-between bg-slate-900/40 rounded-xl px-3 py-2.5">
                     <span className="text-[10px] text-slate-400">Growth Rate</span>
                     <span className={`text-xs font-black font-mono ${
-                      waitlistGrowthRate.startsWith('+') ? 'text-emerald-400' : 'text-rose-400'
+                      waitlistGrowthRateNum > 0 ? 'text-emerald-400' : 'text-rose-400'
                     }`}>{waitlistGrowthRate}%</span>
                   </div>
                   <div className="bg-slate-900/30 rounded-xl p-3">
                     <p className="text-[9px] text-slate-600 font-mono text-center leading-relaxed">
-                      {parseFloat(waitlistGrowthRate) > 0
-                        ? `📈 Waitlist is growing ${waitlistGrowthRate}% week-over-week. Keep driving traffic!`
-                        : parseFloat(waitlistGrowthRate) < 0
-                        ? `📉 Waitlist declined ${waitlistGrowthRate}% this week. Consider promotions.`
-                        : '📊 Waitlist is steady week-over-week.'}
+                      {waitlistGrowthRateNum === Infinity
+ ? `Waitlist exploded from zero — ${waitlistThisWeek} signups this week!`
+                        : waitlistGrowthRateNum > 0
+                        ? `Waitlist is growing ${waitlistGrowthRate}% week-over-week. Keep driving traffic!`
+                        : waitlistGrowthRateNum < 0
+                        ? `Waitlist declined ${waitlistGrowthRate}% this week. Consider promotions.`
+                        : 'Waitlist is steady week-over-week.'}
                     </p>
                   </div>
                 </div>
@@ -1057,12 +1393,151 @@ function AnalyticsDashboardContent() {
           </div>
         )}
 
+        {/* ── Beta Trial Funnel ──────────────────────────── */}
+        <div className="bg-slate-950 border border-cyan-500/20 rounded-2xl overflow-hidden">
+          <div className="p-5 border-b border-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+ <h2 className="text-sm font-bold text-slate-200">Beta Trial Funnel</h2>
+              <span className="text-[10px] text-slate-500 font-mono bg-slate-900 px-2 py-0.5 rounded-full">
+ 3 free tries → waitlist unlock
+              </span>
+            </div>
+            <button
+              onClick={() =>
+                csvDownload(
+                  trialRows.map((r) => ({
+                    Name: r.name,
+                    Email: r.email,
+                    'Tries Used': String(r.trial_tries_used || 0),
+                    Status: r.unlocked ? 'Unlocked (7d)' : r.trial_tries_used >= 3 ? 'At Limit' : 'Trying',
+                    'Unlock Expiry': r.unlockExpiry ? new Date(r.unlockExpiry).toLocaleDateString('en-SG') : '—',
+                  })),
+                  'trial-funnel',
+                )
+              }
+              className="text-[10px] font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/30 px-3 py-2 rounded-lg hover:bg-cyan-500/20 transition whitespace-nowrap"
+            >
+                CSV
+            </button>
+          </div>
+
+          {/* KPI tiles */}
+          <div className="px-5 py-4 grid grid-cols-2 md:grid-cols-4 gap-4 border-b border-slate-900">
+            <div className="bg-slate-900/40 rounded-xl p-3 text-center">
+              <p className="text-[8px] text-slate-500 font-bold uppercase tracking-wider">Users Unlocked</p>
+              <p className="text-xl font-black text-emerald-400 mt-1">{loadingMetrics ? '…' : trialUnlockedCount}</p>
+ <p className="text-[8px] text-slate-600 font-mono mt-0.5">joined waitlist → 7 days</p>
+            </div>
+            <div className="bg-slate-900/40 rounded-xl p-3 text-center">
+              <p className="text-[8px] text-slate-500 font-bold uppercase tracking-wider">At 3-Try Limit</p>
+              <p className="text-xl font-black text-rose-400 mt-1">{loadingMetrics ? '…' : trialAtLimitCount}</p>
+              <p className="text-[8px] text-slate-600 font-mono mt-0.5">waiting on the gate</p>
+            </div>
+            <div className="bg-slate-900/40 rounded-xl p-3 text-center">
+              <p className="text-[8px] text-slate-500 font-bold uppercase tracking-wider">Avg Tries Used</p>
+              <p className="text-xl font-black text-cyan-400 mt-1">{loadingMetrics ? '…' : trialAvgTries}</p>
+              <p className="text-[8px] text-slate-600 font-mono mt-0.5">across all signed-in users</p>
+            </div>
+            <div className="bg-slate-900/40 rounded-xl p-3 text-center">
+              <p className="text-[8px] text-slate-500 font-bold uppercase tracking-wider">Unlock Rate</p>
+              <p className="text-xl font-black text-amber-400 mt-1">
+                {loadingMetrics ? '…' : skillMetrics.length > 0 ? `${Math.round((trialUnlockedCount / skillMetrics.length) * 100)}%` : '—'}
+              </p>
+              <p className="text-[8px] text-slate-600 font-mono mt-0.5">of signed-in users</p>
+            </div>
+          </div>
+
+          {/* Tries distribution bar */}
+          {!loadingMetrics && skillMetrics.length > 0 && (
+            <div className="px-5 py-4 border-b border-slate-900">
+              <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-2">Tries Used Distribution</p>
+              <div className="flex items-end gap-2 h-16">
+                {Object.entries(trialTriesDistribution).map(([tries, count]) => (
+                  <div key={tries} className="flex-1 flex flex-col items-center gap-1">
+                    <span className="text-[9px] font-mono text-slate-400">{count}</span>
+                    <div
+                      className={`w-full rounded-t ${tries === '3+' ? 'bg-rose-500/60' : 'bg-cyan-500/60'} transition-all`}
+                      style={{ height: `${Math.max(4, (count / Math.max(1, skillMetrics.length)) * 100)}%` }}
+                    />
+                    <span className="text-[8px] font-mono text-slate-600">{tries} try{tries === '1' ? '' : 's'}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Per-user trial table */}
+          <div className="overflow-x-auto">
+            {loadingMetrics ? (
+              <div className="p-8 flex items-center justify-center">
+                <LoadingSpinner size="sm" label="Loading trial data..." color="indigo" />
+              </div>
+            ) : trialRows.length === 0 ? (
+              <div className="p-8 text-center text-xs text-slate-500 font-mono">
+                No signed-in users yet — the trial funnel fills in as users generate papers.
+              </div>
+            ) : (
+              <table className="w-full text-left text-xs text-slate-300">
+                <thead className="bg-slate-900/50 text-slate-400 uppercase text-[10px] tracking-wider font-mono border-b border-slate-900">
+                  <tr>
+                    <th className="p-4">User</th>
+                    <th className="p-4">Tries Used</th>
+                    <th className="p-4">Status</th>
+                    <th className="p-4">Unlock Expiry</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-900">
+                  {trialRows.slice(0, 50).map((row) => (
+                    <tr key={row.user_id} className="hover:bg-slate-900/20 transition">
+                      <td className="p-4">
+                        <div className="font-semibold text-slate-200">{row.name}</div>
+                        <div className="text-[11px] text-slate-500 font-mono">{row.email}</div>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center gap-2">
+                          <span className={`font-mono font-bold ${(row.trial_tries_used || 0) >= 3 && !row.unlocked ? 'text-rose-400' : 'text-slate-300'}`}>
+                            {(row.trial_tries_used || 0)}/3
+                          </span>
+                          <div className="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${(row.trial_tries_used || 0) >= 3 && !row.unlocked ? 'bg-rose-500' : 'bg-cyan-500'}`}
+                              style={{ width: `${Math.min(100, ((row.trial_tries_used || 0) / 3) * 100)}%` }}
+                            />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            row.unlocked
+                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                              : (row.trial_tries_used || 0) >= 3
+                                ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                                : 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
+                          }`}
+                        >
+ {row.unlocked ? '✓ Unlocked' : (row.trial_tries_used || 0) >= 3 ? 'At Limit' : 'Trying'}
+                        </span>
+                      </td>
+                      <td className="p-4 text-slate-500 font-mono">
+                        {row.unlockExpiry
+                          ? new Date(row.unlockExpiry).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
+                          : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+
         {/* ── Charts row ──────────────────────────────────── */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-slate-950 border border-slate-900 p-5 rounded-2xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                📈 Daily Waitlist Signups
+                Daily Waitlist Signups
               </h3>
               <span className="text-[9px] text-slate-600 font-mono">Last 14 days</span>
             </div>
@@ -1076,7 +1551,7 @@ function AnalyticsDashboardContent() {
           <div className="bg-slate-950 border border-slate-900 p-5 rounded-2xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                📝 Daily Essay Submissions
+                Daily Essay Submissions
               </h3>
               <span className="text-[9px] text-slate-600 font-mono">Last 14 days</span>
             </div>
@@ -1093,7 +1568,7 @@ function AnalyticsDashboardContent() {
         <div className="bg-slate-950 border border-amber-500/20 rounded-2xl overflow-hidden">
           <div className="p-5 border-b border-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <h2 className="text-sm font-bold text-slate-200">📋 Beta Waitlist</h2>
+              <h2 className="text-sm font-bold text-slate-200">Beta Waitlist</h2>
               <span className="text-[10px] text-slate-500 font-mono bg-slate-900 px-2 py-0.5 rounded-full">
                 {waitlist.length} signups
               </span>
@@ -1120,7 +1595,7 @@ function AnalyticsDashboardContent() {
                 }
                 className="text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 px-3 py-2 rounded-lg hover:bg-amber-500/20 transition whitespace-nowrap"
               >
-                ⬇ CSV
+                CSV
               </button>
             </div>
           </div>
@@ -1184,7 +1659,7 @@ function AnalyticsDashboardContent() {
         <div className="bg-slate-950 border border-emerald-500/20 rounded-2xl overflow-hidden">
           <div className="p-5 border-b border-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <h2 className="text-sm font-bold text-slate-200">⭐ Testimonials</h2>
+              <h2 className="text-sm font-bold text-slate-200">Testimonials</h2>
               <span className="text-[10px] text-slate-500 font-mono bg-slate-900 px-2 py-0.5 rounded-full">
                 {testimonials.length} submissions
               </span>
@@ -1215,7 +1690,7 @@ function AnalyticsDashboardContent() {
                 }
                 className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-3 py-2 rounded-lg hover:bg-emerald-500/20 transition whitespace-nowrap"
               >
-                ⬇ CSV
+                CSV
               </button>
             </div>
           </div>
@@ -1317,7 +1792,7 @@ function AnalyticsDashboardContent() {
                             : 'bg-slate-900/30 text-slate-500 border border-slate-800/40'
                         }`}>
                           <p className="text-[8px] font-bold text-slate-600 uppercase tracking-wider mb-1">
-                            💬 Feedback
+                            Feedback
                           </p>
                           <p className="whitespace-pre-wrap leading-relaxed">{feedbackText}</p>
                         </div>
@@ -1364,7 +1839,7 @@ function AnalyticsDashboardContent() {
                           onClick={() => handleCopyQuote(feedbackText || label || '', t.id)}
                           className="text-[9px] text-slate-600 hover:text-indigo-400 transition"
                         >
-                          {copiedId === t.id ? '✓ Copied' : '📋 Copy'}
+                          {copiedId === t.id ? '✓ Copied' : 'Copy'}
                         </button>
                       </div>
                     </div>
@@ -1379,7 +1854,7 @@ function AnalyticsDashboardContent() {
         <div className="bg-slate-950 border border-rose-500/20 rounded-2xl overflow-hidden">
           <div className="p-5 border-b border-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <h2 className="text-sm font-bold text-slate-200">🐛 User Feedback</h2>
+              <h2 className="text-sm font-bold text-slate-200">User Feedback</h2>
               <span className="text-[10px] text-slate-500 font-mono bg-slate-900 px-2 py-0.5 rounded-full">
                 {feedback.length} submissions
               </span>
@@ -1406,7 +1881,7 @@ function AnalyticsDashboardContent() {
                 }
                 className="text-[10px] font-bold text-rose-400 bg-rose-500/10 border border-rose-500/30 px-3 py-2 rounded-lg hover:bg-rose-500/20 transition whitespace-nowrap"
               >
-                ⬇ CSV
+                CSV
               </button>
             </div>
           </div>
@@ -1476,7 +1951,7 @@ function AnalyticsDashboardContent() {
         <div className="bg-slate-950 border border-slate-900 rounded-2xl overflow-hidden">
           <div className="p-5 border-b border-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <h2 className="text-sm font-bold text-slate-200">👤 User Registry</h2>
+              <h2 className="text-sm font-bold text-slate-200">User Registry</h2>
               <span className="text-[10px] text-slate-500 font-mono bg-slate-900 px-2 py-0.5 rounded-full">
                 {profiles.length} users
               </span>
@@ -1505,7 +1980,7 @@ function AnalyticsDashboardContent() {
                 className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-3 py-2 rounded-lg hover:bg-emerald-500/20 transition whitespace-nowrap"
                 title="Export evaluations CSV"
               >
-                📝 Essays CSV
+                Essays CSV
               </button>
               <button
                 onClick={() =>
@@ -1523,7 +1998,7 @@ function AnalyticsDashboardContent() {
                 }
                 className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/30 px-3 py-2 rounded-lg hover:bg-indigo-500/20 transition whitespace-nowrap"
               >
-                ⬇ CSV
+                CSV
               </button>
               </div>
             </div>

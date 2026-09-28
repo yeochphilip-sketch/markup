@@ -6,6 +6,8 @@ import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
 import { getServerSupabase } from '@/lib/supabase-server';
 import { getGenerateSystemPrompt, getGenerateSystemPrompt70B } from '@/lib/prompts';
+import { parseJsonWithRepair } from '@/lib/json-repair';
+import { AiCapacityError, isAiCapacityError, aiCapacityResponse, estimateRetryAfterSeconds, AI_CAPACITY_MESSAGE } from '@/lib/ai-capacity';
 import { checkSupabaseRateLimit, GENERATE_QUESTION_LIMIT, rateLimitResponse } from '@/lib/rate-limit-supabase';
 
 const groq = createOpenAI({
@@ -177,13 +179,18 @@ async function tryGenerateWithFallbacks<T>(
         prompt,
         temperature: attempt.temp,
       });
-      const cleaned = result.text.replace(/```(?:json)?\s*|\s*```/g, '').trim();
-      return schema.parse(JSON.parse(cleaned));
+      return schema.parse(parseJsonWithRepair(result.text));
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.warn(`[generate] ${attempt.label} failed:`, msg);
       errors.push(`${attempt.label}: ${msg}`);
     }
+  }
+
+  // If ANY failure was quota/rate-limit exhaustion, surface a friendly
+  // "AI is at capacity" message instead of leaking raw provider errors.
+  if (errors.some(msg => isAiCapacityError(msg))) {
+    throw new AiCapacityError(AI_CAPACITY_MESSAGE, estimateRetryAfterSeconds(errors));
   }
 
   throw new Error(
@@ -245,11 +252,11 @@ function buildAllFormatsJsonFields(): string {
     lines.push(`  "source${i}Provenance": "string (provenance of Source ${i}, at least 8 chars)",`);
     lines.push(`  "source${i}": "string (content of Source ${i}, at least 60 chars)",`);
   }
-  lines.push(`  "partA_Inference": "string (Part (a) Inference question, at least 15 chars)",`);
-  lines.push(`  "partB_Comparison": "string (Part (b) Comparison question, at least 15 chars)",`);
-  lines.push(`  "partC_Purpose": "string (Part (c) Purpose question, at least 15 chars)",`);
-  lines.push(`  "partD_Reliability": "string (Part (d) Reliability question, at least 15 chars)",`);
-  lines.push(`  "partE_Assertion": "string (Part (e) Assertion question, at least 15 chars)",`);
+  lines.push(`  "partA_Inference": "string (Inference / Message question, with its mark in square brackets, at least 15 chars)",`);
+  lines.push(`  "partB_Comparison": "string (Comparison question, with its mark in square brackets, at least 15 chars)",`);
+  lines.push(`  "partC_Purpose": "string (Purpose question, with its mark in square brackets, at least 15 chars)",`);
+  lines.push(`  "partD_Reliability": "string (Reliability / Utility question, with its mark in square brackets, at least 15 chars)",`);
+  lines.push(`  "partE_Assertion": "string (Assertion / Synthesis question using all sources, with its mark in square brackets, at least 15 chars)",`);
   lines.push(`  "questionPrompt": "string (optional overall question prompt header)",`);
   lines.push(`  "srqBackgroundContext": "string (FOR SOCIAL STUDIES ONLY: SRQ background context. Set to empty if not SS.)",`);
   lines.push(`  "srqQuestionA": "string (FOR SS ONLY: SRQ 7-mark question. Set to empty if not SS.)",`);
@@ -339,13 +346,24 @@ function validateGeneration(
 /**
  * Normalise All Formats response.
  */
-function normaliseAllFormatsResponse(data: AllFormatsData) {
+function normaliseAllFormatsResponse(data: AllFormatsData, subject: string) {
+  // Social Studies numbers Section A questions Q1–Q5; History uses Q1(a)–(e).
+  const partLabels = subject === 'Social Studies'
+    ? ['Q1', 'Q2', 'Q3', 'Q4', 'Q5']
+    : ['(a)', '(b)', '(c)', '(d)', '(e)'];
+  const sbcsParts = [
+    data.partA_Inference,
+    data.partB_Comparison,
+    data.partC_Purpose,
+    data.partD_Reliability,
+    data.partE_Assertion,
+  ];
   const result: Record<string, any> = {
     sourceAProvenance: data.source1Provenance,
     sourceA: data.source1,
     sourceBProvenance: data.source2Provenance,
     sourceB: data.source2,
-    sbcsPrompt: `(a) ${data.partA_Inference}\n\n(b) ${data.partB_Comparison}\n\n(c) ${data.partC_Purpose}\n\n(d) ${data.partD_Reliability}\n\n(e) ${data.partE_Assertion}`,
+    sbcsPrompt: sbcsParts.map((p, i) => `${partLabels[i]} ${p}`).join('\n\n'),
     partA_Inference: data.partA_Inference,
     partB_Comparison: data.partB_Comparison,
     partC_Purpose: data.partC_Purpose,
@@ -475,6 +493,44 @@ export async function POST(request: Request) {
       userId?: string;
     };
 
+    // ── Beta trial gate (server-side, for signed-in users) ──
+    // Mirrors the client-side gate in the dashboard. This cannot be bypassed
+    // by clearing localStorage: the counter lives in user_skill_metrics.
+    const TRIAL_LIMIT = 3;
+    if (userId && process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        const trialClient = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL,
+          process.env.SUPABASE_SERVICE_ROLE_KEY,
+        );
+        const { data: trialRow } = await trialClient
+          .from('user_skill_metrics')
+          .select('trial_tries_used, trial_unlocked_until')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+        const triesUsed = Math.max(0, trialRow?.trial_tries_used || 0);
+        const unlocked =
+          (trialRow?.trial_unlocked_until ? new Date(trialRow.trial_unlocked_until).getTime() : 0) >
+          Date.now();
+
+        if (!unlocked && triesUsed >= TRIAL_LIMIT) {
+          return NextResponse.json(
+            {
+              error: 'Trial limit reached. Join the waitlist to unlock 7 more days.',
+              code: 'TRIAL_LIMIT_REACHED',
+              triesUsed,
+              trialLimit: TRIAL_LIMIT,
+            },
+            { status: 403 },
+          );
+        }
+      } catch (trialErr) {
+        // Non-fatal — if the trial check fails, fall back to client-side gate only
+        console.warn('[generate] trial gate check failed (non-fatal):', trialErr);
+      }
+    }
+
     if (!process.env.GROQ_API_KEY && !process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
       return NextResponse.json(
         { error: 'AI generation unavailable — no API keys configured. Please contact the developer.' },
@@ -503,16 +559,16 @@ export async function POST(request: Request) {
       const raw = await tryGenerateWithFallbacks(
         systemPrompt,
         `Generate one complete O-Level ${resolvedSubject} FULL EXAM PACKAGE on the topic "${resolvedTopic}".
-Skill track: All Formats — generate ALL components (5 sources, 5 SBQ questions part A-E, plus subject-specific SRQ/SEQ sections).
+Skill track: All Formats — generate ALL components (5 sources, 5 source-based questions, plus subject-specific SRQ/SEQ sections).
 All 5 sources are required.
 The sources must be designed to test a RANGE of skills (inference, comparison, purpose, reliability, assertion).
 
-CRITICAL: The suggestedAnswer MUST include LORMS level labels (e.g., "L4 Message (4-5m):") and PEEL structure markers (Point:/Evidence:/Explanation:/Link:) for EVERY part. Each part (a)-(e) must have its OWN model answer — do not combine them.`.trim(),
+CRITICAL: The suggestedAnswer MUST include LORMS level labels and PEEL structure markers (Point:/Evidence:/Explanation:/Link:) for EVERY part. Each of the five questions must have its OWN model answer — do not combine them.`.trim(),
         schema,
         jsonFields,
         systemPrompt70B,
       );
-      result = normaliseAllFormatsResponse(raw as AllFormatsData);
+      result = normaliseAllFormatsResponse(raw as AllFormatsData, resolvedSubject);
     } else if (trackType === 'sbcs') {
       const useFiveSources = resolvedSourceCount >= 5;
       const jsonFields = useFiveSources ? SBCS_JSON_FIELDS_5_SRC : SBCS_JSON_FIELDS_2_SRC;
@@ -659,7 +715,7 @@ Ensure ALL sections are complete and LORMS labels are present.`.trim(),
             retrySystem,
             retryAttempts,
           );
-          result = normaliseAllFormatsResponse(retryRaw as AllFormatsData);
+          result = normaliseAllFormatsResponse(retryRaw as AllFormatsData, resolvedSubject);
         } else if (trackType === 'sbcs') {
           const useFiveSources = resolvedSourceCount >= 5;
           const jsonFields = useFiveSources ? SBCS_JSON_FIELDS_5_SRC : SBCS_JSON_FIELDS_2_SRC;
@@ -705,8 +761,44 @@ Previous attempt had issues: ${validationIssues.join('; ')}.`.trim(),
       finalResult._validationIssues = validationIssues;
     }
 
+    // ── Beta trial gate: count this successful generation server-side ──
+    // Uses the atomic increment_trial_try RPC (single UPDATE with row lock) so
+    // concurrent generations can't under-count the try limit.
+    let trialState: { triesUsed: number; unlocked: boolean } | null = null;
+    if (userId && process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        const trialClient = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL,
+          process.env.SUPABASE_SERVICE_ROLE_KEY,
+        );
+        const { data: rpcResult, error: rpcErr } = await trialClient.rpc('increment_trial_try', {
+          p_user_id: userId,
+        });
+
+        if (rpcErr) throw rpcErr;
+
+        const result = (rpcResult ?? {}) as { triesUsed?: number; unlocked?: boolean };
+        if (typeof result.triesUsed === 'number') {
+          trialState = {
+            triesUsed: result.triesUsed,
+            unlocked: result.unlocked === true,
+          };
+        }
+      } catch (trialErr) {
+        console.warn('[generate] trial increment failed (non-fatal):', trialErr);
+      }
+    }
+
+    // Attach the authoritative trial state so the client can stay in sync
+    const resultWithTrial = result as Record<string, any>;
+    if (trialState) resultWithTrial.trial = trialState;
+
     return NextResponse.json(result);
   } catch (error: unknown) {
+ // AI quota / rate-limit exhaustion → friendly 503 with a real retry ETA
+    if (error instanceof AiCapacityError) {
+      return aiCapacityResponse(error.retryAfterSeconds);
+    }
     const message = error instanceof Error ? error.message : 'Unknown generation error';
     console.error('generate-question failed:', message);
     const userMessage = error instanceof Error

@@ -41,10 +41,10 @@ export default function AchievementBanner({
 
   return (
     <div className="fixed top-safe left-1/2 -translate-x-1/2 z-[60] animate-in slide-in-from-top-3 fade-in duration-300 max-w-3xl w-full">
-      <div className="bg-gradient-to-r from-emerald-950/95 via-slate-950/95 to-indigo-950/95 border border-emerald-500/30 rounded-b-2xl shadow-2xl shadow-emerald-500/10 relative overflow-hidden">
+      <div className="bg-emerald-950/95 border border-emerald-500/30 rounded-b-2xl shadow-2xl shadow-emerald-500/10 relative overflow-hidden">
         {/* Countdown bar at bottom */}
         <div
-          className={`absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-emerald-400 to-emerald-600 animate-shrink-width-12s ${
+          className={`absolute bottom-0 left-0 h-0.5 bg-emerald-500 animate-shrink-width-12s ${
             isPaused ? 'animate-paused' : ''
           }`}
           style={{ animationDuration: `${durationMs}ms` }}
@@ -61,7 +61,7 @@ export default function AchievementBanner({
 
         <div className="max-w-3xl mx-auto px-6 py-4 pr-12">
           <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest mb-2">
-            🎉 Achievement Unlocked!
+            Achievement Unlocked!
           </p>
           <div className="flex items-center gap-4 flex-wrap">
             {newlyUnlocked.map((ach, i) => (

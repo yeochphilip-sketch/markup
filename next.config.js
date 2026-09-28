@@ -1,5 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Never ship source maps to browsers in production (smaller bundles, no
+  // source exposure). Server-side maps are unaffected.
+  productionBrowserSourceMaps: false,
+
   images: {
     remotePatterns: [
       {

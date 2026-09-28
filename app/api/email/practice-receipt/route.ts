@@ -41,7 +41,7 @@ export async function POST(request: Request) {
           <h1 style="color: #6366f1; font-size: 24px; font-weight: 900; margin: 0;">MARKUP</h1>
         </div>
 
-        <h2 style="font-size: 18px; font-weight: 700; margin: 0;">Practice Complete! 📝</h2>
+        <h2 style="font-size: 18px; font-weight: 700; margin: 0;">Practice Complete! </h2>
         <p style="color: #94a3b8; margin-top: 4px;">Hi ${name || 'there'}, here is your practice summary.</p>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px;">
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         from: process.env.SEND_FROM_EMAIL || 'MARKUP <onboarding@resend.dev>',
         to: email,
-        subject: `📝 Practice Complete — ${subject || 'Humanities'} (${scoreEstimate || 'N/A'})`,
+        subject: `Practice Complete — ${subject || 'Humanities'} (${scoreEstimate || 'N/A'})`,
         html,
       }),
     });

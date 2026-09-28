@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { breadcrumbJsonLd, jsonLdScript } from '@/lib/structured-data';
 
 export const metadata: Metadata = {
   title: 'How to Ace SBQ Reliability Questions (L5/7 Framework)',
+  alternates: { canonical: '/tips/sbq-reliability' },
+  robots: { index: true, follow: true },
   description:
     'Master the SBQ Reliability & Cross-Referencing question for O-Level Social Studies and Elective History. Learn the proven framework to score L5/7 with provenance analysis, cross-referencing, and judgement.',
   openGraph: {
@@ -35,6 +38,19 @@ export default function SBQReliabilityPage() {
           <span>/</span>
           <span className="text-slate-400">SBQ Reliability</span>
         </nav>
+        {/* BreadcrumbList structured data (matches the visible nav above) */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: jsonLdScript(
+              breadcrumbJsonLd([
+                { name: 'Home', href: '/' },
+                { name: 'Tips & Guides', href: '/tips' },
+                { name: 'SBQ Reliability', href: '/tips/sbq-reliability' },
+              ])
+            ),
+          }}
+        />
 
         {/* Hero */}
         <div className="space-y-4 border-b border-slate-900 pb-8">
@@ -47,7 +63,7 @@ export default function SBQReliabilityPage() {
             How to Ace SBQ Reliability Questions
           </h1>
           <p className="text-lg text-slate-400 leading-relaxed">
-            The reliability question is worth the most marks in the SBQ section — and it&apos;s
+            The reliability question is one of the highest-value questions in the SBQ section — and it&apos;s
             where top students create the biggest gap. Here&apos;s the L5/7 framework that
             consistently scores top band.
           </p>
@@ -80,8 +96,8 @@ export default function SBQReliabilityPage() {
           <p>
             The SBQ Reliability question asks you to evaluate <strong className="text-slate-200">how reliable</strong>{' '}
             a source is for a historian studying a particular topic. It is typically worth{' '}
-            <strong className="text-slate-200">7 marks</strong> in the O-Level Social Studies and
-            Elective History papers.
+            <strong className="text-slate-200">5–7 marks</strong> in Social Studies and
+            <strong className="text-slate-200">5–8 marks</strong> in the History papers.
           </p>
           <p>The question usually takes the form:</p>
           <blockquote className="border-l-2 border-indigo-500 pl-4 italic text-slate-300 bg-slate-950/50 py-3 px-4 rounded-r-lg">
@@ -97,7 +113,7 @@ export default function SBQReliabilityPage() {
           </p>
           <div className="bg-indigo-950/30 border border-indigo-900/30 rounded-xl p-4 text-center">
             <p className="text-xs text-indigo-300 font-bold">
-              💡 The reliability question rewards you for nuance — the best answers show that a
+              The reliability question rewards you for nuance — the best answers show that a
               source is reliable <em>in some ways</em> and unreliable <em>in others</em>.
             </p>
           </div>
@@ -202,9 +218,9 @@ export default function SBQReliabilityPage() {
               this period — they may have deliberately omitted data about protest movements to
               present a picture of stability.&rdquo;
             </p>
-            <p className="text-[9px] text-emerald-400">✔ Identifies provenance (government report, 1954)</p>
-            <p className="text-[9px] text-emerald-400">✔ Considers strengths AND limitations</p>
-            <p className="text-[9px] text-emerald-400">✔ Links bias to the author&apos;s vested interest</p>
+            <p className="text-[9px] text-emerald-400">✓ Identifies provenance (government report, 1954)</p>
+            <p className="text-[9px] text-emerald-400">✓ Considers strengths AND limitations</p>
+            <p className="text-[9px] text-emerald-400">✓ Links bias to the author&apos;s vested interest</p>
           </div>
         </section>
 
@@ -220,14 +236,14 @@ export default function SBQReliabilityPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <h3 className="text-xs font-bold text-emerald-400">✅ Supporting Cross-Reference</h3>
+              <h3 className="text-xs font-bold text-emerald-400">✓ Supporting Cross-Reference</h3>
               <p className="text-[10px] text-slate-400 mt-1">
                 Source E agrees with Source D on a key point, which <strong className="text-slate-200">increases</strong>{' '}
                 Source D&apos;s reliability because two independent sources are corroborating each other.
               </p>
             </div>
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
-              <h3 className="text-xs font-bold text-amber-400">✅ Contradicting Cross-Reference</h3>
+              <h3 className="text-xs font-bold text-amber-400">✓ Contradicting Cross-Reference</h3>
               <p className="text-[10px] text-slate-400 mt-1">
                 Source F contradicts Source D on a specific fact, which{' '}
                 <strong className="text-slate-200">challenges</strong> Source D&apos;s reliability.
@@ -248,9 +264,9 @@ export default function SBQReliabilityPage() {
               that Source F has no obvious political agenda, its contradiction undermines the
               reliability of Source D&apos;s more positive portrayal.&rdquo;
             </p>
-            <p className="text-[9px] text-emerald-400">✔ Uses specific sources as evidence</p>
-            <p className="text-[9px] text-emerald-400">✔ Shows both supporting and contradicting evidence</p>
-            <p className="text-[9px] text-emerald-400">✔ Weighs the relative reliability of different sources</p>
+            <p className="text-[9px] text-emerald-400">✓ Uses specific sources as evidence</p>
+            <p className="text-[9px] text-emerald-400">✓ Shows both supporting and contradicting evidence</p>
+            <p className="text-[9px] text-emerald-400">✓ Weighs the relative reliability of different sources</p>
           </div>
         </section>
 
@@ -280,10 +296,10 @@ export default function SBQReliabilityPage() {
                 British attitudes.&rdquo;
               </p>
               <div className="text-[10px] text-red-400 space-y-1">
-                <p>❌ Generic claims about bias — no specific evidence</p>
-                <p>❌ No provenance analysis (who, when, why, audience)</p>
-                <p>❌ No cross-referencing with other sources</p>
-                <p>❌ One-sided — only identifies limitations, ignores strengths</p>
+                <p>✗ Generic claims about bias — no specific evidence</p>
+                <p>✗ No provenance analysis (who, when, why, audience)</p>
+                <p>✗ No cross-referencing with other sources</p>
+                <p>✗ One-sided — only identifies limitations, ignores strengths</p>
               </div>
             </div>
 
@@ -314,10 +330,10 @@ export default function SBQReliabilityPage() {
                 which must be supplemented by other sources.&rdquo;
               </p>
               <div className="text-[10px] text-emerald-400 space-y-1 mt-2">
-                <p>✅ Specific provenance analysis (speech, PM, 1956)</p>
-                <p>✅ Identifies both strengths AND limitations</p>
-                <p>✅ Cross-references with Source D</p>
-                <p>✅ Makes an overall judgement about reliability</p>
+                <p>✓ Specific provenance analysis (speech, PM, 1956)</p>
+                <p>✓ Identifies both strengths AND limitations</p>
+                <p>✓ Cross-references with Source D</p>
+                <p>✓ Makes an overall judgement about reliability</p>
               </div>
             </div>
           </div>
@@ -329,7 +345,7 @@ export default function SBQReliabilityPage() {
 
           <div className="space-y-3">
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg">🚫</span>
+              <span className="text-red-400 text-lg">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">Saying &ldquo;unreliable because biased&rdquo; without explaining</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -341,7 +357,7 @@ export default function SBQReliabilityPage() {
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg">🚫</span>
+              <span className="text-red-400 text-lg">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">Ignoring provenance</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -353,7 +369,7 @@ export default function SBQReliabilityPage() {
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg">🚫</span>
+              <span className="text-red-400 text-lg">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">Only discussing limitations (no strengths)</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -365,7 +381,7 @@ export default function SBQReliabilityPage() {
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <span className="text-red-400 text-lg">🚫</span>
+              <span className="text-red-400 text-lg">✗</span>
               <div>
                 <h3 className="text-sm font-bold text-slate-200">No cross-referencing</h3>
                 <p className="text-xs text-slate-400 mt-1">
@@ -383,7 +399,7 @@ export default function SBQReliabilityPage() {
           <h2 className="text-xl font-black text-white">7. How to Practice Effectively</h2>
 
           <div className="bg-indigo-950/30 border border-indigo-900/30 rounded-xl p-5 space-y-3">
-            <h3 className="text-sm font-black text-indigo-300">🎯 Use MARKUP&apos;s SBQ Generator</h3>
+            <h3 className="text-sm font-black text-indigo-300">Use MARKUP&apos;s SBQ Generator</h3>
             <p className="text-xs text-slate-400">
               Generate unlimited SBQ practice papers with fresh sources. Each source comes with
               a rich provenance line designed to test your analytical skills. Write your reliability
@@ -411,7 +427,7 @@ export default function SBQReliabilityPage() {
         </section>
 
         {/* CTA Banner */}
-        <div className="bg-gradient-to-br from-indigo-950/50 to-slate-950/80 border border-indigo-800/50 rounded-2xl p-6 text-center space-y-3">
+        <div className="bg-indigo-950/70 border border-indigo-800/50 rounded-2xl p-6 text-center space-y-3">
           <p className="text-lg font-black text-white">Master reliability with AI-powered practice</p>
           <p className="text-xs text-slate-400 max-w-md mx-auto">
             MARKUP generates fresh O-Level sources, grades your reliability analysis, and shows you

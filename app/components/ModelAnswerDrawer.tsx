@@ -216,13 +216,13 @@ export default function ModelAnswerDrawer({
       onMouseLeave={handleMouseLeave}
     >
       <div
-        className="bg-gradient-to-b from-slate-950 to-[#0b0d16] border border-emerald-500/20 rounded-2xl w-full max-w-2xl mx-4 shadow-2xl shadow-emerald-950/30 relative flex flex-col max-h-[85vh]"
+        className="bg-slate-950 border border-emerald-500/20 rounded-2xl w-full max-w-2xl mx-4 shadow-2xl shadow-emerald-950/30 relative flex flex-col max-h-[85vh]"
         onClick={e => e.stopPropagation()}
       >
         {/* Progress bar */}
         <div className="h-0.5 bg-slate-900 shrink-0 rounded-t-2xl overflow-hidden">
           <div
-            className={`h-full bg-gradient-to-r from-emerald-400 to-emerald-600 animate-shrink-width-12s ${isHovered ? 'animate-paused' : ''}`}
+            className={`h-full bg-emerald-500 animate-shrink-width-12s ${isHovered ? 'animate-paused' : ''}`}
           />
         </div>
 
@@ -263,7 +263,7 @@ export default function ModelAnswerDrawer({
               className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-emerald-400 hover:bg-emerald-950/30 transition text-xs font-bold"
               title="Copy model answer"
             >
-              {copied ? '✓' : '📋'}
+              {copied ? '✓' : 'Copy'}
             </button>
             {/* Close button */}
           <button

@@ -1,8 +1,29 @@
 import Link from 'next/link';
+import type { Metadata } from 'next';
+import { breadcrumbJsonLd, jsonLdScript } from '@/lib/structured-data';
+
+export const metadata: Metadata = {
+  title: 'Privacy Policy',
+  description:
+    'How MARKUP collects, uses, and protects student data for the Singapore O-Level Humanities practice platform — accounts, practice submissions, and analytics.',
+  alternates: { canonical: '/privacy' },
+  robots: { index: true, follow: true },
+};
 
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-[#07090e] text-slate-100 font-sans selection:bg-indigo-500/30">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLdScript(
+            breadcrumbJsonLd([
+              { name: 'Home', href: '/' },
+              { name: 'Privacy Policy', href: '/privacy' },
+            ])
+          ),
+        }}
+      />
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16 space-y-8">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">

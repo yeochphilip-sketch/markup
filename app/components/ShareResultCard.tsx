@@ -1,7 +1,17 @@
 'use client';
 
 import { useRef, useState, useCallback } from 'react';
-import { toPng } from 'html-to-image';
+
+// `html-to-image` is only needed when the student actually shares a result, so
+// it is loaded on demand (see handleShare) instead of shipping in the main bundle.
+let toPngCache: ((node: HTMLElement, options?: object) => Promise<string>) | null = null;
+async function loadToPng() {
+  if (!toPngCache) {
+    const mod = await import('html-to-image');
+    toPngCache = mod.toPng;
+  }
+  return toPngCache;
+}
 
 interface ShareResultCardProps {
   scoreEstimate: string;
@@ -38,6 +48,7 @@ export default function ShareResultCard({
     if (!cardRef.current) return;
     setIsSharing(true);
     try {
+      const toPng = await loadToPng();
       const dataUrl = await toPng(cardRef.current, {
         quality: 1,
         pixelRatio: 2,
@@ -78,8 +89,6 @@ export default function ShareResultCard({
     }
   }, [scoreEstimate, subject, referralCode]);
 
-  const referralLink = referralCode ? `markup.app?ref=${referralCode}` : null;
-
   const confidenceColor =
     confidence >= 0.8 ? '#10b981' : confidence >= 0.6 ? '#f59e0b' : '#f43f5e';
   const confidenceLabel =
@@ -93,7 +102,7 @@ export default function ShareResultCard({
         className="bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/20 text-[9px] font-bold px-2.5 py-1.5 rounded-lg transition flex items-center gap-1.5"
         title="Share your result"
       >
-        📤 Share
+        Share
       </button>
 
       {/* Preview / Card */}
@@ -120,7 +129,7 @@ export default function ShareResultCard({
               </div>
 
               {/* Divider */}
-              <div className="w-full h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" />
+              <div className="w-full h-px bg-slate-700" />
 
               {/* Subject + Skill */}
               <div>
@@ -182,8 +191,8 @@ export default function ShareResultCard({
 
               {/* Critique count + streak */}
               <div className="flex gap-4 text-[9px] text-slate-600 font-mono">
-                <span>📝 {critiqueCount} diagnostics</span>
-                {streakDays > 0 && <span>🔥 {streakDays}d streak</span>}
+                <span>{critiqueCount} diagnostics</span>
+                {streakDays > 0 && <span>{streakDays}d streak</span>}
               </div>
 
               {/* Referral code (viral loop) */}
@@ -195,7 +204,7 @@ export default function ShareResultCard({
               )}
 
               {/* Footer */}
-              <div className="w-full h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" />
+              <div className="w-full h-px bg-slate-700" />
               <p className="text-[7px] text-slate-700 font-mono">
                 MARKUP — LORMS-aligned Humanities Practice
               </p>
@@ -208,7 +217,7 @@ export default function ShareResultCard({
                 disabled={isSharing}
                 className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-2.5 rounded-xl transition disabled:opacity-50"
               >
-                {isSharing ? 'Generating...' : '📤 Share as Image'}
+                {isSharing ? 'Generating...' : 'Share as Image'}
               </button>
               <button
                 onClick={() => setShowPreview(false)}

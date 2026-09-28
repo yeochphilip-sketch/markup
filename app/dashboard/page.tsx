@@ -1,6 +1,6 @@
 'use client';
 
-// 🚀 Forces Vercel to serve this page fresh on every single load, picking up active tokens
+// Forces Vercel to serve this page fresh on every single load, picking up active tokens
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -27,6 +27,9 @@ import GlobalErrorBanner from '@/app/components/GlobalErrorBanner';
 import MobileSidebar from '@/app/components/MobileSidebar';
 import TestimonialPrompt, { recordCompletedScan, shouldShowTestimonial } from '@/app/components/TestimonialPrompt';
 import WeeklyDigestPanel from '@/app/components/WeeklyDigestPanel';
+import WaitlistGateModal from '@/app/components/WaitlistGateModal';
+import { SYLLABUS_MAP, MARK_GUIDE, type HistoryTrack } from '@/lib/syllabus';
+import { getTrialState, registerTry, registerTryTo, isTrialBlocked, syncTrialUnlock, formatUnlockDays, TRIAL_LIMIT } from '@/lib/trial-gate';
 import WeakestSkillCard from '@/app/components/WeakestSkillCard';
 import ReferralCTA from '@/app/components/ReferralCTA';
 import { getLevelConfig, getLevelTitle, getNextLevelXp, getPrevLevelXp, LEVEL_THRESHOLDS, playGradeCompleteSound, playLevelUpSound, playAchievementSound, isDailyGoalMet, ACHIEVEMENT_DEFS, calculateXpDecay, getDecayWarning } from '@/lib/gamification';
@@ -53,44 +56,58 @@ interface HistoryItem {
   metadata?: Record<string, any>;
 }
 
-const SYLLABUS_MAP: Record<string, { topics: string[]; skills: string[] }> = {
-  'Social Studies': {
-    topics: [
-      'Any Topic (Random Mix)',
-      'Issue 1: Exploring Citizenship and Governance',
-      'Issue 2: Living in a Diverse Society',
-      'Issue 3: Responding to a Globalised World'
-    ],
-    skills: [
-      'All Formats (SBCS + SEQ + SRQ Bundle)',
-      'SBQ: Inference / Message (AO2)',
-      'SBQ: Comparison & Contrast (AO2)',
-      'SBQ: Purpose / Motive Evolution (AO2)',
-      'SBQ: Utility & Reliability Limits (AO2)',
-      'SBQ: Synthesis Matrix Assertion (AO2)',
-      'SRQ: Structured Response Questions (AO1)',
-      'SEQ: Structured Essay Questions (AO1)'
-    ]
-  },
-  'Elective History': {
-    topics: [
-      'Any Topic (Random Mix)',
-      'Case Study: Nazi Germany (*SBCS)',
-      'Case Study: Militarist Japan',
-      'WWII: Outbreak in Europe (*SBCS)',
-      'Cold War: Origins in Europe (*SBCS)'
-    ],
-    skills: [
-      'All Formats (SBCS + SEQ + SRQ Bundle)',
-      'SBQ: Inference / Message (AO3)',
-      'SBQ: Comparison & Contrast (AO3)',
-      'SBQ: Reliability & Cross-Referencing (AO3)',
-      'SBQ: Evaluation of Utility (AO3)',
-      'SBQ: Target Purpose Analysis (AO3)',
-      'SEQ: High-Scoring Essay Factor Prioritization (AO1/AO2)'
-    ]
+/**
+ * Parse the Retry-After header (seconds) from an AI-capacity 503 response,
+ * with a sane fallback when the header is missing or malformed.
+ */
+function parseRetryAfterSeconds(res: Response, fallback = 60): number {
+  const raw = res.headers.get('Retry-After');
+  const parsed = raw ? parseInt(raw, 10) : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+/**
+ * Resolve the retry ETA for an AI-capacity 503: prefer the server-computed
+ * retryAfterSeconds in the JSON body (real ETA from the quota error), falling
+ * back to the Retry-After header, then a 60s default.
+ */
+function resolveRetrySeconds(body: { retryAfterSeconds?: unknown }, res: Response, fallback = 60): number {
+  if (
+    typeof body.retryAfterSeconds === 'number' &&
+    Number.isFinite(body.retryAfterSeconds) &&
+    body.retryAfterSeconds > 0
+  ) {
+    return Math.floor(body.retryAfterSeconds);
   }
-};
+  return parseRetryAfterSeconds(res, fallback);
+}
+
+/** Humanize a large second count, e.g. 17100 → "4h 45m". */
+function humanizeDuration(totalSeconds: number): string {
+  const s = Math.max(0, Math.round(totalSeconds));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  if (h > 0) return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  if (m > 0) return `${m}m`;
+  return `${s}s`;
+}
+
+/**
+ * Waits longer than this are daily-quota resets (hours away) — show a
+ * humanized ETA instead of a ticking countdown, and don't auto-retry.
+ */
+const LONG_WAIT_THRESHOLD_SECONDS = 10 * 60;
+
+/**
+ * Friendly message shown when the AI provider returns a 503 / AI_CAPACITY.
+ * Mirrors AI_CAPACITY_MESSAGE in lib/ai-capacity.ts (client-safe copy — the
+ * lib module imports next/server, which can't be bundled client-side).
+ */
+const AI_CAPACITY_FALLBACK_MESSAGE =
+  'AI is at capacity right now — please try again in a few minutes.';
+
+// Subjects, topics and question types come from the canonical syllabus module
+// (lib/syllabus.ts), derived from the official SEAB 2026 syllabuses.
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -160,12 +177,29 @@ export default function DashboardPage() {
   const [showConfetti, setShowConfetti] = useState(false);
   const [ssGoalLevel, setSsGoalLevel] = useState<string | null>(null);
   const [historyGoalLevel, setHistoryGoalLevel] = useState<string | null>(null);
-  const [takesHistory, setTakesHistory] = useState(false);
+  // Which History paper the student takes (Elective XOR Pure), or null for none.
+  const [historyTrack, setHistoryTrack] = useState<HistoryTrack | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [errorToast, setErrorToast] = useState<{ message: string; type: 'error' | 'warning' } | null>(null);
+  const [errorToast, setErrorToast] = useState<{ message: string; type: 'error' | 'warning'; retryIn?: number | null; canRetry?: boolean; autoRetry?: boolean; longWaitEta?: string | null } | null>(null);
   const errorToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const errorToastStartRef = useRef(0);
   const errorToastRemainingRef = useRef(12000);
+  const capacityCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const capacityRemainingRef = useRef(0);
+  const capacityRetryActionRef = useRef<'generate' | 'grade' | null>(null);
+  // One-shot guard: the countdown auto-retries at most once per user action,
+  // so a prolonged outage can't trigger an endless retry loop.
+  const autoRetryFiredRef = useRef(false);
+  // True while a retry is being dispatched from the effect — lets the handlers
+  // distinguish user-initiated calls (re-arm auto-retry) from auto-retry calls
+  // (keep the guard in place).
+  const isAutoRetryRef = useRef(false);
+  // Retries are fired through an effect (not render-traceable) so the handler
+  // can use impure helpers like Date.now() without tripping react-hooks/purity.
+  // pendingRetryTick is a counter; pendingRetryActionRef holds the action to run.
+  const retryHandlersRef = useRef<{ generate?: () => void; grade?: () => void }>({});
+  const pendingRetryActionRef = useRef<'generate' | 'grade' | null>(null);
+  const [pendingRetryTick, setPendingRetryTick] = useState(0);
   const dailyGoalToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dailyGoalToastStartRef = useRef(0);
   const dailyGoalToastRemainingRef = useRef(12000);
@@ -173,6 +207,10 @@ export default function DashboardPage() {
   const [hoveredNotif, setHoveredNotif] = useState<string | null>(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [myReferralCode, setMyReferralCode] = useState('');
+  // ── Beta trial gate: 3 free generations, then waitlist + feedback to unlock 7 days ──
+  const [trialTriesUsed, setTrialTriesUsed] = useState(0);
+  const [trialUnlocked, setTrialUnlocked] = useState(false);
+  const [isWaitlistGateOpen, setIsWaitlistGateOpen] = useState(false);
 
   // ── Pause / resume helpers (for toast/daily-goal only) ──
   const pauseTimer = useCallback((timerRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>, startRef: React.MutableRefObject<number>, remainingRef: React.MutableRefObject<number>) => {
@@ -193,15 +231,101 @@ export default function DashboardPage() {
 
   const dismissErrorToast = useCallback(() => {
     if (errorToastTimerRef.current) clearTimeout(errorToastTimerRef.current);
+    if (capacityCountdownRef.current) clearInterval(capacityCountdownRef.current);
+    errorToastTimerRef.current = null;
+    capacityCountdownRef.current = null;
+    capacityRetryActionRef.current = null;
+    // A manual dismissal (click / ✕) is a fresh user action — re-arm auto-retry
+    autoRetryFiredRef.current = false;
     setErrorToast(null);
   }, []);
 
   const showErrorToast = useCallback((message: string, type: 'error' | 'warning' = 'error') => {
     if (errorToastTimerRef.current) clearTimeout(errorToastTimerRef.current);
+    if (capacityCountdownRef.current) clearInterval(capacityCountdownRef.current);
+    capacityCountdownRef.current = null;
+    capacityRetryActionRef.current = null;
+    autoRetryFiredRef.current = false;
     errorToastRemainingRef.current = 12000;
     errorToastStartRef.current = Date.now();
-    setErrorToast({ message, type });
+    setErrorToast({ message, type, retryIn: null });
     errorToastTimerRef.current = setTimeout(() => setErrorToast(null), 12000);
+  }, []);
+
+  /**
+   * Show an "AI is at capacity" toast with a live retry countdown.
+   * Persists for the full countdown (unlike the 12s default toast), ticking
+   * down every second. When the countdown hits zero it auto-retries the failed
+   * request once. Pass `retryAction` to also show a "Try Now" button.
+   */
+  const showCapacityToast = useCallback((message: string, retryAfterSeconds = 60, retryAction: 'generate' | 'grade' | null = null) => {
+    const seconds = Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
+      ? Math.floor(retryAfterSeconds)
+      : 60;
+    if (errorToastTimerRef.current) clearTimeout(errorToastTimerRef.current);
+    if (capacityCountdownRef.current) clearInterval(capacityCountdownRef.current);
+    errorToastTimerRef.current = null;
+    // Zero the remaining time so the stale 12s auto-dismiss path can't fire on hover-out
+    errorToastRemainingRef.current = 0;
+    capacityRetryActionRef.current = retryAction;
+
+    // ── Long wait (daily token quota — resets at UTC midnight, hours away) ──
+    // No ticking countdown, no auto-retry (pointless to retry 20h later);
+    // just an honest "resets in Xh Ym" label + Try Now. Auto-dismiss after 15s.
+    if (seconds >= LONG_WAIT_THRESHOLD_SECONDS) {
+      setErrorToast({ message, type: 'error', retryIn: null, canRetry: retryAction != null, autoRetry: false, longWaitEta: humanizeDuration(seconds) });
+      errorToastRemainingRef.current = 15000;
+      errorToastStartRef.current = Date.now();
+      errorToastTimerRef.current = setTimeout(() => setErrorToast(null), 15000);
+      return;
+    }
+
+    // ── Short wait (per-minute token limit — resets within ~60s) ──
+    capacityRemainingRef.current = seconds;
+    // Only promise an auto-retry when the guard will actually allow it
+    const willAutoRetry = retryAction != null && !autoRetryFiredRef.current;
+    setErrorToast({ message, type: 'error', retryIn: seconds, canRetry: retryAction != null, autoRetry: willAutoRetry, longWaitEta: null });
+    capacityCountdownRef.current = setInterval(() => {
+      capacityRemainingRef.current -= 1;
+      if (capacityRemainingRef.current <= 0) {
+        if (capacityCountdownRef.current) clearInterval(capacityCountdownRef.current);
+        capacityCountdownRef.current = null;
+        const action = capacityRetryActionRef.current;
+        capacityRetryActionRef.current = null;
+        setErrorToast(null);
+        // Auto-retry the failed request once when the countdown hits zero
+        if (action && !autoRetryFiredRef.current) {
+          autoRetryFiredRef.current = true;
+          pendingRetryActionRef.current = action;
+          setPendingRetryTick(t => t + 1);
+        }
+        return;
+      }
+      setErrorToast(prev => (prev ? { ...prev, retryIn: capacityRemainingRef.current } : prev));
+    }, 1000);
+  }, []);
+
+  /**
+   * "Try Now" button on the capacity toast — retry immediately without
+   * waiting for the countdown. Re-arms the one-shot auto-retry guard so a
+   * subsequent failure gets a fresh auto-retry.
+   */
+  const handleToastRetry = useCallback(() => {
+    const action = capacityRetryActionRef.current;
+    autoRetryFiredRef.current = false;
+    dismissErrorToast();
+    if (action) {
+      pendingRetryActionRef.current = action;
+      setPendingRetryTick(t => t + 1);
+    }
+  }, [dismissErrorToast]);
+
+  // Clean up toast timers on unmount
+  useEffect(() => {
+    return () => {
+      if (errorToastTimerRef.current) clearTimeout(errorToastTimerRef.current);
+      if (capacityCountdownRef.current) clearInterval(capacityCountdownRef.current);
+    };
   }, []);
 
   const reportError = useCallback((message: string) => {
@@ -413,11 +537,23 @@ export default function DashboardPage() {
 
   const loadUserMetrics = async (uid: string) => {
     try {
-      const { data: metricsData } = await supabase
+      const LEGACY_METRIC_COLUMNS =
+        'sbq_inference_score, sbq_comparison_score, sbq_reliability_score, seq_essay_score, seq_conclusion_score, sbq_purpose_score, sbq_synthesis_score, sbq_utility_score, total_xp, level_title, current_streak, longest_streak, achievements, last_practice_date, ss_goal_level, history_goal_level, takes_history, total_evaluations';
+      let { data: metricsData, error: metricsError } = await supabase
         .from('user_skill_metrics')
-        .select('sbq_inference_score, sbq_comparison_score, sbq_reliability_score, seq_essay_score, seq_conclusion_score, sbq_purpose_score, sbq_synthesis_score, sbq_utility_score, total_xp, level_title, current_streak, longest_streak, achievements, last_practice_date, ss_goal_level, history_goal_level, takes_history, total_evaluations')
+        .select(`${LEGACY_METRIC_COLUMNS}, history_track`)
         .eq('user_id', uid)
         .single();
+      // history_track ships with delta_migration.sql. If that migration hasn't run
+      // yet, retry against the pre-migration columns so the rest of the metrics
+      // panel (XP, streak, goals) still loads instead of silently defaulting.
+      if (metricsError) {
+        ({ data: metricsData } = await supabase
+          .from('user_skill_metrics')
+          .select(LEGACY_METRIC_COLUMNS)
+          .eq('user_id', uid)
+          .single());
+      }
       if (metricsData) {
         setTotalEvaluations(metricsData.total_evaluations ?? 0);
         setSkillRatings({
@@ -443,7 +579,12 @@ export default function DashboardPage() {
         setDecayWarning(getDecayWarning(metricsData.last_practice_date, xp));
         setSsGoalLevel(metricsData.ss_goal_level ?? null);
         setHistoryGoalLevel(metricsData.history_goal_level ?? null);
-        setTakesHistory(metricsData.takes_history ?? false);
+        // Rows written before the Elective/Pure split only carry the boolean;
+        // back then Elective History was the only option offered.
+        setHistoryTrack(
+          (metricsData.history_track as HistoryTrack | null) ??
+            (metricsData.takes_history ? 'Elective History' : null),
+        );
         // Calculate XP progress to next level
         const nextLevelXp = getNextLevelXp(xp);
         const prevLevelXp = getPrevLevelXp(xp);
@@ -453,6 +594,18 @@ export default function DashboardPage() {
       console.warn("Metrics defaulted.");
     }
   };
+
+  // ── Heartbeat: ping every 5 min while dashboard is open ──
+  const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const sendHeartbeat = useCallback((uid: string) => {
+    // Fire-and-forget — never blocks the dashboard
+    fetch('/api/user/heartbeat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: uid }),
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     async function forceRetrieveSession() {
@@ -488,10 +641,8 @@ export default function DashboardPage() {
       setUserAvatar(user.user_metadata?.avatar_url || '');
       loadUserMetrics(user.id);
       loadHistoryLogs(user.id, 0, false);
-      // Check if user is admin
-      const isUserAdmin = 
-        user.app_metadata?.is_admin === true || 
-        user.user_metadata?.is_admin === true;
+      // Check if user is admin (app_metadata only — user_metadata is end-user-editable)
+      const isUserAdmin = user.app_metadata?.is_admin === true;
       setIsAdmin(isUserAdmin);
 
       setIsAuthLoading(false);
@@ -500,6 +651,22 @@ export default function DashboardPage() {
       fetch(`/api/referral?userId=${user.id}`)
         .then(r => r.json())
         .then(d => { if (d.referralCode) setMyReferralCode(d.referralCode); })
+        .catch(() => {});
+
+      // ── Sync beta trial gate from the server (authoritative for signed-in users) ──
+      fetch(`/api/trial?userId=${user.id}`)
+        .then(r => r.ok ? r.json() : null)
+        .then((trial: { triesUsed?: number; unlocked?: boolean; unlockExpiry?: number | null } | null) => {
+          if (trial && typeof trial.triesUsed === 'number') {
+            setTrialTriesUsed(trial.triesUsed);
+            setTrialUnlocked(trial.unlocked === true);
+            // Mirror the server-authoritative expiry (referral bonuses can extend
+            // an active unlock server-side) into localStorage.
+            if (trial.unlockExpiry) {
+              syncTrialUnlock(trial.unlockExpiry);
+            }
+          }
+        })
         .catch(() => {});
 
       // ── Send heartbeat to track last_active_at for personalized reminders ──
@@ -518,6 +685,11 @@ export default function DashboardPage() {
 
     forceRetrieveSession();
 
+    // ── Initialize beta trial gate state from localStorage ──
+    const trialInit = getTrialState();
+    setTrialTriesUsed(trialInit.triesUsed);
+    setTrialUnlocked(trialInit.unlocked);
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         handleUserSession(session.user);
@@ -526,7 +698,6 @@ export default function DashboardPage() {
 
     return () => {
       subscription.unsubscribe();
-      if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
     };
   }, []);
 
@@ -607,18 +778,6 @@ export default function DashboardPage() {
     };
   }, [isGrading]);
 
-  // ── Heartbeat: ping every 5 min while dashboard is open ──
-  const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const sendHeartbeat = useCallback((uid: string) => {
-    // Fire-and-forget — never blocks the dashboard
-    fetch('/api/user/heartbeat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: uid }),
-    }).catch(() => {});
-  }, []);
-
   // Set up periodic heartbeat once userId is known
   useEffect(() => {
     if (userId) {
@@ -674,6 +833,16 @@ export default function DashboardPage() {
   };
 
   const handleGenerateChallenge = async () => {
+ // Fresh user action (not an auto-retry) → re-arm the one-shot auto-retry
+    if (!isAutoRetryRef.current) {
+      autoRetryFiredRef.current = false;
+    }
+    isAutoRetryRef.current = false;
+    // ── Beta trial gate: block generation once the 3 free tries are used ──
+    if (isTrialBlocked()) {
+      setIsWaitlistGateOpen(true);
+      return;
+    }
     const _startGen = Date.now();
     setIsGenerating(true);
     setHasScanned(false);
@@ -688,10 +857,24 @@ export default function DashboardPage() {
           subject: activeSubject, 
           topic: selectedTopic, 
           questionType: selectedSkill,
+          userId: userId || undefined,
         }),
       });
       if (!res.ok) {
         const errData = await res.json().catch(() => ({ error: 'API returned ' + res.status }));
+        // Server-side trial gate tripped (localStorage was cleared / different device)
+        if (errData.code === 'TRIAL_LIMIT_REACHED') {
+          const serverTries = typeof errData.triesUsed === 'number' ? errData.triesUsed : TRIAL_LIMIT;
+          setTrialTriesUsed(serverTries);
+          setTrialUnlocked(false);
+          setIsWaitlistGateOpen(true);
+          return;
+        }
+ // AI provider at capacity → friendly countdown toast, not a raw error
+        if (errData.code === 'AI_CAPACITY') {
+          showCapacityToast(errData.error || AI_CAPACITY_FALLBACK_MESSAGE, resolveRetrySeconds(errData, res), 'generate');
+          return;
+        }
         throw new Error(errData.error || 'Generation failed (API ' + res.status + ')');
       }
       const data = await res.json();
@@ -727,6 +910,28 @@ export default function DashboardPage() {
         isAllFormats: data.isAllFormats || undefined,
         suggestedAnswer: data.suggestedAnswer || ''
       });
+
+      // ── Beta trial gate: this generation counts as one try ──
+      // Signed-in users: the server returned the authoritative count (atomic increment).
+      // Guests: increment the localStorage counter locally.
+      let trialTries = 0;
+      let trialUnlockedNow = false;
+      if (data.trial && typeof data.trial.triesUsed === 'number') {
+        trialTries = data.trial.triesUsed;
+        trialUnlockedNow = data.trial.unlocked === true;
+        // Mirror the server count into localStorage so client-side checks stay in sync
+        registerTryTo(trialTries);
+      } else {
+        const trialAfter = registerTry();
+        trialTries = trialAfter.triesUsed;
+        trialUnlockedNow = trialAfter.unlocked;
+      }
+      setTrialTriesUsed(trialTries);
+      setTrialUnlocked(trialUnlockedNow);
+      if (!trialUnlockedNow && trialTries >= TRIAL_LIMIT) {
+        // Give the user a moment to see their generated paper before showing the gate
+        setTimeout(() => setIsWaitlistGateOpen(true), 2500);
+      }
 
       if (userId) {
         // Build metadata for All Formats: store extra sources, parts, and subject-specific content
@@ -795,6 +1000,11 @@ export default function DashboardPage() {
   };
 
   const handleScanStructure = async () => {
+ // Fresh user action (not an auto-retry) → re-arm the one-shot auto-retry
+    if (!isAutoRetryRef.current) {
+      autoRetryFiredRef.current = false;
+    }
+    isAutoRetryRef.current = false;
     if (!sbcsAnswer.trim() && !seqAnswer.trim() && !srqAnswer.trim()) return;
     const _startGrade = Date.now();
     setIsGrading(true);
@@ -819,6 +1029,12 @@ export default function DashboardPage() {
       });
       if (!res.ok) {
         const errData = await res.json().catch(() => ({ error: 'Grading API returned ' + res.status }));
+ // AI provider at capacity → friendly countdown toast, not a raw error
+        if (errData.code === 'AI_CAPACITY') {
+          setHasScanned(false);
+          showCapacityToast(errData.error || AI_CAPACITY_FALLBACK_MESSAGE, resolveRetrySeconds(errData, res), 'grade');
+          return;
+        }
         throw new Error(errData.error || 'Grading failed (API ' + res.status + ')');
       }
       const data = await res.json();
@@ -928,6 +1144,25 @@ export default function DashboardPage() {
         setIsGrading(false);
       }
   };
+
+  // Keep the retry dispatcher pointing at the latest handlers so a retry that
+  // fires later (after the user edited answers) uses the freshest state.
+  useEffect(() => {
+    retryHandlersRef.current.generate = handleGenerateChallenge;
+    retryHandlersRef.current.grade = handleScanStructure;
+  });
+
+  // Fire a pending retry — triggered by the "Try Now" button or the countdown
+  // auto-retry. Runs in an effect (not during render) so the handlers can use
+  // impure helpers like Date.now() without violating react-hooks/purity.
+  useEffect(() => {
+    if (pendingRetryTick === 0) return;
+    const action = pendingRetryActionRef.current;
+    pendingRetryActionRef.current = null;
+    isAutoRetryRef.current = true;
+    if (action === 'generate') retryHandlersRef.current.generate?.();
+    else if (action === 'grade') retryHandlersRef.current.grade?.();
+  }, [pendingRetryTick]);
 
   const handlePasteFromClipboard = async (target: 'sbcs' | 'seq' | 'srq') => {
     try {
@@ -1046,17 +1281,23 @@ export default function DashboardPage() {
     }
   };
 
-  const handleSetTakesHistory = async (takes: boolean) => {
+  const handleSetHistoryTrack = async (track: HistoryTrack | null) => {
     if (!userId) return;
     try {
       const res = await fetch('/api/user/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, takes_history: takes }),
+        // Dropping History also clears the target — a goal with no paper is meaningless.
+        body: JSON.stringify({
+          userId,
+          history_track: track,
+          takes_history: !!track,
+          ...(track ? {} : { history_goal_level: null }),
+        }),
       });
       if (res.ok) {
-        setTakesHistory(takes);
-        if (!takes) setHistoryGoalLevel(null);
+        setHistoryTrack(track);
+        if (!track) setHistoryGoalLevel(null);
       } else {
         const errData = await res.json().catch(() => ({ error: 'Failed to update History setting' }));
         showErrorToast(errData.error || 'Failed to update History setting');
@@ -1074,6 +1315,48 @@ export default function DashboardPage() {
   const emailInitial = userEmail ? userEmail.charAt(0).toUpperCase() : 'G';
   const isGuest = !isAuthLoading && !userId;
   const isQuestionPromptInactive = (challenge.backgroundContext ?? '').includes('Click Generate Practice');
+
+  const handleTrialUnlocked = () => {
+    // Persist the unlock server-side so it survives localStorage clears / other devices
+    if (userId) {
+      fetch('/api/trial', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'unlock', userId }),
+      })
+        .then(r => r.ok ? r.json() : null)
+        .then((data: { unlockExpiry?: number } | null) => {
+          if (data?.unlockExpiry) {
+            syncTrialUnlock(data.unlockExpiry);
+            setTrialUnlocked(true);
+            setIsWaitlistGateOpen(false);
+ showErrorToast(`Unlimited practice unlocked for ${formatUnlockDays(data.unlockExpiry)}!`, 'warning');
+          } else {
+            // Server rejected the unlock (email not on waitlist) — keep the gate up
+            showErrorToast(
+              'Unlock failed. Make sure your email is on the waitlist, then try again.',
+              'error',
+            );
+            setIsWaitlistGateOpen(true);
+          }
+        })
+        .catch(() => {
+          showErrorToast('Could not reach the server. Please try again.', 'error');
+          setIsWaitlistGateOpen(true);
+        });
+    } else {
+      const state = getTrialState();
+      setTrialTriesUsed(state.triesUsed);
+      setTrialUnlocked(state.unlocked);
+      setIsWaitlistGateOpen(false);
+      showErrorToast(
+        state.unlockExpiry
+ ? `Unlimited practice unlocked for ${formatUnlockDays(state.unlockExpiry)}!`
+ : 'Unlimited practice unlocked!',
+        'warning',
+      );
+    }
+  };
 
   if (isAuthLoading) {
     return <DashboardSkeleton />;
@@ -1095,9 +1378,9 @@ export default function DashboardPage() {
       
       {/* Guest Mode Banner */}
       {isGuest && showGuestBanner && (
-        <div className="bg-gradient-to-r from-indigo-950/80 via-purple-950/80 to-slate-950/80 border-b border-indigo-500/30 px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+        <div className="bg-indigo-950/80 border-b border-indigo-500/30 px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-xs text-slate-300">
-            <span className="text-lg">🔓</span>
+            <span className="text-lg">Unlocked</span>
             <span><strong className="text-indigo-400">Guest Mode</strong> — generate &amp; grade instantly. Sign up to save your progress.</span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -1138,13 +1421,13 @@ export default function DashboardPage() {
               onClick={() => router.push('/dashboard/settings')}
               className="hidden sm:inline-flex bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[9px] font-bold px-3 py-2 rounded-lg transition text-slate-400 hover:text-slate-200 items-center gap-1.5"
             >
-              ⚙️ Settings
+ Settings
             </button>
             <Link
               href="/tips"
               className="hidden sm:inline-flex bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 text-[9px] font-bold px-3 py-2 rounded-lg transition items-center gap-1.5"
             >
-              📖 Tips
+              Tips
             </Link>
           </div>
         
@@ -1158,7 +1441,7 @@ export default function DashboardPage() {
             className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[9px] font-bold px-2.5 py-2 rounded-lg transition text-slate-400 hover:text-slate-200"
             title="Study Groups"
           >
-            👥
+            Group
           </button>
 
           {/* Sound toggle */}
@@ -1167,7 +1450,7 @@ export default function DashboardPage() {
             className="text-sm p-2 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-slate-900 transition"
             title={isSoundEnabled ? 'Mute sounds' : 'Enable sounds'}
           >
-            {isSoundEnabled ? '🔊' : '🔇'}
+            {isSoundEnabled ? 'Sound on' : 'Sound off'}
           </button>
 
           {/* Achievements button */}
@@ -1175,7 +1458,7 @@ export default function DashboardPage() {
             onClick={() => setIsAchievementsOpen(true)}
             className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[9px] font-bold px-2.5 py-2 rounded-lg transition text-slate-400 hover:text-slate-200"
           >
-            🏅 {achievements.length}/{ACHIEVEMENT_DEFS.length}
+            {achievements.length}/{ACHIEVEMENT_DEFS.length}
           </button>
           {/* Admin link - checked via session metadata */}
           {(isAdmin) && (
@@ -1183,14 +1466,14 @@ export default function DashboardPage() {
               href="/admin/analytics" 
               className="hidden sm:inline-flex bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 text-[11px] font-bold px-3 py-2 rounded-xl transition items-center gap-1.5"
             >
-              📊 Platform Insights
+              Platform Insights
             </a>
           )}
           
           <div className="relative" ref={dropdownRef}>
             <button 
               onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-              className="w-10 h-10 rounded-full flex items-center justify-center border border-slate-800 hover:border-indigo-500 focus:outline-none transition relative overflow-hidden bg-gradient-to-br from-indigo-600 to-purple-700 shadow-lg"
+              className="w-10 h-10 rounded-full flex items-center justify-center border border-slate-800 hover:border-indigo-500 focus:outline-none transition relative overflow-hidden bg-indigo-600 shadow-lg"
             >
               {userAvatar ? (
                 <Image src={userAvatar} alt="Profile" fill sizes="36px" className="object-cover" referrerPolicy="no-referrer" />
@@ -1207,10 +1490,10 @@ export default function DashboardPage() {
                 </div>
                 <div className="pt-2 border-t border-slate-900 flex flex-col space-y-1">
                   <button onClick={() => { router.push('/dashboard/settings'); setIsSettingsOpen(false); }} className="w-full text-left text-slate-400 hover:text-indigo-400 text-xs font-bold py-2 px-1 transition">
-                    ⚙️ Settings
+ Settings
                   </button>
                   <button onClick={() => { setIsFeedbackOpen(true); setIsSettingsOpen(false); }} className="w-full text-left text-slate-400 hover:text-indigo-400 text-xs font-bold py-2 px-1 transition">
-                    🐛 Submit Bug / Feedback
+                    Submit Bug / Feedback
                   </button>
                   {isGuest ? (
                     <Link href={getAuthLink()} className="block w-full text-center bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-xl text-xs transition mt-2">
@@ -1243,10 +1526,10 @@ export default function DashboardPage() {
           achievements={achievements}
           ssGoalLevel={ssGoalLevel}
           historyGoalLevel={historyGoalLevel}
-          takesHistory={takesHistory}
+          historyTrack={historyTrack}
           onFetchLeaderboard={fetchLeaderboard}
           onSetExamGoal={handleSetExamGoal}
-          onSetTakesHistory={handleSetTakesHistory}
+          onSetHistoryTrack={handleSetHistoryTrack}
         />
 
         {/* Weekly Digest Panel */}
@@ -1305,6 +1588,11 @@ export default function DashboardPage() {
             loadHistoryLogs(userId, 0, false);
             historyScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
           }}
+          // Beta trial gate props
+          trialTriesUsed={trialTriesUsed}
+          trialLimit={TRIAL_LIMIT}
+          trialUnlocked={trialUnlocked}
+          onTrialBlocked={() => setIsWaitlistGateOpen(true)}
         />
 
         {/* SCROLLABLE Source Material Columns Display Layout — sources only for SBCS/All Formats */}
@@ -1405,7 +1693,7 @@ export default function DashboardPage() {
                   onClick={() => setIsExemplarOpen(true)}
                   className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold px-3 py-2 rounded-full transition"
           >
-            💡 View Model Essay {evaluation.confidence > 0 ? `(${(evaluation.confidence * 100).toFixed(0)}% confident)` : ''}
+            View Model Essay {evaluation.confidence > 0 ? `(${(evaluation.confidence * 100).toFixed(0)}% confident)` : ''}
           </button>
               )}
             </div>
@@ -1414,7 +1702,7 @@ export default function DashboardPage() {
               (!isCustomMode && isQuestionPromptInactive) ? (
                 <div className="h-64 flex flex-col items-center justify-center text-center p-6 border border-dashed border-slate-900 rounded-2xl bg-slate-950/20">
                   <p className="text-sm font-bold text-indigo-400">Ready to initiate O-Level practice simulation?</p>
-                  <p className="text-[11px] text-slate-500 mt-1">Configure parameters and tap "Generate" to retrieve your full source package.</p>
+                  <p className="text-[11px] text-slate-500 mt-1">Configure parameters and tap &quot;Generate&quot; to retrieve your full source package.</p>
                 </div>
               ) : (
                 <div className="space-y-4 pb-4">
@@ -1423,36 +1711,36 @@ export default function DashboardPage() {
                     <div className="flex items-center justify-between">
                       <label className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase font-mono">Question: Source-Based Case Study</label>
                       <div className="flex gap-2">
-                        <button onClick={() => handlePasteFromClipboard('sbcs')} type="button" className="text-[10px] text-indigo-400 hover:underline p-1.5 sm:p-1 rounded-lg">📋 Paste</button>
-                        <button onClick={() => handleInjectPeelFrame('sbcs')} type="button" className="text-[10px] text-slate-400 hover:underline p-1.5 sm:p-1 rounded-lg">💡 PEEL</button>
+ <button onClick={() => handlePasteFromClipboard('sbcs')} type="button" className="text-[10px] text-indigo-400 hover:underline p-1.5 sm:p-1 rounded-lg">Paste</button>
+ <button onClick={() => handleInjectPeelFrame('sbcs')} type="button" className="text-[10px] text-slate-400 hover:underline p-1.5 sm:p-1 rounded-lg">PEEL</button>
                       </div>
                     </div>
 
                     {challenge.isAllFormats ? (
                       <>
-                        {/* Part (a) - Inference */}
+                        {/* Section A question 1 — Inference */}
                         <div className="bg-indigo-950/20 border border-indigo-900/30 rounded-lg p-3">
-                          <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider">Part (a) — Inference / Message — 2 marks</span>
+                          <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider">{activeSubject === 'Social Studies' ? 'Q1' : 'Q1(a)'} — Inference / Message</span>
                           <p className="text-xs font-medium text-slate-300 mt-1">{challenge.partA_Inference}</p>
                         </div>
-                        {/* Part (b) - Comparison */}
+                        {/* Section A question 2 — Comparison */}
                         <div className="bg-indigo-950/20 border border-indigo-900/30 rounded-lg p-3">
-                          <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider">Part (b) — Comparison — 5 marks</span>
+                          <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider">{activeSubject === 'Social Studies' ? 'Q2' : 'Q1(b)'} — Comparison</span>
                           <p className="text-xs font-medium text-slate-300 mt-1">{challenge.partB_Comparison}</p>
                         </div>
-                        {/* Part (c) - Purpose */}
+                        {/* Section A question 3 — Purpose */}
                         <div className="bg-indigo-950/20 border border-indigo-900/30 rounded-lg p-3">
-                          <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider">Part (c) — Purpose — 4 marks</span>
+                          <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider">{activeSubject === 'Social Studies' ? 'Q3' : 'Q1(c)'} — Purpose</span>
                           <p className="text-xs font-medium text-slate-300 mt-1">{challenge.partC_Purpose}</p>
                         </div>
-                        {/* Part (d) - Reliability */}
+                        {/* Section A question 4 — Reliability */}
                         <div className="bg-indigo-950/20 border border-indigo-900/30 rounded-lg p-3">
-                          <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider">Part (d) — Reliability — 5 marks</span>
+                          <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider">{activeSubject === 'Social Studies' ? 'Q4' : 'Q1(d)'} — Reliability / Utility</span>
                           <p className="text-xs font-medium text-slate-300 mt-1">{challenge.partD_Reliability}</p>
                         </div>
-                        {/* Part (e) - Assertion */}
+                        {/* Section A question 5 — Assertion (SS Q5 = 10 marks) */}
                         <div className="bg-amber-950/20 border border-amber-900/30 rounded-lg p-3">
-                          <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider">Part (e) — Assertion / Synthesis — 10 marks</span>
+                          <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider">{activeSubject === 'Social Studies' ? 'Q5' : 'Q1(e)'} — Assertion / Synthesis{activeSubject === 'Social Studies' ? ' — 10 marks' : ''}</span>
                           <p className="text-xs font-medium text-slate-300 mt-1">{challenge.partE_Assertion}</p>
                         </div>
                       </>
@@ -1483,7 +1771,7 @@ export default function DashboardPage() {
                           {/* SRQ (a) — 7 marks */}
                           {challenge.srqQuestionA && (
                             <div className="bg-slate-950/60 border border-slate-900 rounded-lg p-3">
-                              <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider">SRQ (a) — Recommendation / Strategy — 7 marks</span>
+                              <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider">SRQ Q6 — Recommendation / Strategy — 7 marks</span>
                               <p className="text-xs font-medium text-slate-300 mt-1">{challenge.srqQuestionA}</p>
                             </div>
                           )}
@@ -1491,7 +1779,7 @@ export default function DashboardPage() {
                           {/* SRQ (b) — 8 marks */}
                           {challenge.srqQuestionB && (
                             <div className="bg-slate-950/60 border border-slate-900 rounded-lg p-3">
-                              <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider">SRQ (b) — Evaluation / Judgment — 8 marks</span>
+                              <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider">SRQ Q7 — Evaluation / Judgment — 8 marks</span>
                               <p className="text-xs font-medium text-slate-300 mt-1">{challenge.srqQuestionB}</p>
                             </div>
                           )}
@@ -1502,7 +1790,7 @@ export default function DashboardPage() {
                       {challenge.seqQuestion1 && !challenge.srqBackgroundContext && (
                         <div className="bg-amber-950/20 border border-amber-900/30 p-4 rounded-xl space-y-3">
                           <label className="text-[10px] font-bold tracking-widest text-amber-400 uppercase font-mono">Structured Essay Questions (SEQ)</label>
-                          <p className="text-[9px] text-slate-500 italic">Answer any ONE of the following three questions.</p>
+                          <p className="text-[9px] text-slate-500 italic">Answer any TWO of the following three questions (10 marks each).</p>
                           
                           <div className="bg-slate-950/60 border border-slate-900 rounded-lg p-3">
                             <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider">SEQ Question 1 — Causes / Consequences</span>
@@ -1532,8 +1820,8 @@ export default function DashboardPage() {
                           <div className="flex items-center justify-between">
                             <label className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase font-mono">Question: Source-Based Case Study</label>
                             <div className="flex gap-2">
-                              <button onClick={() => handlePasteFromClipboard('sbcs')} type="button" className="text-[10px] text-indigo-400 hover:underline p-1.5 sm:p-1 rounded-lg">📋 Paste</button>
-                              <button onClick={() => handleInjectPeelFrame('sbcs')} type="button" className="text-[10px] text-slate-400 hover:underline p-1.5 sm:p-1 rounded-lg">💡 PEEL</button>
+ <button onClick={() => handlePasteFromClipboard('sbcs')} type="button" className="text-[10px] text-indigo-400 hover:underline p-1.5 sm:p-1 rounded-lg">Paste</button>
+ <button onClick={() => handleInjectPeelFrame('sbcs')} type="button" className="text-[10px] text-slate-400 hover:underline p-1.5 sm:p-1 rounded-lg">PEEL</button>
                             </div>
                           </div>
                           <p className="text-xs font-medium text-slate-300 bg-slate-900/40 p-2.5 rounded-lg border border-slate-800">{challenge.sbcsPrompt}</p>
@@ -1551,8 +1839,8 @@ export default function DashboardPage() {
                           <div className="flex items-center justify-between">
                             <label className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase font-mono">Question: Structured Essay (SEQ)</label>
                             <div className="flex gap-2">
-                              <button onClick={() => handlePasteFromClipboard('seq')} type="button" className="text-[10px] text-indigo-400 hover:underline p-1.5 sm:p-1 rounded-lg">📋 Paste</button>
-                              <button onClick={() => handleInjectPeelFrame('seq')} type="button" className="text-[10px] text-slate-400 hover:underline p-1.5 sm:p-1 rounded-lg">💡 PEEL</button>
+                              <button onClick={() => handlePasteFromClipboard('seq')} type="button" className="text-[10px] text-indigo-400 hover:underline p-1.5 sm:p-1 rounded-lg">Paste</button>
+                              <button onClick={() => handleInjectPeelFrame('seq')} type="button" className="text-[10px] text-slate-400 hover:underline p-1.5 sm:p-1 rounded-lg">PEEL</button>
                             </div>
                           </div>
                           <p className="text-xs font-medium text-slate-300 bg-slate-900/40 p-2.5 rounded-lg border border-slate-800">{challenge.seqPrompt}</p>
@@ -1570,8 +1858,8 @@ export default function DashboardPage() {
                           <div className="flex items-center justify-between">
                             <label className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase font-mono">Question: Structured Response (SRQ)</label>
                             <div className="flex gap-2">
-                              <button onClick={() => handlePasteFromClipboard('srq')} type="button" className="text-[10px] text-indigo-400 hover:underline p-1.5 sm:p-1 rounded-lg">📋 Paste</button>
-                              <button onClick={() => handleInjectPeelFrame('srq')} type="button" className="text-[10px] text-slate-400 hover:underline p-1.5 sm:p-1 rounded-lg">💡 PEEL</button>
+                              <button onClick={() => handlePasteFromClipboard('srq')} type="button" className="text-[10px] text-indigo-400 hover:underline p-1.5 sm:p-1 rounded-lg">Paste</button>
+                              <button onClick={() => handleInjectPeelFrame('srq')} type="button" className="text-[10px] text-slate-400 hover:underline p-1.5 sm:p-1 rounded-lg">PEEL</button>
                             </div>
                           </div>
                           <p className="text-xs font-medium text-slate-300 bg-slate-900/40 p-2.5 rounded-lg border border-slate-800">{challenge.srqPrompt}</p>
@@ -1592,7 +1880,7 @@ export default function DashboardPage() {
                   <span key={idx} className={seg.type === 'error' ? 'underline decoration-red-500 bg-red-500/10' : seg.type === 'weak' ? 'bg-yellow-500/20 text-yellow-300' : ''}>{seg.text}</span>
                 ))}
                 <div className="mt-4 pt-4 border-t border-slate-900">
-                  <button onClick={() => setHasScanned(false)} className="text-[10px] bg-slate-900 text-slate-400 font-bold px-3 py-2 rounded-lg border border-slate-800">✏️ Resume Editing</button>
+                  <button onClick={() => setHasScanned(false)} className="text-[10px] bg-slate-900 text-slate-400 font-bold px-3 py-2 rounded-lg border border-slate-800">Resume Editing</button>
                 </div>
               </div>
             )}
@@ -1616,7 +1904,7 @@ export default function DashboardPage() {
                       : 'bg-slate-950 border-slate-900 text-slate-400 hover:text-slate-200'
                 }`}
               >
-                {examTimerPausedByHover ? '⏸️ Paused — Hover off to resume' : isTimerActive ? `⏱️ ${formatTime(timeLeft)}` : '⏱️ Start Timer'}
+                {examTimerPausedByHover ? 'Paused — Hover off to resume' : isTimerActive ? `${formatTime(timeLeft)}` : 'Start Timer'}
                 {isTimerActive && !examTimerPausedByHover && timeLeft <= 300 && (
                   <span className="ml-1 text-[9px]">{timeLeft <= 60 ? 'CRITICAL' : `${Math.ceil(timeLeft/60)}m left`}</span>
                 )}
@@ -1666,7 +1954,7 @@ export default function DashboardPage() {
                     }`}>Feedback</span>
                   </span>
                 </span>
-              ) : '⚡ Scan All Answers Simultaneously'}
+              ) : 'Scan All Answers Simultaneously'}
             </button>
           </div>
         </div>
@@ -1683,15 +1971,15 @@ export default function DashboardPage() {
                 <div>
                   <div className="group relative flex items-center gap-1.5 cursor-help">
                     <span className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">Estimated Banding</span>
-                    <span className="text-[9px] text-indigo-400 font-bold bg-indigo-950/50 px-1.5 py-0.5 rounded border border-indigo-900/40" title="L1: Surface Details Only • L2: Source Content Used • L3: LORMS Target Objective Met">LORMS Criteria ⓘ</span>
+                    <span className="text-[9px] text-indigo-400 font-bold bg-indigo-950/50 px-1.5 py-0.5 rounded border border-indigo-900/40" title="L1: Surface Details Only • L2: Source Content Used • L3: LORMS Target Objective Met">LORMS Criteria </span>
                   </div>
                   <div className="text-xl font-black text-indigo-400 tracking-tight mt-1.5 font-mono select-text">{evaluation.scoreEstimate}</div>
                   
                   {/* School Benchmarking — calibrated to Singapore school standards */}
                   {schoolBenchmark && (
-                    <div className="mt-3 bg-gradient-to-r from-indigo-950/40 via-purple-950/30 to-slate-950/40 border border-indigo-900/30 rounded-xl p-3">
+                    <div className="mt-3 bg-indigo-950/40 border border-indigo-900/30 rounded-xl p-3">
                       <div className="flex items-center gap-1.5 mb-2">
-                        <span className="text-[10px]">🏫</span>
+                        <span className="text-[10px]">School</span>
                         <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider">School Benchmark</span>
                       </div>
                       <div className="grid grid-cols-3 gap-2 mb-2">
@@ -1708,7 +1996,7 @@ export default function DashboardPage() {
                         <div className="bg-slate-900/60 rounded-lg p-2 text-center">
                           <span className="text-[7px] font-bold text-slate-400 uppercase tracking-wider block">Standard</span>
                           <span className="text-sm font-black text-white font-mono">{schoolBenchmark.standardEstimate}</span>
-                          <span className="text-[7px] text-slate-500 block">Nat'l Avg</span>
+                          <span className="text-[7px] text-slate-500 block">Nat&apos;l Avg</span>
                         </div>
                       </div>
                       <p className="text-[10px] text-slate-400 leading-relaxed">{schoolBenchmark.explanation}</p>
@@ -1738,7 +2026,7 @@ export default function DashboardPage() {
                     </div>
                   )}
                   {evaluation.confidence > 0 && evaluation.confidence < 0.5 && (
-                    <p className="text-[10px] text-red-400 font-bold mt-1">⚠ Low confidence — consider manual review</p>
+                    <p className="text-[10px] text-red-400 font-bold mt-1">Low confidence — consider manual review</p>
                   )}
                 </div>
                 {evaluation.critique.length > 0 && (
@@ -1756,7 +2044,7 @@ export default function DashboardPage() {
                   <>
                     <div className="pt-2 border-t border-slate-900 flex items-center justify-between">
                       <span className="text-[9px] text-slate-600 font-medium">
-                        📤 Share your grade with classmates
+                        Share your grade with classmates
                       </span>
                       <ShareResultCard
                         scoreEstimate={evaluation.scoreEstimate}
@@ -1772,7 +2060,7 @@ export default function DashboardPage() {
                         referralCode={myReferralCode}
                       />
                     </div>
-                    <div className="w-full h-px bg-gradient-to-r from-transparent via-indigo-800/30 to-transparent" />
+                    <div className="w-full h-px bg-indigo-800/30" />
                   </>
                 )}
               </>
@@ -1840,14 +2128,14 @@ export default function DashboardPage() {
                 resumeTimer(dailyGoalToastTimerRef, dailyGoalToastStartRef, dailyGoalToastRemainingRef, dismissDailyGoalToast);
               }}
             >
-              <div className="bg-gradient-to-r from-emerald-950/95 to-slate-950/95 border border-emerald-500/30 rounded-xl shadow-2xl shadow-emerald-500/5 backdrop-blur-xl relative overflow-hidden">
+              <div className="bg-emerald-950/95 border border-emerald-500/30 rounded-xl shadow-2xl shadow-emerald-500/5 backdrop-blur-xl relative overflow-hidden">
                 <button onClick={(e) => { e.stopPropagation(); dismissDailyGoalToast(); }} className="absolute top-2 right-2.5 w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-white hover:bg-slate-900 transition text-sm font-bold z-10">✕</button>
                 <div className="p-4 pr-8">
-                  <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">✅ Daily Goal Complete!</p>
+                  <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">✓ Daily Goal Complete!</p>
                   <p className="text-xs text-slate-300 mt-1 font-semibold">+{dailyGoalBonus} XP Bonus Earned</p>
                 </div>
                 <div className="h-0.5 bg-emerald-900/30">
-                  <div className={`h-full bg-gradient-to-r from-emerald-400 to-emerald-600 animate-shrink-width ${hoveredNotif === 'daily' ? 'animate-paused' : ''}`} />
+                  <div className={`h-full bg-emerald-500 animate-shrink-width ${hoveredNotif === 'daily' ? 'animate-paused' : ''}`} />
                 </div>
               </div>
             </div>
@@ -1871,21 +2159,36 @@ export default function DashboardPage() {
                   ? 'bg-rose-950/80 border-rose-500/30'
                   : 'bg-amber-950/80 border-amber-500/30'
               }`}>
-                <span className="text-lg mt-0.5 shrink-0">{errorToast.type === 'error' ? '⚠️' : '💡'}</span>
+                <span className="text-lg mt-0.5 shrink-0">{errorToast.type === 'error' ? 'Warning' : 'Tip'}</span>
                 <div className="flex-1 min-w-0">
                   <p className={`text-[11px] font-bold ${errorToast.type === 'error' ? 'text-rose-300' : 'text-amber-300'}`}>
                     {errorToast.type === 'error' ? 'Error' : 'Warning'}
                   </p>
                   <p className="text-xs text-slate-300 mt-0.5 leading-relaxed break-words">{errorToast.message}</p>
+                  {errorToast.retryIn != null && (
+                    <p className="text-[10px] font-bold text-rose-400/90 mt-1.5 animate-pulse-soft">
+ {errorToast.autoRetry ? 'Auto-retrying in' : 'Retrying in'} {formatTime(errorToast.retryIn)}…
+                    </p>
+                  )}
+                  {errorToast.retryIn == null && errorToast.longWaitEta != null && (
+                    <p className="text-[10px] font-bold text-rose-400/90 mt-1.5">
+ Daily AI quota hit — resets in {errorToast.longWaitEta}
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 mt-2">
-                  <button onClick={(e) => { e.stopPropagation(); if (errorToast.message) reportError(errorToast.message); }} className="text-[9px] font-bold bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 px-3 py-2 rounded-lg transition">📮 Report to Developer</button>
+                  {errorToast.canRetry && (
+ <button onClick={(e) => { e.stopPropagation(); handleToastRetry(); }} className="text-[9px] font-bold bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 px-3 py-2 rounded-lg transition shrink-0">Try Now</button>
+                  )}
+                  <button onClick={(e) => { e.stopPropagation(); if (errorToast.message) reportError(errorToast.message); }} className="text-[9px] font-bold bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 px-3 py-2 rounded-lg transition">Report to Developer</button>
                   <button onClick={(e) => { e.stopPropagation(); dismissErrorToast(); }} className="text-slate-500 hover:text-white transition ml-auto shrink-0 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-900 text-sm font-bold">✕</button>
                 </div>
               </div>
-              <div className="h-0.5 bg-slate-800/50 rounded-full mt-1 overflow-hidden">
-                <div className={`h-full rounded-full animate-shrink-width ${hoveredNotif === 'error' ? 'animate-paused' : ''} ${errorToast.type === 'error' ? 'bg-rose-500' : 'bg-amber-500'}`} />
-              </div>
+              {errorToast.retryIn == null && errorToast.longWaitEta == null && (
+                <div className="h-0.5 bg-slate-800/50 rounded-full mt-1 overflow-hidden">
+                  <div className={`h-full rounded-full animate-shrink-width ${hoveredNotif === 'error' ? 'animate-paused' : ''} ${errorToast.type === 'error' ? 'bg-rose-500' : 'bg-amber-500'}`} />
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1947,6 +2250,15 @@ export default function DashboardPage() {
         textInput={textInput}
         setTextInput={setTextInput}
         onSubmit={handleSubmitFeedback}
+      />
+
+      {/* Beta Trial Gate — after 3 free generations, join waitlist + feedback to unlock 7 days */}
+      <WaitlistGateModal
+        isOpen={isWaitlistGateOpen}
+        onClose={() => setIsWaitlistGateOpen(false)}
+        onUnlocked={handleTrialUnlocked}
+        userEmail={userEmail || undefined}
+        userId={userId}
       />
 
       {/* Testimonial Prompt — appears after 2nd+ successful scan */}

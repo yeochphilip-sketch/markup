@@ -1,0 +1,39 @@
+# MARKUP
+
+> AI-powered practice and grading platform for Singapore O-Level Humanities. Students generate SBQ, SEQ and SRQ practice papers aligned to the SEAB syllabus, write timed answers, and receive instant LORMS-aligned grades with targeted feedback on their source analysis and essay technique.
+
+MARKUP is built for Singapore GCE O-Level students taking Social Studies and Elective History. It is currently free during its public beta (3 free practice papers without an account; the waitlist unlocks 7 more days). The app surfaces (/dashboard, /auth) require an account and are not listed here.
+
+## Core Pages
+
+- [Home](https://markup-five.vercel.app/): Practice simulator and free trial — generate a paper, write, get graded.
+- [Tips & Guides](https://markup-five.vercel.app/tips): Index of all free exam-technique guides for SBQ, SEQ and SRQ.
+- [Free SBQ Template](https://markup-five.vercel.app/resources/sbq-template): Downloadable source-based case study answer template (lead magnet).
+- [Privacy Policy](https://markup-five.vercel.app/privacy): What student data is collected and how it is handled.
+- [Terms of Service](https://markup-five.vercel.app/terms): Usage terms for the platform.
+
+## SBQ (Source-Based Case Study) Guides
+
+- [SBQ Source Analysis](https://markup-five.vercel.app/tips/sbq-source-analysis): How to interrogate provenance, content and tone before answering.
+- [SBQ Comparison Questions](https://markup-five.vercel.app/tips/sbq-comparison): The 3-step L4/6 framework for compare-and-contrast answers.
+- [SBQ Reliability Questions](https://markup-five.vercel.app/tips/sbq-reliability): Cross-referencing sources to evaluate reliability.
+- [SBQ Purpose Questions](https://markup-five.vercel.app/tips/sbq-purpose): Deconstructing why a source was created (NAPO technique).
+- [SBQ Utility Questions](https://markup-five.vercel.app/tips/sbq-utility-comparison): Comparing what sources are useful for, and to whom.
+- [SBQ Answer Templates](https://markup-five.vercel.app/tips/sbq-templates): Fill-in-the-blank structures for every SBQ question type.
+- [Model SBQ Answer](https://markup-five.vercel.app/tips/model-sbq-answer): A full-mark worked example, annotated line by line.
+
+## SEQ & Essay Guides
+
+- [PEEL Framework](https://markup-five.vercel.app/tips/peel-framework): Point, Evidence, Explanation, Link — the core essay paragraph structure.
+- [SEQ Evaluation Paragraphs](https://markup-five.vercel.app/tips/seq-evaluation): Writing the evaluative judgement SEQ marks reward.
+- [SEQ History Guide](https://markup-five.vercel.app/tips/seq-history-guide): Structuring Elective History structured essays.
+- [Historical Context Essays](https://markup-five.vercel.app/tips/historical-context-essays): Anchoring arguments in period-specific context.
+- [Introductions & Conclusions](https://markup-five.vercel.app/tips/intro-conclusions): Openers and closers that frame an L-level answer.
+
+## Study Strategy
+
+- [Common Mistakes](https://markup-five.vercel.app/tips/common-mistakes): The errors that cost the most marks, and their fixes.
+- [SRQ Guide](https://markup-five.vercel.app/tips/srq-guide): Tackling Short-Answer Response Questions.
+- [Study Strategy](https://markup-five.vercel.app/tips/study-strategy): A weekly practice cadence for Humanities papers.
+- [Exam Week Strategy](https://markup-five.vercel.app/tips/exam-week-strategy): The final-7-days revision plan.
+- [History vs Social Studies](https://markup-five.vercel.app/tips/history-vs-social-studies): How the two electives differ, and how prep differs with them.
