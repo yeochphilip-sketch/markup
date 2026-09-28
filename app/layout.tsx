@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   authors: [{ name: 'MARKUP' }],
   openGraph: {
     title: 'MARKUP — O-Level Humanities AI Practice',
-    description: 'The only Source-Based Case Study simulator designed for the Singapore SEAB Social Studies and History syllabus. Scan essays, get LORMS grades, and climb to A1.',
+    description: 'Source-Based Case Study and essay practice for the Singapore O-Level Social Studies, Elective History and Pure History syllabus. Scan your answers, get LORMS-style feedback, and track your progress.',
     url: SITE_URL,
     siteName: 'MARKUP',
     type: 'website',

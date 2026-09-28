@@ -398,14 +398,9 @@ export default function DashboardPage() {
   } | null>(null);
 
   useEffect(() => {
-    let interval: any = null;
-    if (isTimerActive && timeLeft > 0) {
-      interval = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
-    } else if (timeLeft === 0) {
-      setIsTimerActive(false);
-    }
+    const interval = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
     return () => clearInterval(interval);
-  }, [isTimerActive, timeLeft]);
+  }, [isTimerActive]);
 
   // ── Exam timer hover pause/resume ──
   const handleTimerMouseEnter = useCallback(() => {
@@ -539,7 +534,7 @@ export default function DashboardPage() {
     try {
       const LEGACY_METRIC_COLUMNS =
         'sbq_inference_score, sbq_comparison_score, sbq_reliability_score, seq_essay_score, seq_conclusion_score, sbq_purpose_score, sbq_synthesis_score, sbq_utility_score, total_xp, level_title, current_streak, longest_streak, achievements, last_practice_date, ss_goal_level, history_goal_level, takes_history, total_evaluations';
-      let { data: metricsData, error: metricsError } = await supabase
+      const { data: metricsData, error: metricsError } = await supabase
         .from('user_skill_metrics')
         .select(`${LEGACY_METRIC_COLUMNS}, history_track`)
         .eq('user_id', uid)
@@ -682,7 +677,7 @@ export default function DashboardPage() {
         localStorage.setItem('sound_enabled', 'true');
       }
     }
-
+  }, []);
     forceRetrieveSession();
 
     // ── Initialize beta trial gate state from localStorage ──
@@ -717,18 +712,20 @@ export default function DashboardPage() {
   const isAllFormats = currentTrackType === 'all-formats';
   const isSBCSOnly = currentTrackType === 'sbcs';
   const isSEQOnly = currentTrackType === 'seq';
-  const isSRQOnly = currentTrackType === 'srq';
-
-// ── Simulated generate progress steps (Sources → Questions → Formatting) ──
+  const isSRQOnly = currentTrackType === 'srq';  // ── Simulated generate progress steps (Sources → Questions → Formatting) ──
   useEffect(() => {
     if (isGenerating) {
       const STEPS = ['sources', 'questions', 'formatting'];
       let stepIndex = 0;
-      setGenerateProgress(STEPS[0]);
       const tick = () => {
         stepIndex++;
         if (stepIndex < STEPS.length) {
           setGenerateProgress(STEPS[stepIndex]);
+        }
+      };
+      const id = setInterval(tick, 1200);
+      return () => clearInterval(id);
+  }, [isGenerating]);
           generateProgressIntervalRef.current = setTimeout(tick, 1500);
         }
       };
@@ -753,12 +750,15 @@ export default function DashboardPage() {
     if (isGrading) {
       const STEPS = ['sbcs', 'seq', 'srq', 'feedback'];
       let stepIndex = 0;
-      setScanProgress(STEPS[0]);
-      // Quick first tick to get past SBCS fast, then steady 1.5s per subsequent step
       const tick = () => {
         stepIndex++;
         if (stepIndex < STEPS.length) {
           setScanProgress(STEPS[stepIndex]);
+        }
+      };
+      const id = setInterval(tick, 1500);
+      return () => clearInterval(id);
+  }, [isGrading]);          setScanProgress(STEPS[stepIndex]);
           scanProgressIntervalRef.current = setTimeout(tick, stepIndex === 1 ? 1500 : 1500);
         }
       };
@@ -848,14 +848,14 @@ export default function DashboardPage() {
     setHasScanned(false);
     setIsExemplarOpen(false);
     setEvaluation({ scoreEstimate: '', critique: [], segments: [], confidence: 0, a1Upgrade: '' });
-    
+
     try {
       const res = await fetch('/api/generate-question', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          subject: activeSubject, 
-          topic: selectedTopic, 
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        subject: activeSubject,
+        topic: selectedTopic,
           questionType: selectedSkill,
           userId: userId || undefined,
         }),

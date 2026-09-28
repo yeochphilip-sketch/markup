@@ -23,7 +23,10 @@ export default function ReferralCTA({ userId }: ReferralCTAProps) {
       return;
     }
     fetch(`/api/referral?userId=${userId}`)
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(`API returned ${r.status}`);
+        return r.json();
+      })
       .then(data => {
         setReferralCode(data.referralCode ?? '');
         setReferralCount(data.referralCount ?? 0);

@@ -87,6 +87,15 @@ export default function TestimonialPrompt({
     }
   }, [isOpen]);
 
+  // Persist the completion record once, when the trial gate closes.
+  useEffect(() => {
+    if (completed && !wasSavedRef.current) {
+      wasSavedRef.current = true;
+      setSaved(true);
+      localStorage.setItem(ONBOARDING_KEY, JSON.stringify(tourState));
+    }
+  }, [completed]);
+
   const handleSubmit = useCallback(async () => {
     if (rating === 0) return;
     setStatus('submitting');

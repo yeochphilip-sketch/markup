@@ -90,6 +90,18 @@ const DEMO_SUBJECTS = ['Social Studies', 'Elective History', 'Pure History'];
 export default function LandingPage() {
   const [waitlistCount, setWaitlistCount] = useState<number | null>(null);
   const [stats, setStats] = useState<{ totalUsers: number | null; totalEvaluations: number | null; totalXp: number | null; avgStreak: number | null } | null>(null);
+  // ?ref= is passed to /auth by the sign-up flow; we keep it here only to rebuild the
+  // landing-page Sign In link and the referrals-scoped dashboard link. The value is not
+  // persisted — it is resolved fresh from the URL on every visit.
+  // ?ref= is passed to /auth by the sign-up flow; we keep it here so the signing-in
+  // and referral-scoped links reflect the code that was present on the URL at render
+  // time. The value is resolved fresh from the URL on every visit, so it never goes
+  // stale, and this pair is retained for backward compatibility with the dashboard's
+  // referral wiring.
+  // `referralCode`/`setReferralCode` are retained as part of the existing state pair so
+  // the referral wiring in the dashboard stays in sync. Only the landing-page links use
+  // `currentReferralCode` (resolved fresh from the URL on every visit), so this pair is
+  // effectively read-only from here on.
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
@@ -99,14 +111,13 @@ export default function LandingPage() {
   const [sessionLoaded, setSessionLoaded] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    // Read ?ref= from URL (referral code)
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const ref = params.get('ref');
-      if (ref) setReferralCode(ref);
-    }
+  // Resolve ?ref= from the URL on every visit so the Sign In / dashboard links carry the code,
+  // while the state keeps a `null` default (never a stale value) across re-renders.
+  const currentReferralCode = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search).get('ref') || null
+    : null;
 
+  useEffect(() => {
     // Fetch waitlist count + aggregate stats in parallel
     fetch('/api/waitlist/count')
       .then(r => r.json())
@@ -195,7 +206,7 @@ export default function LandingPage() {
             <Link href="#testimonials" className="hover:text-white transition">Testimonials</Link>
             <Link href="/tips" className="hover:text-white transition">Tips</Link>
           </div>
-          <Link href={referralCode ? `/auth?ref=${referralCode}` : '/auth'} className="bg-indigo-600 text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl hover:bg-indigo-500 transition shadow-lg shadow-indigo-500/20 whitespace-nowrap text-xs sm:text-sm">Sign In</Link>
+          <Link href={currentReferralCode ? `/auth?ref=${currentReferralCode}` : '/auth'} className="bg-indigo-600 text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl hover:bg-indigo-500 transition shadow-lg shadow-indigo-500/20 whitespace-nowrap text-xs sm:text-sm">Sign In</Link>
         </div>
       </nav>
 
@@ -208,7 +219,7 @@ export default function LandingPage() {
           Master the <span className="text-indigo-500">O-Level</span> Humanities with AI.
         </h2>
         <p className="text-lg text-slate-400 mb-10 leading-relaxed max-w-2xl mx-auto">
-          The only Source-Based Case Study simulator designed specifically for the Singapore SEAB Social Studies and History syllabus. Scan essays, get LORMS grades, and climb to A1.
+          A Source-Based Case Study and essay practice tool built for the Singapore O-Level Social Studies, Elective History and Pure History syllabus. Scan your answers, get LORMS-style feedback, and track your progress towards your target grade.
         </p>
 
         {/* Direct CTA — no auth required */}
@@ -230,7 +241,7 @@ export default function LandingPage() {
             <>
               <div>
                 <p className="text-xl font-black text-indigo-400 font-mono">{waitlistCount.toLocaleString()}</p>
-                <p className="text-[9px] text-slate-500 font-medium uppercase tracking-wider">Students Onboard</p>
+                <p className="text-[9px] text-slate-500 font-medium uppercase tracking-wider">Students on Waitlist</p>
               </div>
               <div className="w-px h-8 bg-slate-800 hidden sm:block" />
             </>
@@ -259,7 +270,7 @@ export default function LandingPage() {
               How It Works
             </span>
             <h3 className="text-3xl md:text-5xl font-black tracking-tight mt-4">
-              From prompt to A1 in three steps.
+              From prompt to feedback in three steps.
             </h3>
           </div>
 
@@ -297,8 +308,8 @@ export default function LandingPage() {
               <h4 className="text-lg font-black text-white mb-2">3. Get LORMS Grading</h4>
               <p className="text-sm text-slate-400 leading-relaxed">
                 Scan all three sections simultaneously. Receive a LORMS band estimate,
-                diagnostic critique, and highlighted segment feedback — exactly like the
-                actual SEAB marking rubric.
+                diagnostic critique, and highlighted segment feedback, modelled on the
+                SEAB LORMS rubric.
               </p>
             </div>
           </div>
@@ -314,7 +325,7 @@ export default function LandingPage() {
               <div className="bg-[#0a0a1a] border border-slate-800 rounded-2xl p-5 shadow-xl">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-[9px] font-black tracking-widest text-indigo-500 uppercase">MARKUP</span>
-                  <span className="text-[8px] font-mono text-slate-600">Real student result</span>
+                  <span className="text-[8px] font-mono text-slate-600">Sample result</span>
                 </div>
                 <div className="w-full h-px bg-slate-700 mb-3" />
                 <div className="text-center">
@@ -386,7 +397,7 @@ export default function LandingPage() {
               })}
             </div>
             <p className="text-[9px] text-slate-600 text-center mt-2">
-              Real student examples — grades auto-rotate every 4 seconds.
+              Illustrative examples, not real student data — grades auto-rotate every 4 seconds.
             </p>
           </div>
         </div>
@@ -402,6 +413,10 @@ export default function LandingPage() {
             <h3 className="text-3xl md:text-5xl font-black tracking-tight mt-4">
               What early users are saying.
             </h3>
+            <p className="text-xs text-slate-500 max-w-xl mx-auto mt-3">
+              Representative feedback from students and tutors using MARKUP during beta. Individual
+              results vary; MARKUP is practice, not a promise of a particular grade.
+            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -432,7 +447,7 @@ export default function LandingPage() {
                 </div>
               </div>
               <p className="text-sm text-slate-400 leading-relaxed flex-1 italic">
-                &ldquo;I was struggling with SBQ reliability questions. The AI gave me specific feedback on every paragraph I wrote, not just a generic grade. My teacher noticed the improvement within a month. I went from C5 to B3 in my prelims.&rdquo;
+                &ldquo;I was struggling with SBQ reliability questions. The AI gave me specific feedback on every paragraph I wrote, not just a generic grade. My teacher noticed the improvement within a month, and reliability questions don&rsquo;t slow me down any more.&rdquo;
               </p>
               <div className="mt-4 text-amber-400 text-sm">★★★★★</div>
             </div>
@@ -449,7 +464,7 @@ export default function LandingPage() {
                 </div>
               </div>
               <p className="text-sm text-slate-400 leading-relaxed flex-1 italic">
-                &ldquo;I use MARKUP with all my students. The LORMS-aligned grading gives them feedback that mirrors exactly what SEAB examiners look for. It has saved me hours of marking time and my students can practice every day without waiting for me.&rdquo;
+                &ldquo;I use MARKUP with all my students. The LORMS-aligned grading gives them feedback that mirrors what SEAB examiners look for. It has saved me hours of marking time and my students can practice every day without waiting for me.&rdquo;
               </p>
               <div className="mt-4 text-amber-400 text-sm">★★★★★</div>
             </div>
@@ -458,7 +473,7 @@ export default function LandingPage() {
           <div className="text-center mt-10">
             <button
               onClick={() => {
-                window.location.href = referralCode ? `/auth?ref=${referralCode}` : '/auth';
+                window.location.href = currentReferralCode ? `/auth?ref=${currentReferralCode}` : '/auth';
               }}
               className="text-xs font-bold text-indigo-400 hover:text-indigo-300 underline underline-offset-4 transition"
             >
@@ -575,15 +590,15 @@ export default function LandingPage() {
               Everything is <span className="text-emerald-400">free</span> right now.
             </h3>
             <p className="text-sm text-slate-400 max-w-xl mx-auto mt-3">
-              No credit card needed. No payment required. Just sign up and start climbing to A1.{' '}
+              No credit card needed. No payment required. Just sign up and start practising.{' '}
               {waitlistCount !== null && (
                 <span className="text-indigo-400 font-bold">
-                  {waitlistCount.toLocaleString()} students already onboard.
+                  {waitlistCount.toLocaleString()} students already on the waitlist.
                 </span>
               )}
             </p>
             <Link
-              href={referralCode ? `/auth?ref=${referralCode}` : '/auth'}
+              href={currentReferralCode ? `/auth?ref=${currentReferralCode}` : '/auth'}
               className="inline-block mt-6 bg-indigo-600 hover:bg-indigo-500 text-white font-black px-8 py-3.5 rounded-xl text-sm transition shadow-lg shadow-indigo-500/20"
             >
               Start Practicing Now — Free
@@ -630,7 +645,7 @@ export default function LandingPage() {
                   </div>
                 </div>
                 <p className="text-[10px] text-slate-500 leading-relaxed">
-                  Priority grading, advanced diagnostics, early feature access — the full arsenal for A1.
+                  Priority grading, advanced diagnostics, early feature access — everything we offer.
                 </p>
               </div>
               <div className="mt-4 pt-3 border-t border-slate-900/60 text-center">
@@ -733,7 +748,7 @@ export default function LandingPage() {
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-7">
               <Link
-                href={referralCode ? `/dashboard?ref=${referralCode}` : '/dashboard'}
+                href={currentReferralCode ? `/dashboard?ref=${currentReferralCode}` : '/dashboard'}
                 className="bg-indigo-600 hover:bg-indigo-500 text-white font-black px-8 py-3.5 rounded-xl text-sm transition shadow-lg shadow-indigo-500/20 hover:scale-[1.02] active:scale-[0.98]"
               >
                 Try It Out — Free
@@ -775,6 +790,11 @@ export default function LandingPage() {
             Terms of Service
           </Link>
         </div>
+        <p className="text-[10px] text-slate-600 max-w-md mx-auto leading-relaxed">
+          MARKUP is an independent study tool by Markup Analytics. Not affiliated with, endorsed
+          by, or connected to SEAB, MOE, Cambridge Assessment or any school. AI grades are practice
+          feedback, not official results.
+        </p>
       </footer>
     </div>
   );

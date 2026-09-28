@@ -1,6 +1,6 @@
 /**
-* Central site configuration for SEO surfaces (sitemap, robots, llms.txt,
-  * canonical URLs, JSON-LD).
+* Central site configuration: SEO surfaces (sitemap, robots, llms.txt, canonical
+  * URLs, JSON-LD) and the public legal identity shown in the policies and footer.
 *
 * The canonical origin comes from SITE_URL (set on Vercel) with the live
 * production deployment as the fallback. Every SEO surface derives from here,
@@ -9,6 +9,22 @@
 export const SITE_URL = (process.env.SITE_URL || 'https://markup-five.vercel.app').replace(/\/$/, '');
 
 export const SITE_NAME = 'MARKUP';
+
+/* ────────────────────────────────────────────────────────────────
+Public legal identity
+
+Used by the Privacy Policy, Terms of Service and the landing-page footer.
+The PDPA requires an organisation to designate a Data Protection Officer and
+make their business contact information publicly available, so PRIVACY_EMAIL
+must be a real, monitored mailbox — not a personal address or an alias that
+bounces. Keep these in sync with any DPO registration filed with the PDPC.
+──────────────────────────────────────────────────────────────── */
+
+/** The entity that operates MARKUP. */
+export const LEGAL_ENTITY = 'Markup Analytics';
+
+/** DPO / privacy contact. Published on /privacy, /terms and the site footer. */
+export const PRIVACY_EMAIL = 'privacy@markup.app';
 
 /** Routes that belong in the sitemap. /pricing is excluded — it 307s to / while in beta. */
 export const PUBLIC_ROUTES = [

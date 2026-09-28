@@ -30,6 +30,8 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
         const data = await res.json();
         setNotifications(data.notifications ?? []);
         setUnreadCount(data.unreadCount ?? 0);
+      } else {
+        console.warn('Failed to fetch notifications:', res.status);
       }
     } catch {
       // silent

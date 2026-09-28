@@ -65,7 +65,9 @@ export default function WeeklyDigestPanel({
   }, [userId]);
 
   useEffect(() => {
-    if (userId) fetchDigest();
+    if (userId) {
+      fetchDigest();
+    }
   }, [userId, fetchDigest]);
 
   // Get the icon for the current level
