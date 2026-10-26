@@ -721,14 +721,11 @@ export default function DashboardPage() {
         stepIndex++;
         if (stepIndex < STEPS.length) {
           setGenerateProgress(STEPS[stepIndex]);
-        }
       };
       const id = setInterval(tick, 1200);
-      return () => clearInterval(id);
+      return () => clearInterval(id);}
   }, []);
-      }
       setGenerateProgress(null);
-    }
     return () => {
       if (generateProgressIntervalRef.current) {
         clearTimeout(generateProgressIntervalRef.current);
@@ -750,25 +747,6 @@ export default function DashboardPage() {
       };
       const id = setInterval(tick, 1500);
       return () => clearInterval(id);
-  }, [isGrading]);          setScanProgress(STEPS[stepIndex]);
-          scanProgressIntervalRef.current = setTimeout(tick, stepIndex === 1 ? 1500 : 1500);
-        }
-      };
-      scanProgressIntervalRef.current = setTimeout(tick, 700);
-    } else {
-      if (scanProgressIntervalRef.current) {
-        clearTimeout(scanProgressIntervalRef.current);
-        scanProgressIntervalRef.current = null;
-      }
-      setScanProgress(null);
-    }
-    return () => {
-      if (scanProgressIntervalRef.current) {
-        clearTimeout(scanProgressIntervalRef.current);
-        scanProgressIntervalRef.current = null;
-      }
-    };
-  }, [isGrading]);
 
   // Set up periodic heartbeat once userId is known
   useEffect(() => {
