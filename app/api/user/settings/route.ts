@@ -1,14 +1,9 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { getServerSupabase, getAuthUserId } from '@/lib/supabase-server';
+import { getServerSupabase, getAuthUserId, resolveUserId, getServiceRoleClient } from '@/lib/supabase';
 
 export const runtime = 'nodejs';
 export const maxDuration = 10;
 
-/**
- * Shared SQL query + response builder for user_skill_metrics.
- * Accepts any Supabase-compatible client (service-role or authenticated).
- */
 /** Columns present in every deployed schema. */
 const BASE_METRICS_COLUMNS = [
   'email_reminders_enabled',
@@ -63,20 +58,11 @@ async function fetchUserMetrics(supabase: any, userId: string) {
 }
 
 /**
- * Resolve the effective user ID: prefer the request param (for backward compat
- * with service-role-key setups), fall back to the authenticated session.
- */
-async function resolveUserId(request: Request): Promise<string | null> {
-  try {
-    const { searchParams } = new URL(request.url);
-    const paramId = searchParams.get('userId');
-    if (paramId) return paramId;
-  } catch { /* ignore */ }
-  return getAuthUserId();
-}
-
-/**
  * GET /api/user/settings?userId=xxx
+ *
+ * Resolves the caller's identity strictly from the session. The `userId`
+ * query param is accepted ONLY if it equals the authenticated user's ID
+ * (defense-in-depth). The endpoint reads the caller's own rows (RLS boundary).
  */
 export async function GET(request: Request) {
   try {
@@ -85,18 +71,17 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const supabaseAdmin = getServiceRoleClient();
 
-    if (supabaseUrl && supabaseKey) {
-      const { metrics, error } = await fetchUserMetrics(createClient(supabaseUrl, supabaseKey), userId);
+    if (supabaseAdmin) {
+      const { metrics, error } = await fetchUserMetrics(supabaseAdmin, userId);
       if (!error) {
         return buildMetricsResponse(metrics);
       }
       console.warn('settings GET error (falling back to session auth):', error);
     }
 
-    // Fallback: cookie-based session auth (respects RLS)
+    // Fallback: use cookie-based session auth (respects RLS)
     const { metrics, error } = await fetchUserMetrics(await getServerSupabase(), userId);
     if (error) {
       console.warn('settings GET (fallback) error:', error);
@@ -114,6 +99,8 @@ export async function GET(request: Request) {
  * PATCH /api/user/settings
  *
  * Updates user settings. Body accepts any subset of the fields below.
+ * The userId in the body is accepted ONLY if it matches the authenticated
+ * session. The write targets the caller's own row (RLS boundary).
  */
 export async function PATCH(request: Request) {
   try {
@@ -130,17 +117,24 @@ export async function PATCH(request: Request) {
       exam_goal_level?: string | null;
     };
 
-    // Resolve userId: try request body first (for backward compat), then session
-    let userId = bodyUserId ?? null;
-    if (!userId) {
-      userId = await getAuthUserId();
+    // Resolve userId: accept body userId ONLY if it matches the session.
+    let userId: string | null = bodyUserId ?? null;
+    if (userId) {
+      const sessionUserId = await getAuthUserId(request);
+      if (sessionUserId && sessionUserId === userId) {
+        // Match confirmed — use the caller-supplied ID.
+      } else {
+        userId = await getAuthUserId(request);
+      }
+    } else {
+      userId = await getAuthUserId(request);
     }
+
     if (!userId) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const supabaseAdmin = getServiceRoleClient();
 
     // Only update fields that were actually sent
     const allowedFields = [
@@ -168,13 +162,11 @@ export async function PATCH(request: Request) {
     // Always bump updated_at so we know when settings last changed
     updateData.updated_at = new Date().toISOString();
 
-    // Use upsert (onConflict: 'user_id') so the row is CREATED if it doesn't exist yet —
-    // e.g. for users whose signup predated the user_skill_metrics trigger.
-    // If the row already exists, only the fields in updateData are touched.
-
-    // Try service role key first (may fail if env var is misconfigured)
-    if (supabaseUrl && supabaseKey) {
-      const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
+    // Use upsert (onConflict: 'user_id') so the row is CREATED if it doesn't
+    // exist yet — e.g. for users whose signup predated the user_skill_metrics
+    // trigger. If the row already exists, only the fields in updateData are
+    // touched.
+    if (supabaseAdmin) {
       const { error } = await supabaseAdmin
         .from('user_skill_metrics')
         .upsert(

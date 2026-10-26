@@ -685,16 +685,16 @@ export default function DashboardPage() {
     setTrialTriesUsed(trialInit.triesUsed);
     setTrialUnlocked(trialInit.unlocked);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        handleUserSession(session.user);
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
+    useEffect(() => {
+      const unsubscribe = supabase.auth.onAuthStateChange((_event, session) => {
+        if (session?.user) {
+          handleUserSession(session.user);
+        }
+      });
+      return () => {
+        unsubscribe();
+      };
+    }, []);
 
     /** Determine track type from skill name */
   const getTrackType = useCallback((skill: string): 'all-formats' | 'sbcs' | 'seq' | 'srq' => {
@@ -725,15 +725,7 @@ export default function DashboardPage() {
       };
       const id = setInterval(tick, 1200);
       return () => clearInterval(id);
-  }, [isGenerating]);
-          generateProgressIntervalRef.current = setTimeout(tick, 1500);
-        }
-      };
-      generateProgressIntervalRef.current = setTimeout(tick, 700);
-    } else {
-      if (generateProgressIntervalRef.current) {
-        clearTimeout(generateProgressIntervalRef.current);
-        generateProgressIntervalRef.current = null;
+  }, []);
       }
       setGenerateProgress(null);
     }
@@ -743,7 +735,7 @@ export default function DashboardPage() {
         generateProgressIntervalRef.current = null;
       }
     };
-  }, [isGenerating]);
+  }, []);
 
   // ── Simulated scan progress steps (SBCS → SEQ → SRQ → Feedback) ──
   useEffect(() => {

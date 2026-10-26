@@ -1,26 +1,21 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { getServerSupabase, getAuthUserId } from '@/lib/supabase-server';
+import { getServerSupabase, getAuthUserId, resolveUserId, getServiceRoleClient } from '@/lib/supabase';
 
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    let userId = searchParams.get('userId');
-
-    // Fall back to session if no param
-    if (!userId) {
-      userId = await getAuthUserId();
-    }
+    // Resolve userId: strictly from the authenticated session.
+    // We do NOT accept a caller-supplied userId — the client can only read
+    // its own notifications (RLS boundary).
+    const userId = await resolveUserId(request);
     if (!userId) {
       return NextResponse.json({ notifications: [], unreadCount: 0 });
     }
 
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    // Try service role key first
-    if (url && key) {
-      const supabaseAdmin = createClient(url, key);
+    const supabaseAdmin = getServiceRoleClient();
+    if (supabaseAdmin) {
+      // Service role bypasses RLS but we still constrain to the authenticated
+      // user's row. Use eq('user_id', userId) to prevent cross-tenant reads.
       try {
         const { data: notifications } = await supabaseAdmin
           .from('user_notifications')
@@ -81,37 +76,38 @@ export async function PATCH(request: Request) {
     const body = await request.json();
     const { userId: bodyUserId, notificationId } = body as { userId?: string; notificationId?: string };
 
-    // Resolve userId: try body first (for backward compat), then session
-    let userId = bodyUserId ?? null;
-    if (!userId) {
-      userId = await getAuthUserId();
+    // Resolve userId strictly from session. Body userId is only accepted if it
+    // matches the authenticated session (defense-in-depth).
+    let userId = bodyUserId;
+    if (userId) {
+      const sessionUserId = await getAuthUserId(request);
+      if (sessionUserId && sessionUserId === userId) {
+        // Match confirmed — use the caller-supplied ID.
+      } else {
+        userId = await getAuthUserId(request);
+      }
+    } else {
+      userId = await getAuthUserId(request);
     }
+
     if (!userId) {
       return NextResponse.json({ success: true }); // Silently ignore
     }
 
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    // Try service role key first
-    if (url && key) {
-      const supabaseAdmin = createClient(url, key);
-      try {
-        if (notificationId) {
-          await supabaseAdmin
-            .from('user_notifications')
-            .update({ is_read: true } as never)
-            .eq('id', notificationId)
-            .eq('user_id', userId);
-        } else {
-          await supabaseAdmin
-            .from('user_notifications')
-            .update({ is_read: true } as never)
-            .eq('user_id', userId)
-            .eq('is_read', false);
-        }
-      } catch (dbErr) {
-        console.warn('user_notifications table may not exist yet:', dbErr);
+    const supabaseAdmin = getServiceRoleClient();
+    if (supabaseAdmin) {
+      if (notificationId) {
+        await supabaseAdmin
+          .from('user_notifications')
+          .update({ is_read: true } as never)
+          .eq('id', notificationId)
+          .eq('user_id', userId);
+      } else {
+        await supabaseAdmin
+          .from('user_notifications')
+          .update({ is_read: true } as never)
+          .eq('user_id', userId)
+          .eq('is_read', false);
       }
       return NextResponse.json({ success: true });
     }

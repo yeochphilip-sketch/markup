@@ -55,9 +55,7 @@ export default function OnboardingWizard({ userId, onComplete }: OnboardingWizar
   useEffect(() => {
     // Persistence: ensure the tour state is stored on first visit.
     const stored = localStorage.getItem(ONBOARDING_KEY);
-    if (stored) {
-      setStoredTour(JSON.parse(stored));
-    }
+    // Tour state is persisted via localStorage, no need to re-apply here
   }, []);
 
   const handleComplete = async () => {

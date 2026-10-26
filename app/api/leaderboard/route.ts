@@ -1,23 +1,16 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { getServerSupabase } from '@/lib/supabase-server';
+import { getServerSupabase, getAuthUserId, resolveUserId, getServiceRoleClient } from '@/lib/supabase';
 import { getLevelTitle } from '@/lib/gamification';
 
 export const runtime = 'nodejs';
 export const maxDuration = 20;
 
-/**
- * Resolve a Supabase client: try service role key first, fall back to session auth.
- * The leaderboard needs admin-level access (reads ALL users), but gracefully degrades
- * to showing just the user's own stats when the service role key isn't available.
- */
-async function getClientForLeaderboard() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (url && key) {
-    return createClient(url, key);
-  }
-  return getServerSupabase();
+/** Resolve the caller's real user ID from the session. Cross-tenant requests
+ * are rejected (the leaderboard is per-user; the server does the cross-user
+ * ranking reads. */
+async function resolveViewerUserId(request: Request): Promise<string | null> {
+  return resolveUserId(request, null);
 }
 
 function getDecileLabel(percentile: number): string {
@@ -31,25 +24,26 @@ function getDecileLabel(percentile: number): string {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { userId } = body as { userId?: string };
-
-    if (!userId) {
-      return NextResponse.json({ error: 'userId required' }, { status: 400 });
+    // Resolve the viewer's identity — the leaderboard must be read by the
+    // authenticated user, and the response is on their behalf.
+    const viewerUserId = await resolveViewerUserId(request);
+    if (!viewerUserId) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    // Resolve client: try service role key first, fall back to session auth
-    const isServiceRole = !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
-    const supabase = await getClientForLeaderboard();
+    const adminClient = getServiceRoleClient();
+    if (!adminClient) {
+      return NextResponse.json({ error: 'Service role client not configured' }, { status: 500 });
+    }
 
     // ── 1. Fetch current user's gamification state ──
     let myMetrics: any = null;
     try {
-      const { data, error: myErr } = await (supabase
+      const { data, error: myErr } = await adminClient
         .from('user_skill_metrics')
         .select('total_xp, level_title, current_streak, longest_streak, last_practice_date, updated_at, sbq_inference_score, sbq_comparison_score, sbq_reliability_score, seq_essay_score, seq_conclusion_score, sbq_purpose_score, sbq_synthesis_score, sbq_utility_score')
-        .eq('user_id', userId)
-        .single() as any);
+        .eq('user_id', viewerUserId)
+        .single() as any;
       if (!myErr && data) myMetrics = data;
     } catch (fetchErr) {
       console.warn('Leaderboard fetch warning:', fetchErr);
@@ -62,43 +56,17 @@ export async function POST(request: Request) {
     const myXp = myMetrics.total_xp ?? 0;
     const myLevel = getLevelTitle(myXp);
 
-    // ── When service role key is missing, return bare-minimum stats ──
-    if (!isServiceRole) {
-      return NextResponse.json({
-        myRank: 1,
-        totalUsers: 1,
-        percentile: 100,
-        decileLabel: 'Leaderboard — anonymous mode',
-        myXp,
-        myLevel,
-        myStreak: myMetrics.current_streak ?? 0,
-        myLongestStreak: myMetrics.longest_streak ?? 0,
-        lastPracticeDate: myMetrics.last_practice_date,
-        recentEvalCount: 0,
-        avgXp: 0,
-        avgStreak: 0,
-        topXp: myXp,
-        xpToNextLevel: myLevel === 'Master' ? 0 : 500,
-        isInTopTwenty: true,
-        sameLevelPeersCount: 0,
-        sameLevelPeers: [],
-        mostImproved: [],
-        leaderboard: [{ rank: 1, userId, isMe: true, xp: myXp, level: myLevel }],
-        trendDirection: 'steady',
-      });
-    }
-
     // ── 2. Count total active users and my rank ──
-    const { count: totalUsers } = await (supabase
+    const { count: totalUsers } = await adminClient
       .from('user_skill_metrics')
-      .select('*', { count: 'exact', head: true }) as any);
+      .select('*', { count: 'exact', head: true }) as any;
 
     const userCount = totalUsers ?? 1;
 
-    const { data: higherThanMe } = await (supabase
+    const { data: higherThanMe } = await adminClient
       .from('user_skill_metrics')
       .select('id')
-      .gt('total_xp', myXp) as any);
+      .gt('total_xp', myXp) as any;
 
     const myRank = (higherThanMe?.length ?? 0) + 1;
     const percentile = Math.max(1, Math.round(((userCount - myRank + 1) / userCount) * 100));
@@ -108,17 +76,17 @@ export async function POST(request: Request) {
     weekAgo.setDate(weekAgo.getDate() - 7);
     const weekAgoStr = weekAgo.toISOString();
 
-    const { count: recentEvaluations } = await (supabase
+    const { count: recentEvaluations } = await adminClient
       .from('essay_evaluations')
       .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .gte('created_at', weekAgoStr) as any);
+      .eq('user_id', viewerUserId)
+      .gte('created_at', weekAgoStr) as any;
 
     // ── 4. Most improved this week ──
-    const { data: recentActiveUsers } = await (supabase
+    const { data: recentActiveUsers } = await adminClient
       .from('essay_evaluations')
       .select('user_id')
-      .gte('created_at', weekAgoStr) as any);
+      .gte('created_at', weekAgoStr) as any;
 
     const evalCounts: Record<string, number> = {};
     if (recentActiveUsers) {
@@ -129,14 +97,14 @@ export async function POST(request: Request) {
       }
     }
 
-    const activeUserIds = Object.keys(evalCounts).filter(id => id !== userId);
+    const activeUserIds = Object.keys(evalCounts).filter(id => id !== viewerUserId);
     let mostImproved: { userId: string; xpGained: number }[] = [];
 
     if (activeUserIds.length > 0) {
-      const { data: improverMetrics } = await (supabase
+      const { data: improverMetrics } = await adminClient
         .from('user_skill_metrics')
         .select('user_id, total_xp')
-        .in('user_id', activeUserIds) as any);
+        .in('user_id', activeUserIds) as any;
 
       if (improverMetrics) {
         mostImproved = (improverMetrics as Array<{ user_id: string; total_xp: number }>)
@@ -150,18 +118,18 @@ export async function POST(request: Request) {
     }
 
     // ── 5. Peers at similar level ──
-    const { data: sameLevelPeers } = await (supabase
+    const { data: sameLevelPeers } = await adminClient
       .from('user_skill_metrics')
       .select('user_id, total_xp, current_streak')
       .eq('level_title', myLevel)
-      .neq('user_id', userId)
+      .neq('user_id', viewerUserId)
       .order('total_xp', { ascending: false })
-      .limit(5) as any);
+      .limit(5) as any;
 
     // ── 6. Average stats for reference ──
-    const { data: avgStats } = await (supabase
+    const { data: avgStats } = await adminClient
       .from('user_skill_metrics')
-      .select('total_xp, current_streak') as any);
+      .select('total_xp, current_streak') as any;
 
     const typedAvgStats = avgStats as Array<{ total_xp: number; current_streak: number }> | null;
     const avgXp = typedAvgStats && typedAvgStats.length > 0
@@ -177,11 +145,11 @@ export async function POST(request: Request) {
       : 0;
 
     // ── 7. Leaderboard top 20 ──
-    const { data: topTwenty } = await (supabase
+    const { data: topTwenty } = await adminClient
       .from('user_skill_metrics')
       .select('user_id, total_xp, level_title')
       .order('total_xp', { ascending: false })
-      .limit(20) as any);
+      .limit(20) as any;
 
     const isInTopTwenty = myRank <= 20;
 
@@ -189,7 +157,7 @@ export async function POST(request: Request) {
     const leaderboard = typedTopTwenty?.map((entry, idx) => ({
       rank: idx + 1,
       userId: entry.user_id,
-      isMe: entry.user_id === userId,
+      isMe: entry.user_id === viewerUserId,
       xp: entry.total_xp ?? 0,
       level: entry.level_title ?? 'Novice',
     })) ?? [];

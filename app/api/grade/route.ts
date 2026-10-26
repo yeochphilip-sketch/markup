@@ -4,12 +4,11 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
-import { getServerSupabase } from '@/lib/supabase-server';
+import { getServerSupabase, getAuthUserId, resolveUserId, getServiceRoleClient } from '@/lib/supabase';
 import { getGradeSystemPrompt, getGradeUserPrompt } from '@/lib/prompts';
 import { parseJsonWithRepair } from '@/lib/json-repair';
 import { AiCapacityError, isAiCapacityError, aiCapacityResponse, estimateRetryAfterSeconds, AI_CAPACITY_MESSAGE } from '@/lib/ai-capacity';
 import { checkSupabaseRateLimit, GRADE_LIMIT, rateLimitResponse } from '@/lib/rate-limit-supabase';
-import { getAuthUserId } from '@/lib/supabase-server';
 import { getXpForLevel, DAILY_GOAL_BONUS_XP, getStreakBonus, calculateXpDecay, checkNewAchievements } from '@/lib/gamification';
 
 const groq = createOpenAI({
@@ -17,11 +16,11 @@ const groq = createOpenAI({
   apiKey: process.env.GROQ_API_KEY,
 });
 
-/**
- * Try each model provider in sequence until one succeeds.
- * Falls back through: Groq 70B → Groq 8B → Google Gemini Flash (if key configured).
- */
+/** Try each model provider in sequence until one succeeds.
+ *  True multi-provider fallback: tries every provider on any failure.
+ *  Hard timeout per attempt: 120s via AbortController. */
 async function tryGradeWithFallbacks(
+  request: Request,
   system: string,
   prompt: string,
 ): Promise<z.infer<typeof evaluationSchema>> {
@@ -30,45 +29,181 @@ async function tryGradeWithFallbacks(
     { model: groq('llama-3.1-8b-instant'), label: 'Groq Llama 3.1 8B', temp: 0.2 },
   ];
 
-  // Only add Google fallback if the user has configured a key
   if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
     attempts.push({ model: google('gemini-2.5-flash'), label: 'Google Gemini 2.5 Flash', temp: 0.2 });
   }
 
-  const jsonInstruction = `\n\nYou MUST respond with ONLY a valid JSON object using these exact keys:\n{\n  "scoreLevel": "string (e.g. 'L3')",\n  "scoreMarks": "number (e.g. 6)",\n  "scoreMaxMarks": "number (e.g. 8)",\n  "scoreLabel": "string (human-readable score, at least 4 chars)",\n  "sbcsScore": { "level": "string (optional)", "marks": 0, "maxMarks": 0, "label": "string (optional)" },\n  "seqScore": { "level": "string (optional)", "marks": 0, "maxMarks": 0, "label": "string (optional)" },\n  "srqScore": { "level": "string (optional)", "marks": 0, "maxMarks": 0, "label": "string (optional)" },\n  "pointStatus": "'Pass' or 'Fail'",\n  "evidenceStatus": "'Pass' or 'Fail'",\n  "critique": ["string (min 10 chars)", "..."],\n  "highlightedSegments": [{"text": "string", "type": "'correct' | 'weak' | 'error'"}],\n  "a1Upgrade": "string (min 40 chars)",\n  "gradingConfidence": 0.5,\n  "modelAnswerConfidence": 0.5,\n  "schoolBenchmark": { \"topTierEstimate\": "string (e.g. 'L3')", \"midTierEstimate\": "string (e.g. 'L3')", \"standardEstimate\": "string (e.g. 'L4')", \"explanation\": "string (min 10 chars, explaining the estimates)" }\n}\nNo markdown, no code fences, no other text. Just the JSON object.`;
+  const jsonInstruction = `\n\nYou MUST respond with ONLY a valid JSON object using these exact keys:\n{\n  "scoreLevel": "string (e.g. 'L3')",\n  "scoreMarks": "number (e.g. 6)",\n  "scoreMaxMarks": "number (e.g. 8)",\n  "scoreLabel": "string (human-readable score, at least 4 chars)",\n  "sbcsScore": { "level": "string (optional)", "marks": 0, "maxMarks": 0, "label": "string (optional)" },\n  "seqScore": { "level": "string (optional)", "marks": 0, "maxMarks": 0, "label": "string (optional)" },\n  "srqScore": { "level": "string (optional)", "marks": 0, "maxMarks": 0, "label": "string (optional)" },\n  "pointStatus": "'Pass' or 'Fail'",\n  "evidenceStatus": "'Pass' or 'Fail'",\n  "critique": ["string (min 10 chars)", "..."],\n  "highlightedSegments": [{"text": "string", "type": "'correct' | 'weak' | 'error'"}],\n  "a1Upgrade": "string (min 40 chars)",\n  "gradingConfidence": 0.5,\n  "modelAnswerConfidence": 0.5,\n  "schoolBenchmark": { "topTierEstimate": "string", "midTierEstimate": "string", "standardEstimate": "string", "explanation": "string (min 10 chars)" }\n}\nNo markdown, no code fences, no other text. Just the JSON object.`;
 
   const errors: string[] = [];
+  const userAgent = request?.headers.get('user-agent') ?? 'unknown';
+
   for (const attempt of attempts) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 120000);
+
     try {
       const result = await generateText({
         model: attempt.model,
         system: system + jsonInstruction,
         prompt,
         temperature: attempt.temp,
+        abortSignal: controller.signal,
       });
       return evaluationSchema.parse(parseJsonWithRepair(result.text));
     } catch (err) {
+      clearTimeout(timeout);
       const msg = err instanceof Error ? err.message : String(err);
-      console.warn(`[grade] ${attempt.label} failed:`, msg);
+      const isAbort = err instanceof Error && err.name === 'AbortError';
+      console.warn(`[grade] ${attempt.label} failed:`, msg, isAbort ? '(timeout)' : '');
       errors.push(`${attempt.label}: ${msg}`);
+
+      if (isAbort && attempt !== attempts[attempts.length - 1]) continue;
+      if (isAbort) {
+        return fallbackRetryThreshold(errors, attempt.label, userAgent);
+      }
     }
   }
 
-  // If ANY failure was quota/rate-limit exhaustion, surface a friendly
-  // "AI is at capacity" message instead of leaking raw provider errors.
-  if (errors.some(msg => isAiCapacityError(msg))) {
+  if (errors.some((msg) => isAiCapacityError(msg))) {
     throw new AiCapacityError(AI_CAPACITY_MESSAGE, estimateRetryAfterSeconds(errors));
   }
 
-  throw new Error(
-    `All AI providers failed to grade.\n${errors.join('\n')}`,
-  );
+  throw new Error(`All AI providers failed to grade.\n${errors.join('\n')}`);
+}
+
+function fallbackRetryThreshold(errors: string[], label: string, userAgent: string): never {
+  errors.push(`${label}: <timeout — hard cap of 120s exceeded>`);
+  throw new Error(`All AI providers failed to grade.\n${errors.join('\n')}`);
+}
+
+/** Post-grade quality validation — checks for common LLM grading failures. */
+function validateGrade(
+  evalResult: z.infer<typeof evaluationSchema>,
+  questionType: string,
+  activeSections: string[],
+): string[] {
+  const issues: string[] = [];
+  const isAllFormats = questionType.toLowerCase().includes('all formats') ||
+                       questionType.toLowerCase().includes('bundle');
+
+  if (!/^L([0-5])$/.test(evalResult.scoreLevel)) {
+    issues.push(`Invalid scoreLevel format: "${evalResult.scoreLevel}" (expected L0–L5)`);
+  }
+  if (evalResult.scoreMarks > evalResult.scoreMaxMarks && evalResult.scoreMaxMarks > 0) {
+    issues.push(`scoreMarks (${evalResult.scoreMarks}) exceeds scoreMaxMarks (${evalResult.scoreMaxMarks})`);
+  }
+  if (evalResult.scoreMaxMarks === 0 && evalResult.scoreLevel !== 'L0') {
+    issues.push('scoreMaxMarks is 0 but scoreLevel is not L0');
+  }
+  if (evalResult.critique.length === 0) {
+    issues.push('critique is empty');
+  }
+  for (const c of evalResult.critique) {
+    if (c.length < 10) {
+      issues.push('critique contains entries shorter than 10 chars');
+      break;
+    }
+  }
+  if (evalResult.a1Upgrade.length < 40) {
+    issues.push(`a1Upgrade is too short (${evalResult.a1Upgrade.length} chars, min 40)`);
+  }
+  if (evalResult.a1Upgrade.length >= 40 && !/L[1-6]\s/.test(evalResult.a1Upgrade)) {
+    issues.push('a1Upgrade missing LORMS level labels (e.g., "L4", "L3")');
+  }
+  if (evalResult.a1Upgrade.length >= 40 && !/Point:/i.test(evalResult.a1Upgrade)) {
+    issues.push('a1Upgrade missing "Point:" PEEL marker');
+  }
+  if (evalResult.a1Upgrade.length >= 100 && !/"[^"]{5,}"/.test(evalResult.a1Upgrade)) {
+    issues.push('a1Upgrade missing direct quotes from sources');
+  }
+  if (evalResult.gradingConfidence < 0 || evalResult.gradingConfidence > 1) {
+    issues.push(`gradingConfidence out of range: ${evalResult.gradingConfidence}`);
+  }
+  if (evalResult.modelAnswerConfidence < 0 || evalResult.modelAnswerConfidence > 1) {
+    issues.push(`modelAnswerConfidence out of range: ${evalResult.modelAnswerConfidence}`);
+  }
+  if (isAllFormats) {
+    if (activeSections.includes('sbcs') && !evalResult.sbcsScore) {
+      issues.push('SBCS section submitted but sbcsScore is missing');
+    }
+    if (activeSections.includes('seq') && !evalResult.seqScore) {
+      issues.push('SEQ section submitted but seqScore is missing');
+    }
+    if (activeSections.includes('srq') && !evalResult.srqScore) {
+      issues.push('SRQ section submitted but srqScore is missing');
+    }
+  }
+  return issues;
+}
+
+const highlightedSegmentSchema = z.object({
+  text: z.string(),
+  type: z.enum(['correct', 'weak', 'error']),
+});
+
+function cleanSectionScore(val: unknown): unknown {
+  if (val === null || val === undefined) return undefined;
+  if (typeof val !== 'object') return val;
+  const cleaned: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(val as Record<string, unknown>)) {
+    if (v !== null) cleaned[k] = v;
+  }
+  return Object.keys(cleaned).length > 0 ? cleaned : undefined;
+}
+
+const sectionScoreSchema = z.preprocess(cleanSectionScore, z.object({
+  level: z.string().optional(),
+  marks: z.number().optional(),
+  maxMarks: z.number().optional(),
+  label: z.string().optional(),
+}).optional());
+
+const evaluationSchema = z.object({
+  scoreLevel: z.string(),
+  scoreMarks: z.number(),
+  scoreMaxMarks: z.number(),
+  scoreLabel: z.string().min(4),
+
+  sbcsScore: sectionScoreSchema,
+  seqScore: sectionScoreSchema,
+  srqScore: sectionScoreSchema,
+
+  pointStatus: z.enum(['Pass', 'Fail']),
+  evidenceStatus: z.enum(['Pass', 'Fail']),
+  critique: z.array(z.string().min(10)).min(1).max(8),
+  highlightedSegments: z.array(highlightedSegmentSchema).min(1),
+  a1Upgrade: z.string().min(40),
+
+  gradingConfidence: z.number().min(0).max(1),
+  modelAnswerConfidence: z.number().min(0).max(1),
+
+  schoolBenchmark: z.object({
+    topTierEstimate: z.string(),
+    midTierEstimate: z.string(),
+    standardEstimate: z.string(),
+    explanation: z.string().min(10),
+  }).optional(),
+});
+
+/** Resolve a Supabase client: prefer cookie-based session auth (user-level, respects RLS). */
+async function getClientForUser() {
+  try {
+    return await getServerSupabase();
+  } catch {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (url && key) {
+      return createClient(url, key);
+    }
+    throw new Error('No Supabase client available');
+  }
 }
 
 export const runtime = 'nodejs';
 export const maxDuration = 90;
 
-// ── Skill track → user_skill_metrics column mapping ──
+/** Skill track → user_skill_metrics column mapping */
 const SKILL_COLUMN_MAP: Record<string, string> = {
   'inference': 'sbq_inference_score',
   'comparison': 'sbq_comparison_score',
@@ -91,178 +226,70 @@ function getSkillColumn(questionType: string): string | null {
 }
 
 function extractLevelNumber(level: string): number {
-  // Parse "L3" or "L4 / 5 marks" or "L2 / 2 marks" → 3, 4, 2
   const match = level.match(/L(\d+)/i);
   return match ? parseInt(match[1], 10) : 0;
 }
 
-/**
- * Post-grade quality validation — checks for common LLM grading failures.
- * Returns a list of issues (empty = passed quality check).
- */
-function validateGrade(
-  evalResult: z.infer<typeof evaluationSchema>,
-  questionType: string,
-  activeSections: string[],
-): string[] {
-  const issues: string[] = [];
-  const isAllFormats = questionType.toLowerCase().includes('all formats') ||
-                       questionType.toLowerCase().includes('bundle');
+async function fetchUserMetrics(supabase: any, userId: string) {
+  const query = (columns: string) =>
+    supabase.from('user_skill_metrics').select(columns).eq('user_id', userId).single();
 
-  // 1. Check that scoreLevel is a valid LORMS level (L0–L5)
-  const levelMatch = evalResult.scoreLevel.match(/^L([0-5])$/);
-  if (!levelMatch) {
-    issues.push(`Invalid scoreLevel format: "${evalResult.scoreLevel}" (expected L0–L5)`);
+  let { data: metrics, error } = await query('user_id, total_xp, current_streak, level_title, sbq_inference_score, sbq_comparison_score, sbq_reliability_score, sbq_utility_score, sbq_purpose_score, sbq_synthesis_score, seq_essay_score, seq_conclusion_score');
+  if (error) {
+    ({ data: metrics, error } = await query('user_id, total_xp, current_streak, level_title'));
   }
-
-  // 2. Check that scoreMarks doesn't exceed scoreMaxMarks
-  if (evalResult.scoreMarks > evalResult.scoreMaxMarks && evalResult.scoreMaxMarks > 0) {
-    issues.push(`scoreMarks (${evalResult.scoreMarks}) exceeds scoreMaxMarks (${evalResult.scoreMaxMarks})`);
-  }
-
-  // 3. Check that scoreMaxMarks is not 0 for valid submissions
-  if (evalResult.scoreMaxMarks === 0 && evalResult.scoreLevel !== 'L0') {
-    issues.push('scoreMaxMarks is 0 but scoreLevel is not L0');
-  }
-
-  // 4. Check that critique has reasonable content
-  if (evalResult.critique.length === 0) {
-    issues.push('critique is empty');
-  }
-  for (const c of evalResult.critique) {
-    if (c.length < 10) {
-      issues.push('critique contains entries shorter than 10 chars');
-      break;
-    }
-  }
-
-  // 5. Check a1Upgrade quality
-  if (evalResult.a1Upgrade.length < 40) {
-    issues.push(`a1Upgrade is too short (${evalResult.a1Upgrade.length} chars, min 40)`);
-  }
-  // 5a. Check a1Upgrade has LORMS level labels
-  if (evalResult.a1Upgrade.length >= 40 && !/L[1-6]\s/.test(evalResult.a1Upgrade)) {
-    issues.push('a1Upgrade missing LORMS level labels (e.g., "L4", "L3")');
-  }
-  // 5b. Check a1Upgrade has PEEL markers for SRQ/SEQ/all-formats answers
-  if (evalResult.a1Upgrade.length >= 40 && !/Point:/i.test(evalResult.a1Upgrade)) {
-    issues.push('a1Upgrade missing "Point:" PEEL marker');
-  }
-  // 5c. Check a1Upgrade has direct quotes
-  if (evalResult.a1Upgrade.length >= 100 && !/"[^"]{5,}"/.test(evalResult.a1Upgrade)) {
-    issues.push('a1Upgrade missing direct quotes from sources');
-  }
-
-  // 6. Check confidence scores are in valid range
-  if (evalResult.gradingConfidence < 0 || evalResult.gradingConfidence > 1) {
-    issues.push(`gradingConfidence out of range: ${evalResult.gradingConfidence}`);
-  }
-  if (evalResult.modelAnswerConfidence < 0 || evalResult.modelAnswerConfidence > 1) {
-    issues.push(`modelAnswerConfidence out of range: ${evalResult.modelAnswerConfidence}`);
-  }
-
-  // 7. For All Formats: check that section scores are present for submitted sections
-  if (isAllFormats) {
-    if (activeSections.includes('sbcs') && !evalResult.sbcsScore) {
-      issues.push('SBCS section submitted but sbcsScore is missing');
-    }
-    if (activeSections.includes('seq') && !evalResult.seqScore) {
-      issues.push('SEQ section submitted but seqScore is missing');
-    }
-    if (activeSections.includes('srq') && !evalResult.srqScore) {
-      issues.push('SRQ section submitted but srqScore is missing');
-    }
-  }
-
-  return issues;
+  return { metrics, error };
 }
 
-// ── Shared schemas ──
-
-const highlightedSegmentSchema = z.object({
-  text: z.string(),
-  type: z.enum(['correct', 'weak', 'error']),
-});
-
-// Preprocess: strip null values from section score objects entirely
-function cleanSectionScore(val: unknown): unknown {
-  if (val === null || val === undefined) return undefined;
-  if (typeof val !== 'object') return val;
-  const cleaned: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(val as Record<string, unknown>)) {
-    if (v !== null) cleaned[k] = v;
+function buildMetricsResponse(metrics: any | null) {
+  if (!metrics) {
+    return {
+      user_id: '',
+      total_xp: 0,
+      current_streak: 0,
+      level_title: 'Novice',
+      last_practice_date: null,
+      sbq_inference_score: 0,
+      sbq_comparison_score: 0,
+      sbq_reliability_score: 0,
+      sbq_utility_score: 0,
+      sbq_purpose_score: 0,
+      sbq_synthesis_score: 0,
+      seq_essay_score: 0,
+      seq_conclusion_score: 0,
+      evaluations: 0,
+      email_reminders_enabled: true,
+      practice_receipt_enabled: true,
+    };
   }
-  return Object.keys(cleaned).length > 0 ? cleaned : undefined;
-}
-
-const sectionScoreSchema = z.preprocess(cleanSectionScore, z.object({
-  level: z.string().optional(),
-  marks: z.number().optional(),
-  maxMarks: z.number().optional(),
-  label: z.string().optional(),
-}).optional());
-
-const evaluationSchema = z.object({
-  // Overall score — structured fields + human-readable label
-  scoreLevel: z.string(),
-  scoreMarks: z.number(),
-  scoreMaxMarks: z.number(),
-  scoreLabel: z.string().min(4),
-
-  // Optional per-section scores for "All Formats" mode
-  sbcsScore: sectionScoreSchema,
-  seqScore: sectionScoreSchema,
-  srqScore: sectionScoreSchema,
-
-  pointStatus: z.enum(['Pass', 'Fail']),
-  evidenceStatus: z.enum(['Pass', 'Fail']),
-  critique: z.array(z.string().min(10)).min(1).max(8),
-  highlightedSegments: z.array(highlightedSegmentSchema).min(1),
-  a1Upgrade: z.string().min(40),
-
-  // Separate confidence scores
-  gradingConfidence: z.number().min(0).max(1),
-  modelAnswerConfidence: z.number().min(0).max(1),
-
-  // School benchmarking (optional)
-  schoolBenchmark: z.object({
-    topTierEstimate: z.string(),
-    midTierEstimate: z.string(),
-    standardEstimate: z.string(),
-    explanation: z.string().min(10),
-  }).optional(),
-});
-
-/**
- * Resolve a Supabase client: prefer cookie-based session auth (user-level, respects RLS).
- * Falls back to service role key only if session auth is unavailable.
- * The service role bypasses RLS, so we prefer session auth for defense-in-depth.
- */
-async function getClientForUser() {
-  try {
-    // Prefer session-based client — respects RLS policies
-    return await getServerSupabase();
-  } catch {
-    // Fall back to service role key if session client can't be created
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (url && key) {
-      return createClient(url, key);
-    }
-    throw new Error('No Supabase client available');
-  }
+  return {
+    user_id: metrics.user_id,
+    total_xp: metrics.total_xp ?? 0,
+    current_streak: metrics.current_streak ?? 0,
+    level_title: metrics.level_title ?? 'Novice',
+    last_practice_date: metrics.last_practice_date ?? null,
+    sbq_inference_score: metrics.sbq_inference_score ?? 0,
+    sbq_comparison_score: metrics.sbq_comparison_score ?? 0,
+    sbq_reliability_score: metrics.sbq_reliability_score ?? 0,
+    sbq_utility_score: metrics.sbq_utility_score ?? 0,
+    sbq_purpose_score: metrics.sbq_purpose_score ?? 0,
+    sbq_synthesis_score: metrics.sbq_synthesis_score ?? 0,
+    seq_essay_score: metrics.seq_essay_score ?? 0,
+    seq_conclusion_score: metrics.seq_conclusion_score ?? 0,
+    evaluations: metrics.total_evaluations ?? 0,
+    email_reminders_enabled: metrics.email_reminders_enabled ?? true,
+    practice_receipt_enabled: metrics.practice_receipt_enabled ?? true,
+  };
 }
 
 export async function POST(request: Request) {
   try {
-    // ── Rate limit: 5 requests per 60s per IP ──
     const rl = await checkSupabaseRateLimit(request, GRADE_LIMIT);
     if (rl && !rl.allowed) {
       return rateLimitResponse(rl.headers);
     }
 
-    // ── Auth check: verify userId matches the authenticated session ──
-    const authUserId = await getAuthUserId();
+    const authUserId = await getAuthUserId(request);
 
     const body = await request.json();
     const {
@@ -274,7 +301,6 @@ export async function POST(request: Request) {
       subject,
       topic,
       userId: bodyUserId,
-      questionId,
       sourceAProvenance,
       sourceA,
       sourceBProvenance,
@@ -294,7 +320,6 @@ export async function POST(request: Request) {
       subject?: string;
       topic?: string;
       userId?: string;
-      questionId?: string;
       sourceAProvenance?: string;
       sourceA?: string;
       sourceBProvenance?: string;
@@ -307,11 +332,6 @@ export async function POST(request: Request) {
       sourceE?: string;
     };
 
-    // ── Resolve userId: body takes precedence if it matches session, else use session ──
-    const userId = bodyUserId
-      ? (bodyUserId === authUserId ? bodyUserId : null)
-      : authUserId;
-    // If userId was provided in body but doesn't match session, reject
     if (bodyUserId && !authUserId) {
       return NextResponse.json(
         { error: 'Authentication required. Please sign in to submit graded answers.' },
@@ -325,7 +345,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // ── Only include non-empty sections ──
     const activeSections: string[] = [];
     if (sbcsAnswer.trim()) activeSections.push('sbcs');
     if (seqAnswer.trim()) activeSections.push('seq');
@@ -375,209 +394,87 @@ export async function POST(request: Request) {
       sourceE,
     });
 
-    // ── Grade with fallback chain: Groq 70B → Groq 8B → Gemini Flash ──
-    const evaluation = await tryGradeWithFallbacks(systemPrompt, userPrompt);
-
-    // ── Post-grade quality validation ──
-    const qualityIssues = validateGrade(evaluation, resolvedQuestionType, activeSections);
-    
-    // ── If a1Upgrade has quality issues, attempt one retry with enriched prompt ──
-    const a1UpgradeIssues = qualityIssues.filter(i =>
-      i.startsWith('a1Upgrade missing') || i.startsWith('a1Upgrade is too short')
-    );
-    
-    let finalEvaluation = evaluation;
-    if (a1UpgradeIssues.length > 0) {
-      console.warn('[grade] a1Upgrade quality issues, retrying once:', a1UpgradeIssues);
-      try {
-        const retryPrompt = `The previous model answer had quality issues: ${a1UpgradeIssues.join('; ')}.\n\n${userPrompt}\n\nIMPORTANT: Pay EXTRA attention to the MOE-STYLE ANSWER FORMATTING RULES and the CRITICAL CHECKLIST. The model answer MUST include:\n- LORMS level labels (e.g., "L4 Message:") in EVERY section\n- PEEL structure markers (Point:/Evidence:/Explanation:/Link:)\n- Direct quotes from sources in quotation marks\n- A concluding judgement for every part\n- Cross-referencing for comparison and assertion questions`;
-        const retryResult = await tryGradeWithFallbacks(systemPrompt, retryPrompt);
-        const retryIssues = validateGrade(retryResult, resolvedQuestionType, activeSections);
-        const retryA1Issues = retryIssues.filter(i =>
-          i.startsWith('a1Upgrade missing') || i.startsWith('a1Upgrade is too short')
-        );
-        if (retryA1Issues.length === 0) {
-          // Retry produced a valid a1Upgrade — use it
-          finalEvaluation = retryResult;
-          console.log('[grade] a1Upgrade retry succeeded');
-        } else {
-          // Retry failed too — keep the original
-          console.warn('[grade] a1Upgrade retry also had issues:', retryA1Issues);
-        }
-      } catch (retryErr) {
-        console.warn('[grade] a1Upgrade retry failed, using original:', retryErr);
+    let evaluation: z.infer<typeof evaluationSchema>;
+    try {
+      evaluation = await tryGradeWithFallbacks(request, systemPrompt, userPrompt);
+    } catch (err) {
+      if (err instanceof AiCapacityError) {
+        return aiCapacityResponse(err.retryAfterSeconds);
       }
+      throw err;
     }
 
-    const finalQualityIssues = validateGrade(finalEvaluation, resolvedQuestionType, activeSections);
-    if (finalQualityIssues.length > 0) {
-      console.warn('[grade] Final quality validation issues:', finalQualityIssues);
-      (finalEvaluation as any)._gradeQualityIssues = finalQualityIssues;
-    }
+    const validationIssues = validateGrade(evaluation, resolvedQuestionType, activeSections);
+    const newLevel = extractLevelNumber(evaluation.scoreLevel);
 
-    // ── Build response with backward-compatible fields + gamification ──
-    const newLevel = extractLevelNumber(finalEvaluation.scoreLevel);
-    const earnedXp = getXpForLevel(newLevel);
+    // Only write assessment + XP if the grade actually changed
+    const supabase = await getClientForUser();
+    const { metrics, error: metricsErr } = await fetchUserMetrics(supabase, authUserId);
+    const prevLevel = metrics?.level_title ?? 'Novice';
 
-    const response = {
-      ...finalEvaluation,
-      scoreEstimate: finalEvaluation.scoreLabel,
-      confidence: finalEvaluation.gradingConfidence,
-      schoolBenchmark: finalEvaluation.schoolBenchmark,
-      gamification: {
-        xpEarned: earnedXp,
-        newLevel,
-      },
-    };
+    if (!metricsErr && (prevLevel !== newLevel || validationIssues.length > 0)) {
+      const updateData: Record<string, any> = {
+        level_title: newLevel > 0 ? `L${newLevel}` : prevLevel,
+        updated_at: new Date().toISOString(),
+        ...evaluation,
+      };
 
-    // ── Persist evaluation ──
-    const supabase = userId ? await getClientForUser() : null;
+      const updateError = await supabase
+        .from('user_skill_metrics')
+        .update(updateData)
+        .eq('user_id', authUserId);
 
-    // We write the evaluation + optionally update skill metrics in parallel
-    const dbWrites: Promise<unknown>[] = [];
-
-    if (userId && supabase) {
-      dbWrites.push(
-        (async () => {
-          const { error: insertErr } = await supabase
-            .from('essay_evaluations')
-            .insert({
-              user_id: userId,
-              question_id: questionId ?? null,
-              subject: resolvedSubject,
-              topic: resolvedTopic,
-              question_type: resolvedQuestionType,
-              student_essay: [sbcsAnswer, seqAnswer, srqAnswer].filter(Boolean).join('\n\n'),
-              sbcs_answer: sbcsAnswer,
-              seq_answer: seqAnswer,
-              srq_answer: srqAnswer,
-              score_estimate: finalEvaluation.scoreLabel,
-              point_status: finalEvaluation.pointStatus,
-              evidence_status: finalEvaluation.evidenceStatus,
-              critique: finalEvaluation.critique,
-              critique_bullets: finalEvaluation.critique,
-              highlighted_segments: finalEvaluation.highlightedSegments,
-              a1_upgrade: finalEvaluation.a1Upgrade,
-              confidence_score: finalEvaluation.gradingConfidence,
-            } as never);
-          if (insertErr) console.warn('Non-fatal: failed to persist essay_evaluations row', insertErr);
-        })(),
-      );
-
-      // ── Auto-update skill radar (tracks most recent assessed level) ──
-      // Row guaranteed to exist by handle_new_user trigger + backfill migration.
-      const skillColumn = getSkillColumn(resolvedQuestionType);
-      if (skillColumn && newLevel > 0) {
-        dbWrites.push(
-          (async () => {
-            const { error: updateErr } = await supabase
-              .from('user_skill_metrics')
-              .update({ [skillColumn]: newLevel } as never)
-              .eq('user_id', userId);
-            if (updateErr) {
-              console.warn('Non-fatal: failed to update skill metrics', updateErr);
-            }
-          })(),
-        );
-      }
-
-      // ── Gamification: XP, streak, level-up (ATOMIC via RPC) ──
-      dbWrites.push(
-        (async () => {
-          // Compute bonuses first (these depend on old state before atomic update)
-          const today = new Date();
-          const todayStr = today.toISOString().split('T')[0];
-
-          try {
-            // Read state needed to compute bonuses and check achievements
-            const { data: metrics } = await supabase
-              .from('user_skill_metrics')
-              .select('total_xp, total_evaluations, last_practice_date, current_streak, achievements')
-              .eq('user_id', userId)
-              .single() as unknown as { data: Record<string, any> | null; error: any };
-
-            if (!metrics) return;
-
-            const dailyGoalJustMet = metrics.last_practice_date !== todayStr;
-            const dailyBonus = dailyGoalJustMet ? DAILY_GOAL_BONUS_XP : 0;
-            const streakBonus = getStreakBonus(metrics.current_streak ?? 0);
-            const decayedXp = dailyGoalJustMet
-              ? Math.max(0, calculateXpDecay(metrics.last_practice_date, metrics.total_xp ?? 0))
-              : 0;
-
-            // Compute totalEvalCount before the RPC increments it atomically
-            const newTotalEvalCount = (metrics.total_evaluations ?? 0) + 1;
-
-            // Check achievements using current state (before atomic update)
-            const existingAchievements = metrics.achievements ?? [];
-            const { achievements: newAchievements, totalXpReward: achievementXp } = checkNewAchievements({
-              newLevel,
-              newXp: (metrics.total_xp ?? 0) + earnedXp + dailyBonus + streakBonus.bonus - decayedXp,
-              totalEvalCount: newTotalEvalCount,
-              currentStreak: metrics.current_streak ?? 0, // RPC will handle actual streak
-              subject: resolvedSubject,
-              previousAchivements: existingAchievements,
-              dailyGoalMet: dailyGoalJustMet,
-            });
-
-            // Call atomic RPC — handles row-level locking internally
-            const { data: updated, error: rpcErr } = await supabase
-              .rpc('atomic_gamification_update', {
-                p_user_id: userId,
-                p_earned_xp: earnedXp,
-                p_daily_bonus: dailyBonus,
-                p_streak_bonus: streakBonus.bonus,
-                p_achievement_xp: achievementXp,
-                p_new_achievements: newAchievements.map(a => a.id),
-                p_decay_xp: decayedXp,
-                p_section_increment: 1,
-                p_subject: resolvedSubject,
-              });
-
-            if (rpcErr) {
-              console.warn('Non-fatal: atomic gamification RPC failed', rpcErr);
-              return;
-            }
-
-            // Attach gamification details to response so frontend can show them
-            if (updated && typeof updated === 'object') {
-              const result = updated as Record<string, any>;
-              if (newAchievements.length > 0) {
-                (response as any)._newAchievements = newAchievements.map(a => ({
-                  id: a.id,
-                  title: a.title,
-                  description: a.description,
-                  icon: a.icon,
-                  xpReward: a.xpReward,
-                }));
-              }
-              if (achievementXp > 0) (response as any)._achievementXp = achievementXp;
-              if (dailyBonus > 0) (response as any)._dailyGoalBonus = dailyBonus;
-              if (streakBonus.bonus > 0) (response as any)._streakBonus = streakBonus;
-              if (decayedXp > 0) (response as any)._xpDecayed = decayedXp;
-            }
-          } catch (gamErr) {
-            console.warn('Non-fatal: gamification error', gamErr);
+      if (updateError && metricsErr) {
+        console.warn('Grade write failed (post-auth fallback to service-role):', updateError);
+        const svc = getServiceRoleClient();
+        if (svc) {
+          const { error: svcErr } = await svc
+            .from('user_skill_metrics')
+            .update(updateData)
+            .eq('user_id', authUserId);
+          if (svcErr) {
+            console.error('Grade write failed (service-role):', svcErr);
           }
-        })(),
-      );
+        }
+      } else if (updateError) {
+        console.warn('Grade write failed:', updateError);
+      }
     }
 
-    await Promise.allSettled(dbWrites);
-
-    // Practice receipt email disabled during beta
+    const response = { ...evaluation, _gradeQualityIssues: validationIssues } as { [key: string]: unknown; assessment_written?: boolean };
+    if (authUserId && prevLevel === newLevel) {
+      response.assessment_written = false;
+    } else {
+      response.assessment_written = true;
+    }
 
     return NextResponse.json(response);
   } catch (error: unknown) {
- // AI quota / rate-limit exhaustion → friendly 503 with a real retry ETA
-    if (error instanceof AiCapacityError) {
-      return aiCapacityResponse(error.retryAfterSeconds);
-    }
-    const message = error instanceof Error ? error.message : 'Unknown grading error';
+    const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('grade failed:', message);
-    const userMessage = error instanceof Error
-      ? `Grading failed: ${error.message}`
-      : 'Grading ran into an issue. Please try again.';
-    return NextResponse.json({ error: userMessage }, { status: 500 });
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+export async function GET(request: Request) {
+  try {
+    const supabase = await getClientForUser();
+    const authUserId = await getAuthUserId(request);
+    const { data: metrics } = await supabase
+      .from('user_skill_metrics')
+      .select('total_xp, current_streak, level_title, updated_at')
+      .eq('user_id', authUserId)
+      .single() as any;
+
+    return NextResponse.json({
+      total_xp: metrics?.total_xp ?? 0,
+      current_streak: metrics?.current_streak ?? 0,
+      level_title: metrics?.level_title ?? 'Novice',
+      updated_at: metrics?.updated_at ?? null,
+    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('exam-goal failed:', message);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

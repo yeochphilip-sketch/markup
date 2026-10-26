@@ -13,6 +13,7 @@ interface TestimonialPromptProps {
 const LS_KEY_SUBMITTED = 'markup_testimonial_submitted';
 const LS_KEY_DISMISSED = 'markup_testimonial_dismissed';
 const LS_KEY_SCAN_COUNT = 'markup_testimonial_scan_count';
+const ONBOARDING_KEY = 'markup_onboarding_done';
 
 /** Read scan count from localStorage (default 0) */
 function getScanCount(): number {
@@ -75,6 +76,8 @@ export default function TestimonialPrompt({
   const [feedback, setFeedback] = useState('');
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
+  const [saved, setSaved] = useState(false);
+  const wasSavedRef = useRef<boolean>(false);
 
   // Reset state when modal opens
   useEffect(() => {
@@ -89,12 +92,13 @@ export default function TestimonialPrompt({
 
   // Persist the completion record once, when the trial gate closes.
   useEffect(() => {
-    if (completed && !wasSavedRef.current) {
+    if (saved && !wasSavedRef.current) {
       wasSavedRef.current = true;
       setSaved(true);
-      localStorage.setItem(ONBOARDING_KEY, JSON.stringify(tourState));
+      // Store that onboarding/tour is complete
+      localStorage.setItem(ONBOARDING_KEY, 'true');
     }
-  }, [completed]);
+  }, [saved]);
 
   const handleSubmit = useCallback(async () => {
     if (rating === 0) return;

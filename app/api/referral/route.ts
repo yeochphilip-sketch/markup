@@ -1,15 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { getServerSupabase } from '@/lib/supabase-server';
-
-async function getClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (url && key) {
-    return createClient(url, key);
-  }
-  return getServerSupabase();
-}
+import { getServerSupabase, getAuthUserId, resolveUserId, getServiceRoleClient } from '@/lib/supabase';
 
 // ── Tangible referral rewards (free practice days) ──
 // The referred friend gets REFEREE_BONUS_DAYS days; the referrer gets
@@ -20,6 +11,10 @@ const REFEREE_BONUS_DAYS = 2;
 const REFERRER_BONUS_DAYS = 1;
 const REFERRER_BONUS_CAP = 7;
 
+async function getWriteClient(): Promise<ReturnType<typeof getServerSupabase>> {
+  return getServerSupabase();
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -29,18 +24,34 @@ export async function POST(request: Request) {
       referralCode: string;
     };
 
-    if (!action || !userId) {
+    // Resolve the caller's real identity. Accept body userId ONLY if it matches
+    // the authenticated session. Cross-tenant claims are rejected.
+    let resolvedUserId: string | null = null;
+    if (userId) {
+      const sessionUserId = await getAuthUserId(request);
+      if (sessionUserId && sessionUserId === userId) {
+        resolvedUserId = userId;
+      } else {
+        return NextResponse.json({ error: 'User ID mismatch. The provided userId does not match your session.' }, { status: 403 });
+      }
+    } else {
+      resolvedUserId = await resolveUserId(request);
+    }
+
+    if (!action || !resolvedUserId) {
       return NextResponse.json({ error: 'action and userId required' }, { status: 400 });
     }
 
-    const supabaseAdmin = await getClient();
+    const supabaseAdmin = getServiceRoleClient();
 
     if (action === 'claim') {
       if (!referralCode) {
         return NextResponse.json({ error: 'referralCode required' }, { status: 400 });
       }
 
-      // Find the referrer
+      // Find the referrer — this is a cross-user read for the referrer's code,
+      // which is acceptable (the referrer is a public lookup target). Constrain
+      // by the referral_code index.
       const { data: referrerProfile } = await supabaseAdmin
         .from('user_profiles')
         .select('id, referral_count')
@@ -51,7 +62,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Invalid referral code' }, { status: 404 });
       }
 
-      if (referrerProfile.id === userId) {
+      if (referrerProfile.id === resolvedUserId) {
         return NextResponse.json({ error: 'Cannot refer yourself' }, { status: 400 });
       }
 
@@ -59,7 +70,7 @@ export async function POST(request: Request) {
       const { data: myProfile } = await supabaseAdmin
         .from('user_profiles')
         .select('referred_by')
-        .eq('id', userId)
+        .eq('id', resolvedUserId)
         .single() as any;
 
       if (myProfile?.referred_by) {
@@ -122,7 +133,7 @@ export async function POST(request: Request) {
       try {
         // supabase-js surfaces RPC failures as { error }, not exceptions
         const { error: bonusErr } = await supabaseAdmin.rpc('apply_referral_bonus', {
-          p_user_id: userId,
+          p_user_id: resolvedUserId,
           p_days: REFEREE_BONUS_DAYS,
         });
         if (bonusErr) console.warn('Non-fatal: referee bonus days failed', bonusErr);
@@ -135,7 +146,7 @@ export async function POST(request: Request) {
       const { data: myMetrics } = await supabaseAdmin
         .from('user_skill_metrics')
         .select('total_xp, xp_breakdown')
-        .eq('user_id', userId)
+        .eq('user_id', resolvedUserId)
         .single() as any;
 
       const myNewXp = (myMetrics?.total_xp ?? 0) + NEW_USER_XP;
@@ -153,19 +164,19 @@ export async function POST(request: Request) {
       await supabaseAdmin
         .from('user_skill_metrics')
         .update({ total_xp: myNewXp, xp_breakdown: myNewBreakdown } as never)
-        .eq('user_id', userId);
+        .eq('user_id', resolvedUserId);
 
       // Mark user as referred
       await supabaseAdmin
         .from('user_profiles')
         .update({ referred_by: referralCode.toUpperCase() } as never)
-        .eq('id', userId);
+        .eq('id', resolvedUserId);
 
       // Create notifications
       try {
         await supabaseAdmin.from('user_notifications').insert([
           {
-            user_id: userId,
+            user_id: resolvedUserId,
             type: 'info',
             title: 'Welcome Bonus!',
             body: `You got +${REFEREE_BONUS_DAYS} free days of practice for joining via a referral (plus ${NEW_USER_XP} XP)!`,
@@ -201,15 +212,17 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-
+    // Resolve userId strictly from the authenticated session. The client can
+    // only read its own referral info (RLS boundary).
+    const userId = await resolveUserId(request);
     if (!userId) {
-      return NextResponse.json({ error: 'userId required' }, { status: 400 });
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
-    const supabaseAdmin = await getClient();
 
-    // Get user's referral info
+    const supabaseAdmin = getServiceRoleClient();
+
+    // Get user's referral info (cross-user read is fine — the referrer is a
+    // public lookup target, and we constrain by the auth'd userId)
     const { data: profile } = await supabaseAdmin
       .from('user_profiles')
       .select('referral_code, referred_by, referral_count')

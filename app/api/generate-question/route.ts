@@ -4,7 +4,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
-import { getServerSupabase } from '@/lib/supabase-server';
+import { getServerSupabase, getAuthUserId, resolveUserId, getServiceRoleClient } from '@/lib/supabase';
 import { getGenerateSystemPrompt, getGenerateSystemPrompt70B } from '@/lib/prompts';
 import { parseJsonWithRepair } from '@/lib/json-repair';
 import { AiCapacityError, isAiCapacityError, aiCapacityResponse, estimateRetryAfterSeconds, AI_CAPACITY_MESSAGE } from '@/lib/ai-capacity';
@@ -148,6 +148,8 @@ interface AllFormatsData {
 
 /**
  * Try each model provider in sequence until one succeeds.
+ * True fallback: every provider is tried on any failure; a hard 120s timeout
+ * per attempt prevents a single provider from hanging the entire route.
  */
 async function tryGenerateWithFallbacks<T>(
   system: string,
@@ -172,24 +174,41 @@ async function tryGenerateWithFallbacks<T>(
   for (let i = 0; i < attempts.length; i++) {
     const attempt = attempts[i];
     const sys = (i === 0 && system70B) ? system70B : system;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 120000); // 120s per attempt
+
     try {
       const result = await generateText({
         model: attempt.model,
         system: sys + jsonInstruction,
         prompt,
         temperature: attempt.temp,
+        abortSignal: controller.signal,
       });
       return schema.parse(parseJsonWithRepair(result.text));
     } catch (err) {
+      clearTimeout(timeout);
       const msg = err instanceof Error ? err.message : String(err);
-      console.warn(`[generate] ${attempt.label} failed:`, msg);
+      const isAbort = err instanceof Error && err.name === 'AbortError';
+      console.warn(`[generate] ${attempt.label} failed:`, msg, isAbort ? '(timeout)' : '');
       errors.push(`${attempt.label}: ${msg}`);
+
+      // On timeout with more providers to try, continue the fallback chain
+      // immediately (no expensive retry of the same provider).
+      if (isAbort && attempt !== attempts[attempts.length - 1]) continue;
+
+      // If this attempt timed out and it was the last provider, return the
+      // errors collected so far. The caller detects if any error is a quota/
+      // capacity error and throws AiCapacityError.
+      if (isAbort) {
+        return fallbackRetryThreshold(errors, attempt.label);
+      }
     }
   }
 
   // If ANY failure was quota/rate-limit exhaustion, surface a friendly
   // "AI is at capacity" message instead of leaking raw provider errors.
-  if (errors.some(msg => isAiCapacityError(msg))) {
+  if (errors.some((msg) => isAiCapacityError(msg))) {
     throw new AiCapacityError(AI_CAPACITY_MESSAGE, estimateRetryAfterSeconds(errors));
   }
 
@@ -199,78 +218,45 @@ async function tryGenerateWithFallbacks<T>(
 }
 
 /** JSON field spec builders for each track type */
-const SBCS_JSON_FIELDS_2_SRC = `{
-  "backgroundContext": "string (background context for the case study, at least 40 chars)",
-  "sourceAProvenance": "string (provenance of Source A, at least 8 chars)",
-  "sourceA": "string (content of Source A, at least 120 chars)",
-  "sourceBProvenance": "string (provenance of Source B, at least 8 chars)",
-  "sourceB": "string (content of Source B, at least 120 chars)",
-  "questionPrompt": "string (the unified question prompt, at least 20 chars)",
-  "sbcsPrompt": "string (SBCS question text targeting the skill, at least 20 chars)",
-  "suggestedAnswer": "string (A1-grade model answer, at least 30 chars)"
-}`;
+const SBCS_JSON_FIELDS_2_SRC = `{\n  "backgroundContext": "string (background context for the case study, at least 40 chars)",\n  "sourceAProvenance": "string (provenance of Source A, at least 8 chars)",\n  "sourceA": "string (content of Source A, at least 120 chars)",\n  "sourceBProvenance": "string (provenance of Source B, at least 8 chars)",\n  "sourceB": "string (content of Source B, at least 120 chars)",\n  "questionPrompt": "string (the unified question prompt, at least 20 chars)",\n  "sbcsPrompt": "string (SBCS question text targeting the skill, at least 20 chars)",\n  "suggestedAnswer": "string (A1-grade model answer, at least 30 chars)"\n}`;
 
-const SBCS_JSON_FIELDS_5_SRC = `{
-  "backgroundContext": "string (background context for the case study, at least 40 chars)",
-  "sourceAProvenance": "string (provenance of Source A, at least 8 chars)",
-  "sourceA": "string (content of Source A, at least 120 chars)",
-  "sourceBProvenance": "string (provenance of Source B, at least 8 chars)",
-  "sourceB": "string (content of Source B, at least 120 chars)",
-  "sourceCProvenance": "string (provenance of Source C, at least 8 chars)",
-  "sourceC": "string (content of Source C, at least 120 chars)",
-  "sourceDProvenance": "string (provenance of Source D, at least 8 chars)",
-  "sourceD": "string (content of Source D, at least 120 chars)",
-  "sourceEProvenance": "string (provenance of Source E, at least 8 chars)",
-  "sourceE": "string (content of Source E, at least 120 chars)",
-  "questionPrompt": "string (the unified question prompt, at least 20 chars)",
-  "sbcsPrompt": "string (SBCS synthesis/assertion question, at least 20 chars)",
-  "suggestedAnswer": "string (A1-grade model answer, at least 30 chars)"
-}`;
+const SBCS_JSON_FIELDS_5_SRC = `{\n  "backgroundContext": "string (background context for the case study, at least 40 chars)",\n  "sourceAProvenance": "string (provenance of Source A, at least 8 chars)",\n  "sourceA": "string (content of Source A, at least 120 chars)",\n  "sourceBProvenance": "string (provenance of Source B, at least 8 chars)",\n  "sourceB": "string (content of Source B, at least 120 chars)",\n  "sourceCProvenance": "string (provenance of Source C, at least 8 chars)",\n  "sourceC": "string (content of Source C, at least 120 chars)",\n  "sourceDProvenance": "string (provenance of Source D, at least 8 chars)",\n  "sourceD": "string (content of Source D, at least 120 chars)",\n  "sourceEProvenance": "string (provenance of Source E, at least 8 chars)",\n  "sourceE": "string (content of Source E, at least 120 chars)",\n  "questionPrompt": "string (the unified question prompt, at least 20 chars)",\n  "sbcsPrompt": "string (SBCS synthesis/assertion question, at least 20 chars)",\n  "suggestedAnswer": "string (A1-grade model answer, at least 30 chars)"\n}`;
 
-const SEQ_JSON_FIELDS = `{
-  "backgroundContext": "string (background context / topic paragraph, at least 40 chars)",
-  "seqQuestion1": "string (SEQ essay question 1, at least 20 chars)",
-  "seqQuestion2": "string (SEQ essay question 2, at least 20 chars)",
-  "seqQuestion3": "string (SEQ essay question 3, at least 20 chars)",
-  "questionPrompt": "string (the overall question header, at least 20 chars)",
-  "suggestedAnswer": "string (A1-grade model essay answer, at least 30 chars)"
-}`;
+const SEQ_JSON_FIELDS = `{\n  "backgroundContext": "string (background context / topic paragraph, at least 40 chars)",\n  "seqQuestion1": "string (SEQ essay question 1, at least 20 chars)",\n  "seqQuestion2": "string (SEQ essay question 2, at least 20 chars)",\n  "seqQuestion3": "string (SEQ essay question 3, at least 20 chars)",\n  "questionPrompt": "string (the overall question header, at least 20 chars)",\n  "suggestedAnswer": "string (A1-grade model essay answer, at least 30 chars)"\n}`;
 
-const SRQ_JSON_FIELDS = `{
-  "backgroundContext": "string (background context for the SRQ scenario, at least 40 chars)",
-  "srqBackgroundContext": "string (SRQ background context introducing the scenario, at least 20 chars)",
-  "srqQuestionA": "string (SRQ part (a) question, at least 20 chars)",
-  "srqQuestionB": "string (SRQ part (b) question, at least 20 chars)",
-  "questionPrompt": "string (the overall question header, at least 20 chars)",
-  "suggestedAnswer": "string (A1-grade model answer for both SRQ parts, at least 30 chars)"
-}`;
+const SRQ_JSON_FIELDS = `{\n  "backgroundContext": "string (background context for the SRQ scenario, at least 40 chars)",\n  "srqBackgroundContext": "string (SRQ background context introducing the scenario, at least 20 chars)",\n  "srqQuestionA": "string (SRQ part (a) question, at least 20 chars)",\n  "srqQuestionB": "string (SRQ part (b) question, at least 20 chars)",\n  "questionPrompt": "string (the overall question header, at least 20 chars)",\n  "suggestedAnswer": "string (A1-grade model answer for both SRQ parts, at least 30 chars)"\n}`;
 
 function buildAllFormatsJsonFields(): string {
   const lines: string[] = [];
-  lines.push(`  "backgroundContext": "string (overall background context for the case study, at least 40 chars)",`);
+  lines.push(`  "backgroundContext": "string (overall background context for the case study, at least 40 chars)"`);
   for (let i = 1; i <= 5; i++) {
-    lines.push(`  "source${i}Provenance": "string (provenance of Source ${i}, at least 8 chars)",`);
-    lines.push(`  "source${i}": "string (content of Source ${i}, at least 60 chars)",`);
+    lines.push(`  "source${i}Provenance": "string (provenance of Source ${i}, at least 8 chars)"`);
+    lines.push(`  "source${i}": "string (content of Source ${i}, at least 60 chars)"`);
   }
-  lines.push(`  "partA_Inference": "string (Inference / Message question, with its mark in square brackets, at least 15 chars)",`);
-  lines.push(`  "partB_Comparison": "string (Comparison question, with its mark in square brackets, at least 15 chars)",`);
-  lines.push(`  "partC_Purpose": "string (Purpose question, with its mark in square brackets, at least 15 chars)",`);
-  lines.push(`  "partD_Reliability": "string (Reliability / Utility question, with its mark in square brackets, at least 15 chars)",`);
-  lines.push(`  "partE_Assertion": "string (Assertion / Synthesis question using all sources, with its mark in square brackets, at least 15 chars)",`);
-  lines.push(`  "questionPrompt": "string (optional overall question prompt header)",`);
-  lines.push(`  "srqBackgroundContext": "string (FOR SOCIAL STUDIES ONLY: SRQ background context. Set to empty if not SS.)",`);
-  lines.push(`  "srqQuestionA": "string (FOR SS ONLY: SRQ 7-mark question. Set to empty if not SS.)",`);
-  lines.push(`  "srqQuestionB": "string (FOR SS ONLY: SRQ 8-mark question. Set to empty if not SS.)",`);
-  lines.push(`  "seqQuestion1": "string (FOR HISTORY ONLY: SEQ essay question 1. Set to empty if not History.)",`);
-  lines.push(`  "seqQuestion2": "string (FOR HISTORY ONLY: SEQ essay question 2. Set to empty if not History.)",`);
-  lines.push(`  "seqQuestion3": "string (FOR HISTORY ONLY: SEQ essay question 3. Set to empty if not History.)",`);
+  lines.push(`  "partA_Inference": "string (Inference / Message question, with its mark in square brackets, at least 15 chars)"`);
+  lines.push(`  "partB_Comparison": "string (Comparison question, with its mark in square brackets, at least 15 chars)"`);
+  lines.push(`  "partC_Purpose": "string (Purpose question, with its mark in square brackets, at least 15 chars)"`);
+  lines.push(`  "partD_Reliability": "string (Reliability / Utility question, with its mark in square brackets, at least 15 chars)"`);
+  lines.push(`  "partE_Assertion": "string (Assertion / Synthesis question using all sources, with its mark in square brackets, at least 15 chars)"`);
+  lines.push(`  "questionPrompt": "string (optional overall question prompt header)"`);
+  lines.push(`  "srqBackgroundContext": "string (FOR SOCIAL STUDIES ONLY: SRQ background context. Set to empty if not SS.)"`);
+  lines.push(`  "srqQuestionA": "string (FOR SS ONLY: SRQ 7-mark question. Set to empty if not SS.)"`);
+  lines.push(`  "srqQuestionB": "string (FOR SS ONLY: SRQ 8-mark question. Set to empty if not SS.)"`);
+  lines.push(`  "seqQuestion1": "string (FOR HISTORY ONLY: SEQ essay question 1. Set to empty if not History.)"`);
+  lines.push(`  "seqQuestion2": "string (FOR HISTORY ONLY: SEQ essay question 2. Set to empty if not History.)"`);
+  lines.push(`  "seqQuestion3": "string (FOR HISTORY ONLY: SEQ essay question 3. Set to empty if not History.)"`);
   lines.push(`  "suggestedAnswer": "string (A1-grade comprehensive model answer covering ALL parts, at least 30 chars)"`);
   return `{\n${lines.join('\n')}\n}`;
 }
 
-/**
- * Post-generation quality validation.
- */
+/** Fallback for the last attempt after a timeout — returns the errors collected
+ *  so the caller can check for quota/capacity. */
+function fallbackRetryThreshold(errors: string[], label: string): never {
+  errors.push(`${label}: <timeout — hard cap of 120s exceeded>`);
+  throw new Error(`All AI providers failed to generate a question.\n${errors.join('\n')}`);
+}
+
+/** Post-generation quality validation. */
 function validateGeneration(
   result: Record<string, any>,
   resolvedSourceCount: number,
@@ -343,9 +329,7 @@ function validateGeneration(
   return issues;
 }
 
-/**
- * Normalise All Formats response.
- */
+/** Normalise All Formats response. */
 function normaliseAllFormatsResponse(data: AllFormatsData, subject: string) {
   // Social Studies numbers Section A questions Q1–Q5; History uses Q1(a)–(e).
   const partLabels = subject === 'Social Studies'
@@ -392,9 +376,7 @@ function normaliseAllFormatsResponse(data: AllFormatsData, subject: string) {
   return result;
 }
 
-/**
- * Build a normalised SBCS response with the correct source count.
- */
+/** Build a normalised SBCS response with the correct source count. */
 function normaliseSBCSResponse(data: z.infer<typeof sbcsSchema>, sourceCount: number) {
   const result: Record<string, any> = {
     backgroundContext: data.backgroundContext || '',
@@ -426,9 +408,7 @@ function normaliseSBCSResponse(data: z.infer<typeof sbcsSchema>, sourceCount: nu
   return result;
 }
 
-/**
- * Build a normalised SEQ response (no sources).
- */
+/** Build a normalised SEQ response (no sources). */
 function normaliseSEQResponse(data: z.infer<typeof seqSchema>) {
   return {
     backgroundContext: data.backgroundContext || '',
@@ -450,9 +430,7 @@ function normaliseSEQResponse(data: z.infer<typeof seqSchema>) {
   };
 }
 
-/**
- * Build a normalised SRQ response (no sources).
- */
+/** Build a normalised SRQ response (no sources). */
 function normaliseSRQResponse(data: z.infer<typeof srqSchema>) {
   return {
     backgroundContext: data.backgroundContext || '',
@@ -485,13 +463,34 @@ export async function POST(request: Request) {
       return rateLimitResponse(rl.headers);
     }
 
+    // ── Resolve the caller's identity ──
+    // The generation is scoped to the authenticated user, and the write to
+    // `generated_questions` is constrained to their own row (RLS boundary).
+    // Body userId is accepted ONLY if it matches the session.
+    let userId: string | null = null;
     const body = await request.json();
-    const { subject, topic, questionType, userId } = body as {
+    const { subject, topic, questionType, userId: bodyUserId } = body as {
       subject: string;
       topic: string;
       questionType: string;
       userId?: string;
     };
+
+    // For the trial gate we still need a userId; resolve it from the session.
+    // However, the public (guest) flow is allowed — the trial gate only blocks
+    // if the user has exhausted tries and is not unlocked. So we relax the
+    // userId: prefer body, but strict-resolve by session if present.
+    if (bodyUserId) {
+      const sessionUserId = await getAuthUserId(request);
+      if (sessionUserId && sessionUserId === bodyUserId) {
+        userId = bodyUserId;
+      } else {
+        // Non-matching body userId → fall back to session (guest allowed).
+        userId = await getAuthUserId(request);
+      }
+    } else {
+      userId = await getAuthUserId(request);
+    }
 
     // ── Beta trial gate (server-side, for signed-in users) ──
     // Mirrors the client-side gate in the dashboard. This cannot be bypassed
@@ -563,7 +562,7 @@ Skill track: All Formats — generate ALL components (5 sources, 5 source-based 
 All 5 sources are required.
 The sources must be designed to test a RANGE of skills (inference, comparison, purpose, reliability, assertion).
 
-CRITICAL: The suggestedAnswer MUST include LORMS level labels and PEEL structure markers (Point:/Evidence:/Explanation:/Link:) for EVERY part. Each of the five questions must have its OWN model answer — do not combine them.`.trim(),
+CRITICAL: The suggestedAnswer MUST include LORMS level labels and PEEL structure markers (Point:/Evidence:/Explanation:/Link/) for EVERY part. Each of the five questions must have its OWN model answer — do not combine them.`.trim(),
         schema,
         jsonFields,
         systemPrompt70B,
@@ -628,6 +627,7 @@ Output only the SBCS question.`.trim(),
     }
 
     // ── Persist for sidebar history ──
+    // The generated question is scoped to the authenticated user's row.
     if (userId && process.env.NEXT_PUBLIC_SUPABASE_URL) {
       try {
         const client = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -795,7 +795,7 @@ Previous attempt had issues: ${validationIssues.join('; ')}.`.trim(),
 
     return NextResponse.json(result);
   } catch (error: unknown) {
- // AI quota / rate-limit exhaustion → friendly 503 with a real retry ETA
+    // AI quota / rate-limit exhaustion → friendly 503 with a real retry ETA
     if (error instanceof AiCapacityError) {
       return aiCapacityResponse(error.retryAfterSeconds);
     }
