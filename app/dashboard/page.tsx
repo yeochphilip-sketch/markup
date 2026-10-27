@@ -670,7 +670,7 @@ export default function DashboardPage() {
         localStorage.setItem('sound_enabled', 'true');
       }
     }
-  }, []);
+
     forceRetrieveSession();
 
     // ── Initialize beta trial gate state from localStorage ──
@@ -678,18 +678,18 @@ export default function DashboardPage() {
     setTrialTriesUsed(trialInit.triesUsed);
     setTrialUnlocked(trialInit.unlocked);
 
-    useEffect(() => {
-      const unsubscribe = supabase.auth.onAuthStateChange((_event, session) => {
-        if (session?.user) {
-          handleUserSession(session.user);
-        }
-      });
-      return () => {
-        unsubscribe();
-      };
-    }, []);
+    // ── Keep the dashboard in sync when the user signs in or out ──
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        handleUserSession(session.user);
+      }
+    });
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
-    /** Determine track type from skill name */
+  /** Determine track type from skill name */
   const getTrackType = useCallback((skill: string): 'all-formats' | 'sbcs' | 'seq' | 'srq' => {
     const lower = skill.toLowerCase();
     if (lower.includes('all formats') || lower.includes('bundle')) return 'all-formats';

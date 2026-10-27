@@ -11,7 +11,7 @@ const REFEREE_BONUS_DAYS = 2;
 const REFERRER_BONUS_DAYS = 1;
 const REFERRER_BONUS_CAP = 7;
 
-async function getWriteClient(): Promise<ReturnType<typeof getServerSupabase>> {
+async function getWriteClient(): Promise<Awaited<ReturnType<typeof getServerSupabase>>> {
   return getServerSupabase();
 }
 

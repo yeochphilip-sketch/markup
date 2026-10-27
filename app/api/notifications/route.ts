@@ -78,7 +78,7 @@ export async function PATCH(request: Request) {
 
     // Resolve userId strictly from session. Body userId is only accepted if it
     // matches the authenticated session (defense-in-depth).
-    let userId = bodyUserId;
+    let userId: string | null | undefined = bodyUserId;
     if (userId) {
       const sessionUserId = await getAuthUserId(request);
       if (sessionUserId && sessionUserId === userId) {

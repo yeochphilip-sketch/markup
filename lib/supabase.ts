@@ -18,7 +18,7 @@ function getCookieOptions(): CookieOptions {
  * *Never* exposes the service-role key — this client is bound to the
  * browser's session and can only read/write rows the user is permitted to.
  */
-export function getServerSupabase() {
+export async function getServerSupabase() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -31,19 +31,23 @@ export function getServerSupabase() {
     );
   }
 
+  // `cookies()` is async in this Next.js version — resolve the store once and
+  // reuse it for every read/write below.
+  const cookieStore = await cookies();
+
   return createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
-      get: (name) => cookies().get(name)?.value ?? undefined,
+      get: (name) => cookieStore.get(name)?.value ?? undefined,
       set: (name, value, opts) => {
         try {
           const { path, ...rest } = opts as CookieOptions;
-          cookies().set(name, value, { path, ...rest });
+          cookieStore.set(name, value, { path, ...rest });
         } catch {}
       },
       remove: (name, opts) => {
         try {
           const { path, ...rest } = opts as CookieOptions;
-          cookies().set(name, '', { path, ...rest, maxAge: 0 });
+          cookieStore.set(name, '', { path, ...rest, maxAge: 0 });
         } catch {}
       },
     },
@@ -82,14 +86,14 @@ export function getServiceRoleClient() {
   });
 }
 
-let sessionClientPromise: Promise<ReturnType<typeof getServerSupabase>> | null = null;
+let sessionClientPromise: ReturnType<typeof getServerSupabase> | null = null;
 /**
  * Lazily cached server-side session client.  Routes call this so that the
  * *single* `getServerSupabase()` call per request is cached for the remainder
  * of the hot path — this avoids the "too many open connections" warning we
  * observed in the old per-helper `createServerClient` pattern.
  */
-export async function getCachedServerSupabase(): Promise<ReturnType<typeof getServerSupabase>> {
+export async function getCachedServerSupabase(): Promise<Awaited<ReturnType<typeof getServerSupabase>>> {
   if (!sessionClientPromise) {
     sessionClientPromise = getServerSupabase();
   }

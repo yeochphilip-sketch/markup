@@ -10,7 +10,7 @@ export const maxDuration = 20;
  * are rejected (the leaderboard is per-user; the server does the cross-user
  * ranking reads. */
 async function resolveViewerUserId(request: Request): Promise<string | null> {
-  return resolveUserId(request, null);
+  return resolveUserId(request);
 }
 
 function getDecileLabel(percentile: number): string {

@@ -409,10 +409,13 @@ export async function POST(request: Request) {
 
     // Only write assessment + XP if the grade actually changed
     const supabase = await getClientForUser();
-    const { metrics, error: metricsErr } = await fetchUserMetrics(supabase, authUserId);
+    // Guests may grade without signing in — only signed-in users have metrics rows.
+    const { metrics, error: metricsErr } = authUserId
+      ? await fetchUserMetrics(supabase, authUserId)
+      : { metrics: null, error: null };
     const prevLevel = metrics?.level_title ?? 'Novice';
 
-    if (!metricsErr && (prevLevel !== newLevel || validationIssues.length > 0)) {
+    if (authUserId && !metricsErr && (prevLevel !== newLevel || validationIssues.length > 0)) {
       const updateData: Record<string, any> = {
         level_title: newLevel > 0 ? `L${newLevel}` : prevLevel,
         updated_at: new Date().toISOString(),

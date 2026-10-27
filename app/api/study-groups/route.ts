@@ -53,7 +53,7 @@ interface GroupResponse {
  *    authenticated session user or an admin allow-listed ID.
  */
 async function resolveCallerUserId(request: Request, allowedIds: string[] | null = null): Promise<string | null> {
-  return resolveUserId(request, allowedIds);
+  return resolveUserId(request, allowedIds ?? undefined);
 }
 
 /** Resolve a Supabase client.
@@ -61,11 +61,11 @@ async function resolveCallerUserId(request: Request, allowedIds: string[] | null
  * own rows. Falls back to admin client only when explicitly needed (e.g.
  * reading *all* users' metrics for a leaderboard) — never for updates/overwrites
  * of another user's data. */
-async function getReadClientForUser(request: Request): Promise<ReturnType<typeof getServerSupabase>> {
+async function getReadClientForUser(request: Request): Promise<Awaited<ReturnType<typeof getServerSupabase>>> {
   return getServerSupabase();
 }
 
-async function getWriteClientForUser(request: Request): Promise<ReturnType<typeof getServerSupabase>> {
+async function getWriteClientForUser(request: Request): Promise<Awaited<ReturnType<typeof getServerSupabase>>> {
   return getServerSupabase();
 }
 

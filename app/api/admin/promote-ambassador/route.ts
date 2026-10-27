@@ -20,7 +20,7 @@ async function getWriteClient() {
  * Uses cookie-based auth (getServerSupabase) to read the actual user's session,
  * then uses the service-role client for DB writes only if authorized.
  */
-async function requireAdmin(): Promise<{ supabase: ReturnType<typeof createClient>; error?: NextResponse }> {
+async function requireAdmin(): Promise<{ supabase: Awaited<ReturnType<typeof getWriteClient>>; error?: NextResponse }> {
   // Always verify using cookie-based auth (reads the request's session cookies)
   let user: any = null;
   try {
