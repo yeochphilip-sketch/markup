@@ -4,6 +4,8 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useErrorToast } from '@/lib/use-error-toast';
+import { AI_CAPACITY_MESSAGE } from '@/lib/ai-capacity';
 import { supabase } from '@/utils/supabase';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -96,23 +98,14 @@ function humanizeDuration(totalSeconds: number): string {
  * Waits longer than this are daily-quota resets (hours away) — show a
  * humanized ETA instead of a ticking countdown, and don't auto-retry.
  */
-const LONG_WAIT_THRESHOLD_SECONDS = 10 * 60;
-
-/**
- * Friendly message shown when the AI provider returns a 503 / AI_CAPACITY.
- * Mirrors AI_CAPACITY_MESSAGE in lib/ai-capacity.ts (client-safe copy — the
- * lib module imports next/server, which can't be bundled client-side).
- */
-const AI_CAPACITY_FALLBACK_MESSAGE =
-  'AI is at capacity right now — please try again in a few minutes.';
-
-// Subjects, topics and question types come from the canonical syllabus module
-// (lib/syllabus.ts), derived from the official SEAB 2026 syllabuses.
+const LONG_WAIT_THRESHOLD_SECONDS = 10 * 60;// Subjects, topics and question types come from the canonical syllabus module
+ // (lib/syllabus.ts), derived from the official SEAB 2026 syllabuses.
 
 export default function DashboardPage() {
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
   const historyScrollRef = useRef<HTMLDivElement>(null);
+
   
   const [activeSubject, setActiveSubject] = useState('Social Studies');
   const [selectedTopic, setSelectedTopic] = useState('Any Topic (Random Mix)');
@@ -534,7 +527,7 @@ export default function DashboardPage() {
     try {
       const LEGACY_METRIC_COLUMNS =
         'sbq_inference_score, sbq_comparison_score, sbq_reliability_score, seq_essay_score, seq_conclusion_score, sbq_purpose_score, sbq_synthesis_score, sbq_utility_score, total_xp, level_title, current_streak, longest_streak, achievements, last_practice_date, ss_goal_level, history_goal_level, takes_history, total_evaluations';
-      const { data: metricsData, error: metricsError } = await supabase
+      let { data: metricsData, error: metricsError } = await supabase
         .from('user_skill_metrics')
         .select(`${LEGACY_METRIC_COLUMNS}, history_track`)
         .eq('user_id', uid)
@@ -844,7 +837,7 @@ export default function DashboardPage() {
         }
  // AI provider at capacity → friendly countdown toast, not a raw error
         if (errData.code === 'AI_CAPACITY') {
-          showCapacityToast(errData.error || AI_CAPACITY_FALLBACK_MESSAGE, resolveRetrySeconds(errData, res), 'generate');
+          showCapacityToast(errData.error || AI_CAPACITY_MESSAGE, resolveRetrySeconds(errData, res), 'generate');
           return;
         }
         throw new Error(errData.error || 'Generation failed (API ' + res.status + ')');
@@ -1004,7 +997,7 @@ export default function DashboardPage() {
  // AI provider at capacity → friendly countdown toast, not a raw error
         if (errData.code === 'AI_CAPACITY') {
           setHasScanned(false);
-          showCapacityToast(errData.error || AI_CAPACITY_FALLBACK_MESSAGE, resolveRetrySeconds(errData, res), 'grade');
+          showCapacityToast(errData.error || AI_CAPACITY_MESSAGE, resolveRetrySeconds(errData, res), 'grade');
           return;
         }
         throw new Error(errData.error || 'Grading failed (API ' + res.status + ')');
