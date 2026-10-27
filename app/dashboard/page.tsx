@@ -721,11 +721,12 @@ export default function DashboardPage() {
         stepIndex++;
         if (stepIndex < STEPS.length) {
           setGenerateProgress(STEPS[stepIndex]);
+        }
       };
       const id = setInterval(tick, 1200);
-      return () => clearInterval(id);}
-  }, []);
-      setGenerateProgress(null);
+      return () => clearInterval(id);
+    }
+    setGenerateProgress(null);
     return () => {
       if (generateProgressIntervalRef.current) {
         clearTimeout(generateProgressIntervalRef.current);
@@ -747,7 +748,8 @@ export default function DashboardPage() {
       };
       const id = setInterval(tick, 1500);
       return () => clearInterval(id);
-
+    }
+  }, []);
   // Set up periodic heartbeat once userId is known
   useEffect(() => {
     if (userId) {
