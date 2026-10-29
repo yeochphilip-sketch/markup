@@ -2,7 +2,58 @@
 
 import { cn } from '@/lib/utils';
 
+interface SkeletonItemProps {
+  /** Width as a fraction of parent (0-1) */
+  widthFraction?: number;
+  /** Height as a fraction of fixed height */
+  heightFraction?: number;
+  /** Custom height in CSS values (px, rem, etc) */
+  height?: string;
+  /** Animation variant — applies shimmer animation */
+  animated?: boolean;
+  /** Color theme */
+  color?: 'slate' | 'indigo' | 'emerald' | 'amber' | 'rose';
+}
+
+/** A single skeleton item (row or cell) */
+export function SkeletonItem({
+  widthFraction,
+  heightFraction,
+  height,
+  animated = true,
+  color = 'slate',
+}: SkeletonItemProps) {
+  const colorClass = colorMap[color];
+  const animationClass = animated ? 'animate-shimmer-rect' : '';
+
+  // Calculate width
+  const widthStyle = widthFraction !== undefined
+    ? { width: `${widthFraction * 100}%` }
+    : {};
+
+  // Calculate height
+  const heightStyle = heightFraction !== undefined
+    ? { height: `${heightFraction * 100}%` }
+    : height
+      ? { height }
+      : {};
+
+  return (
+    <div
+      className={cn(
+        `rounded-md bg-${colorMap[color] as string} ${animationClass}`,
+        widthStyle,
+        heightStyle,
+      )}
+      style={{ ...widthStyle, ...heightStyle }}
+    />
+  );
+}
+
+/** Main Skeleton component — can be used as a page-level loading placeholder */
 interface SkeletonProps {
+  /** Layout mode — 'grid' for dashboard-style grid, 'default' for simple box */
+  layout?: 'grid' | 'default';
   /** Size variant — defaults to 'md' */
   size?: 'sm' | 'md' | 'lg' | 'xl';
   /** Color theme — defaults to 'slate' */
@@ -11,7 +62,7 @@ interface SkeletonProps {
   bar?: boolean;
   /** Whether to show as a circle */
   circle?: boolean;
-  /** Whether to show as a rounded rectangle */
+  /** Whether to show as a rounded rectangle (default) */
   rounded?: boolean;
   /** Custom width as a fraction of parent (0-1) */
   widthFraction?: number;
@@ -19,6 +70,25 @@ interface SkeletonProps {
   label?: string;
   /** Animation duration in seconds */
   duration?: number;
+}
+
+/** Generates appropriate skeleton items for a grid layout */
+function generateGridItems(count: number, size: SkeletonProps['size']): React.ReactNode {
+  const sizeClassMap: Record<SkeletonProps['size'], string> = {
+    sm: 'w-4 h-4',
+    md: 'w-8 h-8',
+    lg: 'w-12 h-12',
+    xl: 'w-16 h-16',
+  };
+
+  return Array.from({ length: count }).map((_, i) => (
+    <SkeletonItem
+      key={i}
+      widthFraction={1}
+      heightFraction={1}
+      color={size?.color ?? 'slate'}
+    />
+  ));
 }
 
 const sizeMap = {
@@ -37,6 +107,7 @@ const colorMap = {
 };
 
 export default function Skeleton({
+  layout = 'default',
   size = 'md',
   color = 'slate',
   bar = false,
@@ -73,16 +144,20 @@ export default function Skeleton({
   return (
     <div
       className={cn(
-        `rounded-md ${sizeClass} ${colorClass} ${animationClass}`,
+        ` ${sizeClass} ${colorClass} ${animationClass}`,
         bar && 'animate-shimmer-bar',
         circle && 'animate-shimmer-circle',
         rounded && 'animate-shimmer-rect',
-        label && 'animate-pulse-skeleton'
+        label && 'animate-pulse-skeleton',
       )}
       style={widthStyle}
     >
       {label && label.length > 0 && (
-        <p className="text-[10px] text-slate-500/50 font-mono animate-pulse font-medium tracking-wider">{label}</p>
+        <p
+          className="text-[10px] text-slate-500/50 font-mono animate-pulse font-medium tracking-wider"
+        >
+          {label}
+        </p>
       )}
     </div>
   );

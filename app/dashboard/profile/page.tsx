@@ -170,7 +170,40 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#07090e] flex flex-col items-center justify-center gap-6">
-        <Skeleton size="lg" color="indigo" label="Loading profile..." />
+        {/* Profile page skeleton layout */}
+        <div className="w-full max-w-md bg-slate-950/60 border border-slate-900 rounded-2xl p-6 animate-fade-in" style={{ maxWidth: '520px' }}>}
+          {/* Avatar placeholder */}
+          <div className="h-40 w-40 rounded-full bg-slate-900 animate-pulse mx-auto mb-4" />
+          {/* Name and level */}
+          <div className="flex items-center gap-3 text-center sm:text-left mb-4">
+            <div className="h-10 w-10 rounded-lg bg-slate-900 animate-pulse" />
+            <div>
+              <p className="text-lg font-black text-white animate-pulse">Loading profile...</p>
+              <p className="text-sm text-slate-500">Novice</p>
+            </div>
+          </div>
+          {/* XP progress bar */}
+          <div className="mt-4">
+            <div className="flex justify-between text-[9px] text-slate-600 font-mono mb-1">
+              <span>0 pts</span>
+              <span>500 pts</span>
+            </div>
+            <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-full bg-indigo-500 transition-all duration-700" style={{ width: '50%' }}></div>
+            </div>
+          </div>
+          {/* Stats row */}
+          <div className="grid grid-cols-2 gap-3 mt-4">
+            <div className="bg-slate-950/80 border border-slate-900 rounded-xl p-3 text-center">
+              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Essays</p>
+              <p className="text-2xl font-black text-indigo-400 font-mono">0</p>
+            </div>
+            <div className="bg-slate-950/80 border border-slate-900 rounded-xl p-3 text-center">
+              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Streak</p>
+              <p className="text-2xl font-black text-amber-400 font-mono">0d</p>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

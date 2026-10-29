@@ -202,7 +202,30 @@ export default function SettingsPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#07090e] flex flex-col items-center justify-center gap-6">
-        <Skeleton size="lg" color="indigo" label="Loading settings..." />
+        {/* Settings page skeleton layout */}
+        <div className="w-full max-w-md bg-slate-950/60 border border-slate-900 rounded-2xl p-6 animate-fade-in" style={{ maxWidth: '480px' }}>}
+          {/* Section header */}
+          <div className="flex items-center gap-3 mb-4">
+            <div className="h-10 w-10 rounded-lg bg-slate-900 animate-pulse" />
+            <p className="text-lg font-black text-white animate-pulse">Loading settings...</p>
+          </div>
+          {/* Toggles skeleton */}
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="bg-slate-950/80 border border-slate-900 rounded-xl p-3">
+              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Email reminders</p>
+            </div>
+            <div className="bg-slate-950/80 border border-slate-900 rounded-xl p-3">
+              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Practice receipts</p>
+            </div>
+          </div>
+          {/* Goals */}
+          <div className="mb-4">
+            <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest mb-2">SS Goal Level</p>
+            <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-3">
+              <p className="text-[9px] text-slate-500">Not set</p>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

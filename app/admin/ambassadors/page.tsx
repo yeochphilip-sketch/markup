@@ -230,10 +230,23 @@ export default function AdminAmbassadorsPage() {
           </div>
 
           {loading ? (
-            <div className="p-8 flex items-center justify-center">
-              <Skeleton size="sm" color="emerald" label="Loading ambassadors..." />
-            </div>
-          ) : ambassadors.length === 0 ? (
+            <div className="min-h-screen bg-[#07090e] flex flex-col items-center justify-center gap-6">
+                {/* Ambassadors page skeleton layout */}
+                <div className="w-full max-w-2xl bg-slate-950/60 border border-slate-900 rounded-2xl p-6 animate-fade-in" style={{ maxWidth: '640px' }}>}
+                  {/* Header */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="h-10 w-10 rounded-lg bg-slate-900 animate-pulse" />
+                    <p className="text-lg font-black text-white animate-pulse">Authenticating...</p>
+                  </div>
+                  {/* Ambassadors grid */}
+                  <div className="grid grid-cols-1 gap-4 mt-4">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <div key={i} className="bg-slate-950/60 border border-slate-900 rounded-xl p-4 animate-shimmer-rect"></div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : ambassadors.length === 0 ? (
             <div className="p-8 text-center">
               <p className="text-4xl mb-3">Partners</p>
               <p className="text-xs text-slate-500 font-mono">No ambassadors yet. Promote your first user above.</p>

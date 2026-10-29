@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import Skeleton from '@/app/components/Skeleton';
+import { SkeletonItem } from '@/app/components/Skeleton';
 
 describe('Skeleton component', () => {
   beforeEach(() => {
@@ -10,7 +11,8 @@ describe('Skeleton component', () => {
     const { container } = render(<Skeleton />);
     const skeleton = container.firstChild as HTMLElement | null;
     expect(skeleton?.tagName).toBe('DIV');
-    expect(skeleton?.classList.contains('rounded-md')).toBe(true);
+    // rounded-md is now on SkeletonItem, not main Skeleton - check for size class instead
+    expect(skeleton?.classList.contains('w-8')).toBe(true); // md size
   });
 
   it('renders with sm size', () => {
