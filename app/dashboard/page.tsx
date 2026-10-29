@@ -23,7 +23,6 @@ import LevelUpModal from '@/app/components/LevelUpModal';
 import LeaderboardDrawer from '@/app/components/LeaderboardDrawer';
 import AchievementsDrawer from '@/app/components/AchievementsDrawer';
 import AchievementBanner from '@/app/components/AchievementBanner';
-import LoadingSpinner from '@/app/components/LoadingSpinner';
 import DashboardSkeleton from '@/app/components/DashboardSkeleton';
 import GlobalErrorBanner from '@/app/components/GlobalErrorBanner';
 import MobileSidebar from '@/app/components/MobileSidebar';

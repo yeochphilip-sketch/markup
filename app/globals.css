@@ -107,6 +107,107 @@ body {
   animation-play-state: paused !important;
 }
 
+/* ── Skeleton animations ── */
+
+@keyframes spin-skeleton-slow {
+  0% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+  100% { opacity: 0.4; }
+}
+
+@keyframes spin-skeleton-medium {
+  0% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 0.6; transform: scale(1); }
+  100% { opacity: 0.3; transform: scale(0.8); }
+}
+
+@keyframes spin-skeleton-fast {
+  0% { opacity: 0.3; transform: scale(0.7); }
+  50% { opacity: 0.6; transform: scale(1); }
+  100% { opacity: 0.3; transform: scale(0.7); }
+}
+
+@keyframes shimmer-bar-sm {
+  0% { background-position: -200px center; }
+  100% { background-position: 200px center; }
+}
+
+@keyframes shimmer-bar-md {
+  0% { background-position: -250px center; }
+  100% { background-position: 250px center; }
+}
+
+@keyframes shimmer-bar-lg {
+  0% { background-position: -300px center; }
+  100% { background-position: 300px center; }
+}
+
+@keyframes shimmer-circle-sm {
+  0% { transform: scale(0.8) rotate(0deg); }
+  50% { transform: scale(1) rotate(360deg); }
+  100% { transform: scale(0.8) rotate(0deg); }
+}
+
+@keyframes shimmer-circle-md {
+  0% { transform: scale(0.7) rotate(0deg); }
+  50% { transform: scale(1) rotate(360deg); }
+  100% { transform: scale(0.7) rotate(0deg); }
+}
+
+@keyframes shimmer-circle-lg {
+  0% { transform: scale(0.6) rotate(0deg); }
+  50% { transform: scale(1) rotate(360deg); }
+  100% { transform: scale(0.6) rotate(0deg); }
+}
+
+@keyframes shimmer-rect-sm {
+  0% { background-position: -200px center; }
+  100% { background-position: 200px center; }
+}
+
+@keyframes shimmer-rect-md {
+  0% { background-position: -250px center; }
+  100% { background-position: 250px center; }
+}
+
+@keyframes shimmer-rect-lg {
+  0% { background-position: -300px center; }
+  100% { background-position: 300px center; }
+}
+
+@keyframes pulse-skeleton {
+  0% { opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+
+/* Animation classes applied via Tailwind */
+.animate-spin-skeleton-slow {
+  animation: spin-skeleton-slow 1.5s ease-in-out infinite;
+}
+.animate-spin-skeleton-medium {
+  animation: spin-skeleton-medium 1.5s ease-in-out infinite;
+}
+.animate-spin-skeleton-fast {
+  animation: spin-skeleton-fast 1.5s ease-in-out infinite;
+}
+.animate-shimmer-bar {
+  animation: shimmer-bar-md 2s ease-in-out infinite;
+  background-size: 400% 400%;
+  background-image: linear-gradient(to right, transparent, rgba(255,255,255,0.3), transparent);
+}
+.animate-shimmer-circle {
+  animation: shimmer-circle-md 2s ease-in-out infinite;
+  background-size: 400% 400%;
+}
+.animate-shimmer-rect {
+  animation: shimmer-rect-md 2s ease-in-out infinite;
+  background-size: 400% 400%;
+}
+.animate-pulse-skeleton {
+  animation: pulse-skeleton 2s ease-in-out infinite;
+}
+
 /* ── Confetti fall animation ── */
 @keyframes fall {
   0% {

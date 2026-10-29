@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/utils/supabase';
 import { useRouter } from 'next/navigation';
-import LoadingSpinner from '@/app/components/LoadingSpinner';
+import Skeleton from '@/app/components/Skeleton';
 
 interface Ambassador {
   id: string;
@@ -137,7 +137,7 @@ export default function AdminAmbassadorsPage() {
   if (!isAuthorized) {
     return (
       <div className="min-h-screen bg-[#07090e] flex flex-col items-center justify-center gap-6">
-        <LoadingSpinner size="lg" label="Authenticating..." color="indigo" />
+        <Skeleton size="lg" color="indigo" label="Authenticating..." />
       </div>
     );
   }
@@ -231,7 +231,7 @@ export default function AdminAmbassadorsPage() {
 
           {loading ? (
             <div className="p-8 flex items-center justify-center">
-              <LoadingSpinner size="sm" label="Loading ambassadors..." color="emerald" />
+              <Skeleton size="sm" color="emerald" label="Loading ambassadors..." />
             </div>
           ) : ambassadors.length === 0 ? (
             <div className="p-8 text-center">

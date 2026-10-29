@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/utils/supabase';
 import { useRouter } from 'next/navigation';
 import { getLevelConfig, getLevelTitle, getNextLevelXp, getPrevLevelXp, LEVEL_THRESHOLDS, ACHIEVEMENT_DEFS, calculateXpDecay } from '@/lib/gamification';
-import LoadingSpinner from '@/app/components/LoadingSpinner';
+import Skeleton from '@/app/components/Skeleton';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -170,7 +170,7 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#07090e] flex flex-col items-center justify-center gap-6">
-        <LoadingSpinner size="lg" label="Loading profile..." color="indigo" />
+        <Skeleton size="lg" color="indigo" label="Loading profile..." />
       </div>
     );
   }

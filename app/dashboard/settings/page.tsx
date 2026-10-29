@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getLevelConfig } from '@/lib/gamification';
 import { HISTORY_TRACKS, type HistoryTrack } from '@/lib/syllabus';
-import LoadingSpinner from '@/app/components/LoadingSpinner';
+import Skeleton from '@/app/components/Skeleton';
 
 interface Settings {
   email_reminders_enabled: boolean;
@@ -202,7 +202,7 @@ export default function SettingsPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#07090e] flex flex-col items-center justify-center gap-6">
-        <LoadingSpinner size="lg" label="Loading settings..." color="indigo" />
+        <Skeleton size="lg" color="indigo" label="Loading settings..." />
       </div>
     );
   }

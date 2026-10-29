@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense, useMemo, useCallback } from 'react';
 import { supabase } from '@/utils/supabase';
 import { useRouter } from 'next/navigation';
-import LoadingSpinner from '@/app/components/LoadingSpinner';
+import Skeleton from '@/app/components/Skeleton';
 
 interface ProfileRow {
   id: string;
@@ -799,7 +799,7 @@ function AnalyticsDashboardContent() {
   if (!isAuthorized) {
     return (
       <div className="min-h-screen bg-[#07090e] flex flex-col items-center justify-center gap-6">
-        <LoadingSpinner size="lg" label="Authenticating..." color="indigo" />
+        <Skeleton size="lg" color="indigo" label="Authenticating..." />
       </div>
     );
   }
@@ -901,7 +901,7 @@ function AnalyticsDashboardContent() {
 
               {loadingGroq ? (
                 <div className="flex items-center justify-center py-6">
-                  <LoadingSpinner size="sm" label="Probing Groq…" color="indigo" />
+                  <Skeleton size="sm" color="indigo" label="Probing Groq…" />
                 </div>
               ) : !groqUsage ? (
                 <div className="py-6 text-center text-xs text-slate-500 font-mono">
@@ -1105,7 +1105,7 @@ function AnalyticsDashboardContent() {
               <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-2">Subject Split</p>
               {loadingMetrics ? (
                 <div className="flex items-center justify-center py-4">
-                  <LoadingSpinner size="sm" label="" color="indigo" />
+                  <Skeleton size="sm" color="indigo" label="" />
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -1147,7 +1147,7 @@ function AnalyticsDashboardContent() {
               <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-2">SS Target Goals</p>
               {loadingMetrics ? (
                 <div className="flex items-center justify-center py-4">
-                  <LoadingSpinner size="sm" label="" color="indigo" />
+                  <Skeleton size="sm" color="indigo" label="" />
                 </div>
               ) : (
                 <div className="space-y-1">
@@ -1182,7 +1182,7 @@ function AnalyticsDashboardContent() {
               <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-2">History Target Goals</p>
               {loadingMetrics ? (
                 <div className="flex items-center justify-center py-4">
-                  <LoadingSpinner size="sm" label="" color="indigo" />
+                  <Skeleton size="sm" color="indigo" label="" />
                 </div>
               ) : (
                 <div className="space-y-1">
@@ -1470,7 +1470,7 @@ function AnalyticsDashboardContent() {
           <div className="overflow-x-auto">
             {loadingMetrics ? (
               <div className="p-8 flex items-center justify-center">
-                <LoadingSpinner size="sm" label="Loading trial data..." color="indigo" />
+                <Skeleton size="sm" color="indigo" label="Loading trial data..." />
               </div>
             ) : trialRows.length === 0 ? (
               <div className="p-8 text-center text-xs text-slate-500 font-mono">
@@ -1602,7 +1602,7 @@ function AnalyticsDashboardContent() {
           <div className="overflow-x-auto">
             {loadingWaitlist ? (
               <div className="p-8 flex items-center justify-center">
-                <LoadingSpinner size="sm" label="Loading waitlist..." color="amber" />
+                <Skeleton size="sm" color="amber" label="Loading waitlist..." />
               </div>
             ) : filteredWaitlist.length === 0 ? (
               <div className="p-8 text-center text-xs text-slate-500 font-mono">
@@ -1725,7 +1725,7 @@ function AnalyticsDashboardContent() {
           <div className="p-4 sm:p-5">
             {loadingTestimonials ? (
               <div className="py-8 flex items-center justify-center">
-                <LoadingSpinner size="sm" label="Loading testimonials..." color="emerald" />
+                <Skeleton size="sm" color="emerald" label="Loading testimonials..." />
               </div>
             ) : filteredTestimonials.length === 0 ? (
               <div className="py-8 text-center text-xs text-slate-500 font-mono">
@@ -1888,7 +1888,7 @@ function AnalyticsDashboardContent() {
           <div className="overflow-x-auto">
             {loadingFeedback ? (
               <div className="p-8 flex items-center justify-center">
-                <LoadingSpinner size="sm" label="Loading feedback..." color="rose" />
+                <Skeleton size="sm" color="rose" label="Loading feedback..." />
               </div>
             ) : feedback.length === 0 ? (
               <div className="p-8 text-center text-xs text-slate-500 font-mono">
@@ -2006,7 +2006,7 @@ function AnalyticsDashboardContent() {
           <div className="overflow-x-auto">
             {loading ? (
               <div className="p-8 flex items-center justify-center">
-                <LoadingSpinner size="sm" label="Loading user data..." color="indigo" />
+                <Skeleton size="sm" color="indigo" label="Loading user data..." />
               </div>
             ) : filteredProfiles.length === 0 ? (
               <div className="p-8 text-center text-xs text-slate-500 font-mono">
@@ -2088,7 +2088,7 @@ export default function AdminAnalyticsPage() {
     <Suspense
       fallback={
         <div className="min-h-screen bg-[#07090e] flex flex-col items-center justify-center gap-6">
-          <LoadingSpinner size="lg" label="Loading Platform Insights..." color="indigo" />
+          <Skeleton size="lg" color="indigo" label="Loading Platform Insights..." />
         </div>
       }
     >
