@@ -232,7 +232,7 @@ export default function AdminAmbassadorsPage() {
           {loading ? (
             <div className="min-h-screen bg-[#07090e] flex flex-col items-center justify-center gap-6">
                 {/* Ambassadors page skeleton layout */}
-                <div className="w-full max-w-2xl bg-slate-950/60 border border-slate-900 rounded-2xl p-6 animate-fade-in" style={{ maxWidth: '640px' }}>}
+                <div className="w-full max-w-2xl bg-slate-950/60 border border-slate-900 rounded-2xl p-6 animate-fade-in" style={{ maxWidth: '640px' }}>
                   {/* Header */}
                   <div className="flex items-center gap-3 mb-4">
                     <div className="h-10 w-10 rounded-lg bg-slate-900 animate-pulse" />

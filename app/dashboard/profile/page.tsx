@@ -171,7 +171,7 @@ export default function ProfilePage() {
     return (
       <div className="min-h-screen bg-[#07090e] flex flex-col items-center justify-center gap-6">
         {/* Profile page skeleton layout */}
-        <div className="w-full max-w-md bg-slate-950/60 border border-slate-900 rounded-2xl p-6 animate-fade-in" style={{ maxWidth: '520px' }}>}
+        <div className="w-full max-w-md bg-slate-950/60 border border-slate-900 rounded-2xl p-6 animate-fade-in" style={{ maxWidth: '520px' }}>
           {/* Avatar placeholder */}
           <div className="h-40 w-40 rounded-full bg-slate-900 animate-pulse mx-auto mb-4" />
           {/* Name and level */}

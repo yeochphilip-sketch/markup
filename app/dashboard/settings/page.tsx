@@ -203,7 +203,7 @@ export default function SettingsPage() {
     return (
       <div className="min-h-screen bg-[#07090e] flex flex-col items-center justify-center gap-6">
         {/* Settings page skeleton layout */}
-        <div className="w-full max-w-md bg-slate-950/60 border border-slate-900 rounded-2xl p-6 animate-fade-in" style={{ maxWidth: '480px' }}>}
+        <div className="w-full max-w-md bg-slate-950/60 border border-slate-900 rounded-2xl p-6 animate-fade-in" style={{ maxWidth: '480px' }}>
           {/* Section header */}
           <div className="flex items-center gap-3 mb-4">
             <div className="h-10 w-10 rounded-lg bg-slate-900 animate-pulse" />
