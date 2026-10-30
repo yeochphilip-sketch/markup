@@ -33,19 +33,19 @@ export default function OllieMascot({
     { src: string; alt: string }
   > = {
     celebrating: {
-      src: '/Gemini_Generated_Image_2ptaiu2ptaiu2pta.jpeg',
+      src: '/mascot/ollie-celebrating.png',
       alt: altText || 'Ollie celebrating',
     },
     disappointed: {
-      src: '/Gemini_Generated_Image_2ptaiu2ptaiu2pta (1).jpeg',
+      src: '/mascot/ollie-disappointed.png',
       alt: altText || 'Ollie disappointed',
     },
     angry: {
-      src: '/Gemini_Generated_Image_2ptaiu2ptaiu2pta (2).jpeg',
+      src: '/mascot/ollie-angry.png',
       alt: altText || 'Ollie roasting',
     },
     neutral: {
-      src: '/og-image.png',
+      src: '/mascot/ollie-neutral.png',
       alt: altText || 'Ollie the otter',
     },
   };
@@ -105,6 +105,7 @@ export default function OllieMascot({
 }
 
 /** Pre-defined roast/feedback strings mapped to score ranges */
+/** Pre-defined roast/feedback strings mapped to score ranges */
 export const ollieRoasts = {
   /** Perfect score / high band - L3/L4 or A1 */
   perfect: [
@@ -142,36 +143,46 @@ export const ollieRoasts = {
 /** Get Ollie's feedback based on score and state */
 export function useOllieFeedback(
   score: number | null,
-  maxScore: number,
-) {
+  errorType: string | null = null,
+  maxScore: number = 10,
+): { state: 'celebrating' | 'disappointed' | 'angry' | 'neutral'; roast: string; confetti: boolean } {
   if (score === null) {
-    return { state: 'neutral', roastIndex: 0, confetti: false };
+    return { state: 'neutral', roast: "Ollie's waiting for your answer...", confetti: false };
   }
 
   const percentage = (score / maxScore) * 100;
 
-  // High band: L3/L4 or A1 (80%+)
-  if (percentage >= 80) {
+  // High band: L3/L4 or A1 (70%+)
+  if (percentage >= 70) {
     return {
       state: 'celebrating',
-      roastIndex: Math.floor(Math.random() * ollieRoasts.perfect.length),
+      roast: ollieRoasts.perfect[Math.floor(Math.random() * ollieRoasts.perfect.length)],
       confetti: true,
     };
   }
 
-  // Moderate: 50-79%
-  if (percentage >= 50) {
+  // Moderate with errors
+  if (errorType === 'NO_ELABORATION' || errorType === 'REPEATED_POINT') {
     return {
-      state: 'neutral',
-      roastIndex: Math.floor(Math.random() * ollieRoasts.moderate.length),
+      state: 'disappointed',
+      roast: ollieRoasts.low[Math.floor(Math.random() * ollieRoasts.low.length)],
       confetti: false,
     };
   }
 
-  // Low: below 50%
+  // Low score
+  if (percentage < 50) {
+    return {
+      state: 'angry',
+      roast: ollieRoasts.low[Math.floor(Math.random() * ollieRoasts.low.length)],
+      confetti: false,
+    };
+  }
+
+  // Neutral/moderate
   return {
-    state: 'angry',
-    roastIndex: Math.floor(Math.random() * ollieRoasts.low.length),
+    state: 'neutral',
+    roast: ollieRoasts.moderate[Math.floor(Math.random() * ollieRoasts.moderate.length)],
     confetti: false,
   };
 }
