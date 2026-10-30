@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import OllieMascot from '@/app/components/OllieMascot';
-import { useOllieFeedback } from '@/app/components/OllieMascot';
+import { getOllieFeedback } from '@/lib/ollie-dialogue';
 import { useRouter } from 'next/navigation';
 import LoadingSpinner from '@/app/components/LoadingSpinner';
 
@@ -38,7 +38,7 @@ export default function PracticePage() {
       });
 
       // Update Ollie's state based on the grading result
-      const ollieFeedback = useOllieFeedback(sampleScore, sampleErrorType, 10);
+      const ollieFeedback = getOllieFeedback(sampleScore, sampleErrorType, 10);
       setOllieState(ollieFeedback.state);
       setOllieRoast(ollieFeedback.roast);
     }, 2000);
@@ -51,28 +51,13 @@ export default function PracticePage() {
     setGradingResult({
       score,
       errorType,
-      feedback: getSampleFeedback(score, errorType),
+      feedback: getOllieFeedback(score, errorType, 10).roast,
       scoreLevel: score >= 7 ? 'L4' : score >= 5 ? 'L3' : 'L2',
       scoreLabel: score >= 7 ? 'Excellent' : score >= 5 ? 'Good' : 'Limited',
     });
-
-    const ollieFeedback = useOllieFeedback(score, errorType, 10);
+    const ollieFeedback = getOllieFeedback(score, errorType, 10);
     setOllieState(ollieFeedback.state);
     setOllieRoast(ollieFeedback.roast);
-  };
-
-  const getSampleFeedback = (score: number, errorType: string | null) => {
-    if (score >= 8) return 'Outstanding work! Clear L4 reasoning with effective elaboration.';
-    if (score >= 5) {
-      if (errorType === 'NO_ELABORATION') {
-        return 'Good point but need more elaboration - explain the reasoning behind your claim with one extra sentence.';
-      }
-      return 'Solid response with clear reasoning. Add one more sentence of elaboration to strengthen your answer.';
-    }
-    if (errorType === 'REPEATED_POINT') {
-      return 'Try explaining your point with more detail - one extra sentence makes a big difference to the score.';
-    }
-    return 'Need more depth and analysis - explain the reasoning behind each claim.';
   };
 
   return (
@@ -145,7 +130,7 @@ export default function PracticePage() {
                   scoreLevel: 'L3',
                   scoreLabel: 'Good',
                 });
-                const ollieFeedback = useOllieFeedback(5, null, 10);
+                const ollieFeedback = getOllieFeedback(5, null, 10);
                 setOllieState(ollieFeedback.state);
               }}
               className="w-full py-3 rounded-xl font-bold transition bg-indigo-600 hover:bg-indigo-500 text-white"
