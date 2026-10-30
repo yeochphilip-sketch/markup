@@ -2,6 +2,8 @@
 
 import { cn } from '@/lib/utils';
 
+type SkeletonSize = 'sm' | 'md' | 'lg' | 'xl';
+
 interface SkeletonItemProps {
   /** Width as a fraction of parent (0-1) */
   widthFraction?: number;
@@ -40,22 +42,44 @@ export function SkeletonItem({
 
   return (
     <div
-      className={cn(
-        `rounded-md bg-${colorMap[color] as string} ${animationClass}`,
-        widthStyle,
-        heightStyle,
-      )}
+      className={
+        cn(
+          `rounded-md bg-${colorMap[color] as string} ${animationClass}`,
+          widthFraction !== undefined && 'w-[calc(100%_*_${widthFraction})]',
+          heightFraction !== undefined && 'h-[calc(100%_*_${heightFraction})]',
+          height && `h-[${height}]`,
+        )}
       style={{ ...widthStyle, ...heightStyle }}
     />
   );
 }
+
+/** Skeleton size type */
+const sizeMap: Record<SkeletonSize, string> = {
+  sm: 'w-4 h-4',
+  md: 'w-8 h-8',
+  lg: 'w-12 h-12',
+  xl: 'w-16 h-16',
+};
+
+/** Color theme map */
+const colorMap: Record<
+  'slate' | 'indigo' | 'emerald' | 'amber' | 'rose',
+  string
+> = {
+  slate: 'bg-slate-900/30',
+  indigo: 'bg-indigo-900/20',
+  emerald: 'bg-emerald-900/20',
+  amber: 'bg-amber-900/20',
+  rose: 'bg-rose-900/20',
+};
 
 /** Main Skeleton component — can be used as a page-level loading placeholder */
 interface SkeletonProps {
   /** Layout mode — 'grid' for dashboard-style grid, 'default' for simple box */
   layout?: 'grid' | 'default';
   /** Size variant — defaults to 'md' */
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size: SkeletonSize;
   /** Color theme — defaults to 'slate' */
   color?: 'slate' | 'indigo' | 'emerald' | 'amber' | 'rose';
   /** Whether to show as a wide bar */
@@ -73,42 +97,22 @@ interface SkeletonProps {
 }
 
 /** Generates appropriate skeleton items for a grid layout */
-function generateGridItems(count: number, size: SkeletonProps['size']): React.ReactNode {
-  const sizeClassMap: Record<SkeletonProps['size'], string> = {
-    sm: 'w-4 h-4',
-    md: 'w-8 h-8',
-    lg: 'w-12 h-12',
-    xl: 'w-16 h-16',
-  };
-
+function generateGridItems(
+  count: number,
+  size: SkeletonSize = 'md',
+): React.ReactNode {
   return Array.from({ length: count }).map((_, i) => (
     <SkeletonItem
       key={i}
       widthFraction={1}
       heightFraction={1}
-      color={size?.color ?? 'slate'}
     />
   ));
 }
 
-const sizeMap = {
-  sm: 'w-4 h-4',
-  md: 'w-8 h-8',
-  lg: 'w-12 h-12',
-  xl: 'w-16 h-16',
-};
-
-const colorMap = {
-  slate: 'bg-slate-900/30',
-  indigo: 'bg-indigo-900/20',
-  emerald: 'bg-emerald-900/20',
-  amber: 'bg-amber-900/20',
-  rose: 'bg-rose-900/20',
-};
-
 export default function Skeleton({
   layout = 'default',
-  size = 'md',
+  size = 'md' as SkeletonSize,
   color = 'slate',
   bar = false,
   circle = false,
