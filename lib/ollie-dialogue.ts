@@ -157,15 +157,20 @@ export function getStreakReminder(
 /**
  * Calculates days since last practice and triggers a streak reminder notification.
  *
- * Fetches user metrics from Supabase, calculates days since last practice,
- * and shows a passive-aggressive loss-framed reminder using getStreakReminder.
+ * Uses pre-fetched user metrics from Supabase (called from dashboard).
+ * Calculates days since last practice, and shows a passive-aggressive loss-framed
+ * reminder using getStreakReminder.
  *
- * @param userId Supabase user ID
+ * @param currentStreak Current practice streak count from user metrics
+ * @param longestStreak Longest streak from user metrics
+ * @param lastPracticeDate Date of last practice session from user metrics
  * @param options Optional configuration
  * @returns The reminder message, or null if no reminder needed
  */
-export async function triggerStreakReminder(
-  userId: string,
+export function triggerStreakReminder(
+  currentStreak: number,
+  longestStreak: number,
+  lastPracticeDate: Date,
   options: {
     /** Show reminder if streak is >= this many days */
     minimumStreakDays?: number;
@@ -174,44 +179,30 @@ export async function triggerStreakReminder(
     /** Auto-show as toast (vs just returning the message) */
     asToast?: boolean;
   } = {},
-): Promise<string | null> {
+): string | null {
   const {
     minimumStreakDays = 3,
     minimumDaysSinceLastPractice = 1,
     asToast = false,
   } = options;
 
-  try {
-    const { data: metrics, error } = await supabase.from('user_skill_metrics')
-      .select('current_streak, longest_streak, last_practice_date')
-      .eq('user_id', userId)
-      .single();
+  if (!lastPracticeDate) return null;
 
-    if (error || !metrics) return null;
+  const lastPractice = new Date(lastPracticeDate);
+  const daysSinceLastPractice = Math.floor((Date.now() - lastPractice.getTime()) / 86400000);
+  const shouldRemind = daysSinceLastPractice >= minimumDaysSinceLastPractice;
 
-    const { current_streak, longest_streak, last_practice_date } = metrics;
-    if (!last_practice_date) return null;
+  if (!shouldRemind) return null;
 
-    const lastPractice = new Date(last_practice_date);
-    const daysSinceLastPractice = Math.floor((Date.now() - lastPractice.getTime()) / 86400000);
-    const shouldRemind = daysSinceLastPractice >= minimumDaysSinceLastPractice;
+  const reminderMessage = getStreakReminder(
+    daysSinceLastPractice,
+    currentStreak,
+    lastPractice,
+  );
 
-    if (!shouldRemind) return null;
-
-    const reminderMessage = getStreakReminder(
-      daysSinceLastPractice,
-      current_streak ?? 0,
-      lastPractice,
-    );
-
-    if (asToast) {
-      // Show as toast notification
-      // The dashboard page will use useErrorToast to show this
-    }
-
-    return reminderMessage;
-  } catch {
-    console.warn('Streak reminder fetch failed:');
-    return null;
+  if (asToast) {
+    // Toast will be shown by the caller
   }
+
+  return reminderMessage;
 }

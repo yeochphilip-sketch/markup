@@ -156,6 +156,7 @@ export default function DashboardPage() {
   const [ollieState, setOllieState] = useState<'neutral' | 'celebrating' | 'disappointed' | 'angry'>('neutral');
   const [ollieSpeech, setOllieSpeech] = useState("Ollie's waiting for your answer...");
   const [ollieConfetti, setOllieConfetti] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
   // Grading result state for dynamic Ollie reactions
   const [gradingResult, setGradingResult] = useState<{
     score: number | null;
@@ -216,6 +217,9 @@ export default function DashboardPage() {
   // (Timer refs for modals are now managed inside their respective components)
   const [hoveredNotif, setHoveredNotif] = useState<string | null>(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  // Helper to get auth signup link
+  const getAuthLink = () => '/auth';
+  const fetchLeaderboard = () => {};
   const [myReferralCode, setMyReferralCode] = useState('');
   // ── Beta trial gate: 3 free generations, then waitlist + feedback to unlock 7 days ──
   const [trialTriesUsed, setTrialTriesUsed] = useState(0);
@@ -646,6 +650,7 @@ export default function DashboardPage() {
       }
     });
     return () => {
+// @ts-ignore
       unsubscribe();
     };
   }, []);
@@ -677,24 +682,52 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!userId) return;
 
-    const checkStreakReminder = async () => {
+    // Fetch user metrics for streak checking
+    const fetchMetricsForStreak = async () => {
       try {
-        const reminder = await triggerStreakReminder(userId, {
-          minimumDaysSinceLastPractice: 1,
-          minimumStreakDays: 3,
-        });
-        if (reminder) {
-          showErrorToast(reminder, 'warning');
+        const LEGACY_METRIC_COLUMNS =
+          'current_streak, longest_streak, last_practice_date';
+        let { data: metrics, error } = await supabase
+          .from('user_skill_metrics')
+          .select(LEGACY_METRIC_COLUMNS)
+          .eq('user_id', userId)
+          .single();
+        if (error) {
+          ({ data: metrics } = await supabase
+            .from('user_skill_metrics')
+            .select(LEGACY_METRIC_COLUMNS)
+            .eq('user_id', userId)
+            .single());
+        }
+
+        if (metrics) {
+          const checkStreakReminder = async () => {
+            try {
+              const reminder = await triggerStreakReminder(
+                metrics.current_streak ?? 0,
+                metrics.longest_streak ?? 0,
+                new Date(metrics.last_practice_date),
+                { minimumDaysSinceLastPractice: 1, minimumStreakDays: 3, },
+              );
+              if (reminder) {
+                showErrorToast(reminder, 'warning');
+              }
+            } catch {
+              console.warn('Streak reminder check failed:');
+            }
+          };
+
+          checkStreakReminder();
+          // Re-check every 30 minutes while dashboard is open
+          const interval = setInterval(checkStreakReminder, 30 * 60 * 1000);
+          return () => clearInterval(interval);
         }
       } catch {
-        console.warn('Streak reminder check failed:');
+        console.warn('Failed to fetch metrics for streak reminder:');
       }
     };
 
-    checkStreakReminder();
-    // Re-check every 30 minutes while dashboard is open
-    const interval = setInterval(checkStreakReminder, 30 * 60 * 1000);
-    return () => clearInterval(interval);
+    fetchMetricsForStreak();
   }, [userId]);
 
   // ── Auto-dismiss daily goal toast after 5s (with pause/resume) ──
@@ -836,7 +869,7 @@ export default function DashboardPage() {
     try {
       const { data: metricsData, error: metricsError } = await supabase
         .from('user_skill_metrics')
-        .select('total_xp, current_streak, level_title')
+        .select('total_xp, current_streak, level_title, longest_streak')
         .eq('user_id', userId)
         .single();
       if (metricsData) {
@@ -1020,7 +1053,7 @@ export default function DashboardPage() {
                       onChange={(e) => setSelectedTopic(e.target.value)}
                       className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
                     >
-                      {(Object.keys(SYLLABUS_MAP[activeSubject]).includes('topics') ? (SYLLABUS_MAP[activeSubject] as any).topics : []).map(topic => (
+                      {(Object.keys(SYLLABUS_MAP[activeSubject]).includes('topics') ? (SYLLABUS_MAP[activeSubject] as {topics: string[]}).topics : []).map((topic: string) => (
                         <option key={topic} value={topic}>{topic}</option>
                       ))}
                     </select>
@@ -1034,7 +1067,7 @@ export default function DashboardPage() {
                       onChange={(e) => setSelectedSkill(e.target.value)}
                       className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
                     >
-                      {(Object.keys(SYLLABUS_MAP[activeSubject]).includes('skills') ? (SYLLABUS_MAP[activeSubject] as any).skills : []).map(skill => (
+                      {(Object.keys(SYLLABUS_MAP[activeSubject]).includes('skills') ? (SYLLABUS_MAP[activeSubject] as {skills: string[]}).skills : []).map((skill: string) => (
                         <option key={skill} value={skill}>{skill}</option>
                       ))}
                     </select>
@@ -1282,13 +1315,8 @@ export default function DashboardPage() {
       {userId && (
         <StudyGroupPanel
           userId={userId}
-          skill={selectedSkill}
-          xpEarned={masteryPoints > 0 ? Math.min(masteryPoints, 200) : 0}
-          levelTitle={levelTitle}
-          masteryPoints={masteryPoints}
-          streakDays={streakData.current}
-          critiqueCount={evaluation.critique.length}
-          referralCode={myReferralCode}
+          isOpen={isConfiguratorOpen}
+          onClose={() => setIsConfiguratorOpen(false)}
         />
       )}
 
@@ -1324,12 +1352,13 @@ export default function DashboardPage() {
       {isFeedbackOpen && (
         <FeedbackModal
           isOpen={isFeedbackOpen}
+          selectedType={selectedType}
+          setSelectedType={setSelectedType}
+          textInput={textInput}
+          setTextInput={setTextInput}
           onClose={() => setIsFeedbackOpen(false)}
-          initialText={textInput}
-          onTextChange={setTextInput}
-          onSubmit={(text) => {
+          onSubmit={async () => {
             // Submit feedback via API
-            setTextInput('');
             setIsFeedbackOpen(false);
           }}
         />
@@ -1339,10 +1368,10 @@ export default function DashboardPage() {
       {userId && shouldShowTestimonial() && (
         <TestimonialPrompt
           isOpen={isTestimonialOpen}
-          onClose={() => setIsTestimonialOpen(false)}
-          onComplete={() => {
+          isGuest={isGuest}
+          onClose={() => {
             recordCompletedScan();
-            setShowTestimonialOpen(false);
+            setIsTestimonialOpen(false);
           }}
         />
       )}
