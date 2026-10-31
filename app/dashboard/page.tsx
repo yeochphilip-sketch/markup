@@ -112,6 +112,10 @@ export default function DashboardPage() {
   const [userAvatar, setUserAvatar] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [userId, setUserId] = useState<string | null>(null);
+  // Derive display initials from userEmail when no avatar is set
+  const initials = !userAvatar && userEmail
+    ? userEmail.trim().charAt(0).toUpperCase()
+    : '';
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [showGuestBanner, setShowGuestBanner] = useState(true);
   // New simplified state for the redesigned layout
@@ -932,42 +936,67 @@ export default function DashboardPage() {
 
             {/* Profile button, opens a simple 3-child settings panel */}
             <div className="flex items-center gap-2 flex-shrink-0">
-              <button
-                onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center border border-slate-800 hover:border-indigo-500 focus:outline-none transition relative overflow-hidden bg-indigo-600 shadow-lg"
-                aria-expanded={isSettingsOpen}
-                aria-haspopup="true"
-              >
-                {userAvatar ? (
-                  <Image src={userAvatar} alt="Profile" fill sizes="36px" className="object-cover" referrerPolicy="no-referrer" />
-                ) : (
-                  <span className="text-xs sm:text-sm font-black text-white tracking-tighter">{emailInitial}</span>
-                )}
-              </button>
-              {isSettingsOpen && (
-                <div className="absolute right-0 top-full mt-2 w-64 bg-slate-950/95 border border-slate-900 p-2.5 rounded-2xl shadow-2xl backdrop-blur-xl flex flex-col gap-1.5 z-50">
-                  <div className="px-2 py-1.5">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 truncate">Account</p>
-                    <p className="text-xs text-slate-200 font-semibold truncate bg-slate-900/80 px-2.5 py-1.5 rounded-xl border border-slate-900">{isGuest ? 'Guest Mode' : (userEmail || 'Active Student')}</p>
-                  </div>
-                  <button onClick={() => { router.push('/dashboard/settings'); setIsSettingsOpen(false); }} className="w-full px-2 py-1.5 rounded-xl text-xs font-bold text-slate-400 hover:text-indigo-400 hover:bg-slate-900/60 transition flex items-center gap-2">
-                    <span>⚙️</span> Settings
-                  </button>
-                  <button onClick={() => { setIsFeedbackOpen(true); setIsSettingsOpen(false); }} className="w-full px-2 py-1.5 rounded-xl text-xs font-bold text-slate-400 hover:text-indigo-400 hover:bg-slate-900/60 transition flex items-center gap-2">
-                    <span>💬</span> Submit Feedback
-                  </button>
-                  {userId && (
-                    <button onClick={() => { setIsReferralOpen(true); setIsSettingsOpen(false); }} className="w-full px-2 py-1.5 rounded-xl text-xs font-bold text-slate-400 hover:text-indigo-400 hover:bg-slate-900/60 transition flex items-center gap-2">
-                      <span>👥</span> Referral Code
-                    </button>
-                  )}
-                  {isGuest ? (
-                    <Link href={getAuthLink()} className="w-full text-center bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-2 rounded-xl text-xs transition mt-1">Sign Up Free</Link>
+              <div className="relative">
+                <button
+                  onClick={() => setIsSettingsOpen(prev => !prev)}
+                  className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center border border-slate-800 hover:border-indigo-500 focus:outline-none transition relative overflow-hidden bg-indigo-600 shadow-lg"
+                  aria-expanded={isSettingsOpen}
+                  aria-haspopup="true"
+                  aria-label="Open profile menu"
+                >
+                  {userAvatar ? (
+                    <Image src={userAvatar} alt="Profile" fill sizes="36px" className="object-cover" referrerPolicy="no-referrer" />
                   ) : (
-                    <button onClick={async () => { await supabase.auth.signOut(); router.push('/auth'); }} className="w-full text-center bg-red-950/30 hover:bg-red-900/50 text-red-400 border border-red-900/30 font-bold py-2 px-2 rounded-xl text-xs transition mt-1">Sign Out</button>
+                    <span className="text-xs sm:text-sm font-black text-white tracking-tighter">{initials}</span>
                   )}
-                </div>
-              )}
+                </button>
+
+                {/* Dropdown panel */}
+                {isSettingsOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-64 bg-slate-950/95 border border-slate-900 p-2.5 rounded-2xl shadow-2xl backdrop-blur-xl flex flex-col gap-1.5 z-50">
+                    <div className="px-2 py-1.5">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 truncate">Account</p>
+                      <p className="text-xs text-slate-200 font-semibold truncate bg-slate-900/80 px-2.5 py-1.5 rounded-xl border border-slate-900">{isGuest ? 'Guest Mode' : (userEmail || 'Active Student')}</p>
+                    </div>
+
+                    <button
+                      onClick={() => { router.push('/dashboard/settings'); setIsSettingsOpen(false); }}
+                      className="w-full px-2 py-1.5 rounded-xl text-xs font-bold text-slate-400 hover:text-indigo-400 hover:bg-slate-900/60 transition flex items-center gap-2"
+                    >
+                      <span>⚙️</span> Settings
+                    </button>
+                    <button
+                      onClick={() => { setIsFeedbackOpen(true); setIsSettingsOpen(false); }}
+                      className="w-full px-2 py-1.5 rounded-xl text-xs font-bold text-slate-400 hover:text-indigo-400 hover:bg-slate-900/60 transition flex items-center gap-2"
+                    >
+                      <span>💬</span> Submit Feedback
+                    </button>
+                    {userId && (
+                      <button
+                        onClick={() => { setIsReferralOpen(true); setIsSettingsOpen(false); }}
+                        className="w-full px-2 py-1.5 rounded-xl text-xs font-bold text-slate-400 hover:text-indigo-400 hover:bg-slate-900/60 transition flex items-center gap-2"
+                      >
+                        <span>👥</span> Referral Code
+                      </button>
+                    )}
+                    <hr className="border-slate-800 my-1" />
+                    {isGuest ? (
+                      <Link href={getAuthLink()} className="w-full text-center bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-2 rounded-xl text-xs transition mt-1">Sign Up Free</Link>
+                    ) : (
+                      <button
+                        onClick={async () => {
+                          await supabase.auth.signOut();
+                          router.push('/auth');
+                          setIsSettingsOpen(false);
+                        }}
+                        className="w-full text-center bg-red-950/30 hover:bg-red-900/50 text-red-400 border border-red-900/30 font-bold py-2 px-2 rounded-xl text-xs transition mt-1"
+                      >
+                        Sign Out
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -988,7 +1017,7 @@ export default function DashboardPage() {
               showStartButton={true}
               startButtonLabel="Start 10-Min Practice"
               startButtonDisabled={isGenerating || isGrading || isAuthLoading || showGuestBanner}
-              onCardClick={() => {(showGuestBanner) ? setShowGuestBanner(false) : null}}
+              onCardClick={() => { if (showGuestBanner) setShowGuestBanner(false); }}
               onStartClick={() => {
                 if (showGuestBanner) {
                   setShowGuestBanner(false);

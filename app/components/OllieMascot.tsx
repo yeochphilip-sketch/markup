@@ -26,26 +26,25 @@ export default function OllieMascot({
   altText,
   onClick,
 }: OllieMascotProps) {
-  // Map emotional states to corresponding asset images
-  // User's Gemini-generated images in public/ folder
+  // Gemini-generated images in public/ folder
   const stateImageMap: Record<
     OllieMascotProps['state'],
     { src: string; alt: string }
   > = {
     celebrating: {
-      src: '/mascot/ollie-celebrating.png',
+      src: '/Gemini_Generated_Image_2ptaiu2ptaiu2pta.jpeg',
       alt: altText || 'Ollie celebrating',
     },
     disappointed: {
-      src: '/mascot/ollie-disappointed.png',
+      src: '/Gemini_Generated_Image_2ptaiu2ptaiu2pta (1).jpeg',
       alt: altText || 'Ollie disappointed',
     },
     angry: {
-      src: '/mascot/ollie-angry.png',
+      src: '/Gemini_Generated_Image_2ptaiu2ptaiu2pta (2).jpeg',
       alt: altText || 'Ollie roasting',
     },
     neutral: {
-      src: '/mascot/ollie-neutral.png',
+      src: '/splitimage.im-1.jpg',
       alt: altText || 'Ollie the otter',
     },
   };

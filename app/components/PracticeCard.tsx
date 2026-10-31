@@ -54,7 +54,8 @@ const PracticeCard = memo(function PracticeCard({
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
+        // Only start on explicit Enter/Space when the start button is visible
+        if ((e.key === 'Enter' || e.key === ' ') && showStartButton && !startButtonDisabled) {
           e.preventDefault();
           onStartClick?.();
         }
@@ -69,7 +70,7 @@ const PracticeCard = memo(function PracticeCard({
         />
         <div className="flex-1 min-w-0">
           <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-            {bestTime != null ? 'Best time' : 'Daily goal'}
+            {bestTime != null ? 'Streak' : 'Daily goal'}
           </p>
           <p
             className={`text-sm sm:text-base font-bold truncate transition-colors ${
@@ -84,7 +85,7 @@ const PracticeCard = memo(function PracticeCard({
           </p>
           {bestTime != null && (
             <p className="text-[10px] font-mono text-slate-500 mt-1">
-              {bestTime < 10 ? `${bestTime.toFixed(1)} min` : `${Math.round(bestTime)} min`}
+              🔥 {bestTime}d streak / best: {bestTime < 10 ? `${bestTime.toFixed(1)} min` : `${Math.round(bestTime)} min`}
             </p>
           )}
         </div>
